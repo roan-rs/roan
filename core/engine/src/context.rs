@@ -1,8 +1,7 @@
-use std::fmt::Debug;
-use std::rc::Rc;
-use crate::module::{loader::ModuleLoader, fs::FsModuleLoader};
-use bon::bon;
+use crate::module::{fs::FsModuleLoader, loader::ModuleLoader};
 use anyhow::Result;
+use bon::bon;
+use std::{fmt::Debug, rc::Rc};
 
 /// Struct to interact with the runtime.
 ///
@@ -59,7 +58,8 @@ impl Context {
     pub fn new(
         #[builder(
             default = Rc::new(FsModuleLoader::new(".").unwrap())
-        )] module_loader: Rc<dyn ModuleLoader>
+        )]
+        module_loader: Rc<dyn ModuleLoader>,
     ) -> Self {
         Self { module_loader }
     }
@@ -105,6 +105,9 @@ mod tests {
         let loader = Rc::new(MockLoader);
         let ctx = Context::builder().module_loader(loader).build();
 
-        assert_eq!(format!("{:?}", ctx), "Context { module_loader: \"ModuleLoader\" }");
+        assert_eq!(
+            format!("{:?}", ctx),
+            "Context { module_loader: \"ModuleLoader\" }"
+        );
     }
 }

@@ -23,13 +23,18 @@ impl TextSpan {
     /// # Example
     ///
     /// ```
+    /// use roan_error::{Position, TextSpan};
     /// let start = Position::new(1, 1, 0);
     /// let end = Position::new(1, 5, 4);
     /// let span = TextSpan::new(start, end, "test".to_string());
     /// assert_eq!(span.length(), 4);
     /// ```
     pub fn new(start: Position, end: Position, literal: String) -> Self {
-        Self { start, end, literal }
+        Self {
+            start,
+            end,
+            literal,
+        }
     }
 
     /// Combines multiple `TextSpan` objects into one. The spans are sorted by their starting positions.
@@ -50,6 +55,7 @@ impl TextSpan {
     /// # Example
     ///
     /// ```
+    /// use roan_error::{Position, TextSpan};
     /// let span1 = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
     /// let span2 = TextSpan::new(Position::new(1, 6, 5), Position::new(1, 10, 9), "span".to_string());
     /// let combined = TextSpan::combine(vec![span1, span2]);
@@ -100,6 +106,7 @@ impl std::fmt::Debug for TextSpan {
     /// # Example
     ///
     /// ```
+    /// use roan_error::{Position, TextSpan};
     /// let span = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
     /// assert_eq!(format!("{:?}", span), "\"test\" (1:1)");
     /// ```

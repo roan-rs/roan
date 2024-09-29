@@ -13,7 +13,6 @@ pub mod commands;
 pub mod logger;
 pub mod panic_handler;
 
-
 fn main() -> Result<()> {
     setup_panic_handler();
     let args = Cli::parse();
@@ -22,9 +21,7 @@ fn main() -> Result<()> {
     log::debug!("Parsed clap arguments");
 
     let result = match args.command {
-        Commands::Run {
-            file
-        } => run_command(file),
+        Commands::Run { file } => run_command(file),
     };
 
     match result {

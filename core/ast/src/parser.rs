@@ -1,8 +1,13 @@
+use crate::{
+    ast::{
+        Ast, BinOpAssociativity, BinOpKind, BinOperator, Block, ElseBlock, Expr, FnParam,
+        FunctionType, Stmt, TypeAnnotation, UnOpKind, UnOperator,
+    },
+    lexer::token::{Token, TokenKind},
+};
 use anyhow::Result;
 use log::debug;
 use roan_error::error::PulseError::{ExpectedToken, UnexpectedToken};
-use crate::ast::{Ast, BinOpAssociativity, BinOpKind, BinOperator, Block, ElseBlock, Expr, FnParam, FunctionType, Stmt, TypeAnnotation, UnOpKind, UnOperator};
-use crate::lexer::token::{Token, TokenKind};
 
 /// Struct responsible for parsing the tokens into an AST
 #[derive(Debug)]
@@ -15,15 +20,6 @@ pub struct Parser {
 
 impl Parser {
     /// Creates a new parser with the given tokens
-    ///
-    /// # Example
-    /// ```rs
-    ///  let mut lexer = Lexer::from_source(main_content);
-    ///  let tokens = lexer.lex()?;
-    ///
-    ///  let mut parser = Parser::new(tokens.clone());
-    ///  let ast = parser.parse()?;
-    /// ```
     pub fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, current: 0 }
     }
@@ -93,7 +89,7 @@ impl Parser {
                 format!("Expected token of kind: {}", kind),
                 token.span.clone(),
             )
-                .into())
+            .into())
         }
     }
 }
@@ -243,7 +239,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-                .into());
+            .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -265,7 +261,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-                .into())
+            .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -306,7 +302,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                    .into());
+                .into());
             }
         } else {
             self.consume()
@@ -416,7 +412,7 @@ impl Parser {
                 let equal_precedence = inner_operator.precedence() == operator.precedence();
                 if !(greater_precedence
                     || equal_precedence
-                    && inner_operator.associativity() == BinOpAssociativity::Right)
+                        && inner_operator.associativity() == BinOpAssociativity::Right)
                 {
                     break;
                 }

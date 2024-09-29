@@ -1,5 +1,5 @@
-use thiserror::Error;
 use crate::span::TextSpan;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum PulseError {

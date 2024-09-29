@@ -1,8 +1,6 @@
-use std::{
-    fmt::{Display, Formatter},
-};
-use roan_error::span::TextSpan;
 use crate::lexer::token::Token;
+use roan_error::span::TextSpan;
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ast {
@@ -136,7 +134,6 @@ impl FunctionType {
         Self { arrow, type_name }
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Fn {

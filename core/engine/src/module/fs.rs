@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
 use crate::module::loader::ModuleLoader;
 use anyhow::Result;
+use std::path::{Path, PathBuf};
 
 /// A module loader that loads modules from the filesystem.
 #[derive(Clone, Debug)]
@@ -16,9 +16,9 @@ impl FsModuleLoader {
     /// not exist).
     pub fn new(root: impl AsRef<Path>) -> Result<Self> {
         let root = root.as_ref();
-        let root = root.canonicalize().map_err(|e| {
-            anyhow::anyhow!("Failed to canonicalize root path: {}", e)
-        })?;
+        let root = root
+            .canonicalize()
+            .map_err(|e| anyhow::anyhow!("Failed to canonicalize root path: {}", e))?;
 
         Ok(Self { root })
     }

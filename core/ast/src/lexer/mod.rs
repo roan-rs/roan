@@ -1,8 +1,6 @@
-use anyhow::Result;
-use roan_error::error::PulseError::InvalidToken;
-use roan_error::position::Position;
-use roan_error::span::TextSpan;
 use crate::lexer::token::{Token, TokenKind};
+use anyhow::Result;
+use roan_error::{error::PulseError::InvalidToken, position::Position, span::TextSpan};
 
 pub mod token;
 
@@ -20,10 +18,11 @@ impl Lexer {
     /// - `source` - A string slice containing the source code.
     ///
     /// # Example
-    /// ```
+    /// ```rust
+    /// use roan_ast::{Lexer, TokenKind};
     /// let source = "let x = 10;".to_string();
-    /// let lexer = Lexer::from_source(source);
-    /// let tokens = lexer.lex()?;
+    /// let mut lexer = Lexer::from_source(source);
+    /// let tokens = lexer.lex().expect("Failed to lex source code");
     ///
     /// assert_eq!(tokens.first().unwrap().kind, TokenKind::Let);
     /// ```
@@ -304,7 +303,7 @@ impl Lexer {
                             c.to_string(),
                             TextSpan::new(start_pos, self.position, c.to_string()),
                         )
-                            .into());
+                        .into());
                     }
                 };
 

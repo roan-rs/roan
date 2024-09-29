@@ -23,6 +23,7 @@ impl Position {
     /// # Example
     ///
     /// ```
+    /// use roan_error::Position;
     /// let pos = Position::new(1, 1, 0);
     /// assert_eq!(pos.line(), 1);
     /// assert_eq!(pos.column(), 1);
@@ -83,6 +84,7 @@ impl fmt::Display for Position {
     /// # Example
     ///
     /// ```
+    /// use roan_error::Position;
     /// let pos = Position::new(1, 1, 0);
     /// assert_eq!(format!("{}", pos), "1:1 (index: 0)");
     /// ```
@@ -97,6 +99,7 @@ impl Default for Position {
     /// # Example
     ///
     /// ```
+    /// use roan_error::Position;
     /// let default_pos = Position::default();
     /// assert_eq!(default_pos, Position::new(1, 1, 0));
     /// ```

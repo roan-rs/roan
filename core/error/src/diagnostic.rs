@@ -1,8 +1,7 @@
+use crate::{error::PulseError, span::TextSpan};
 use colored::Colorize;
 use log::Level;
 use std::io::{BufWriter, Stderr, Write};
-use crate::error::PulseError;
-use crate::span::TextSpan;
 
 /// Represents a diagnostic message, which includes information about an error or warning
 /// and can be pretty-printed to the console.
@@ -34,7 +33,10 @@ impl Diagnostic {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```rust ignore
+    /// use std::io::BufWriter;
+    /// use log::Level;
+    /// use roan_error::{Diagnostic, Position, TextSpan};
     /// let diagnostic = Diagnostic {
     ///     title: "Syntax Error".to_string(),
     ///     text: None,
@@ -55,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-            .expect("Error writing level");
+        .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -123,7 +125,9 @@ impl Diagnostic {
 ///
 /// # Example
 ///
-/// ```
+/// ```rust ignore
+/// use roan_error::error::PulseError;
+/// use roan_error::print_diagnostic;
 /// let err = PulseError::SemanticError("Unexpected token".to_string(), span);
 /// print_diagnostic(anyhow::Error::new(err), Some(source_code));
 /// ```
