@@ -12,7 +12,6 @@ pub mod cli;
 pub mod commands;
 pub mod logger;
 pub mod panic_handler;
-pub mod instance;
 
 
 fn main() -> Result<()> {

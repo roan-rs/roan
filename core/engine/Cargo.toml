@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 roan-error = { workspace = true }
 roan-ast = { workspace = true }
+bon = { workspace = true }
+anyhow = { workspace = true }
