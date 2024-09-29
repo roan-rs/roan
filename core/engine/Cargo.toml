@@ -1,0 +1,8 @@
+[package]
+name = "roan-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+roan-error = { workspace = true }
+roan-ast = { workspace = true }
