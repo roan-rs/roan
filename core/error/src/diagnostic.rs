@@ -4,17 +4,49 @@ use std::io::{BufWriter, Stderr, Write};
 use crate::error::PulseError;
 use crate::span::TextSpan;
 
+/// Represents a diagnostic message, which includes information about an error or warning
+/// and can be pretty-printed to the console.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diagnostic {
+    /// The title or summary of the diagnostic message.
     pub title: String,
+    /// An optional detailed description of the diagnostic message.
     pub text: Option<String>,
+    /// The severity level of the diagnostic message (e.g., Error, Warning).
     pub level: Level,
+    /// The location in the source code where the error or warning occurred, represented as a `TextSpan`.
     pub location: Option<TextSpan>,
+    /// An optional hint that provides additional guidance on resolving the issue.
     pub hint: Option<String>,
+    /// The content of the source code related to the diagnostic.
     pub content: Option<String>,
 }
 
 impl Diagnostic {
+    /// Logs the diagnostic in a human-readable format to the provided buffer.
+    ///
+    /// The message is colored according to its severity level, and the source code around
+    /// the error location (if available) is highlighted.
+    ///
+    /// # Arguments
+    ///
+    /// * `buff` - A mutable reference to a `BufWriter` that writes to `stderr`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let diagnostic = Diagnostic {
+    ///     title: "Syntax Error".to_string(),
+    ///     text: None,
+    ///     level: Level::Error,
+    ///     location: Some(TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string())),
+    ///     hint: None,
+    ///     content: Some("let x = ;".to_string()),
+    /// };
+    ///
+    /// let mut buff = BufWriter::new(std::io::stderr());
+    /// diagnostic.log_pretty(&mut buff);
+    /// ```
     pub fn log_pretty(&self, buff: &mut BufWriter<Stderr>) {
         writeln!(
             buff,
@@ -68,6 +100,11 @@ impl Diagnostic {
         self.print_hint(buff);
     }
 
+    /// Prints a hint message (if available) to the provided buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `buff` - A mutable reference to a `BufWriter` that writes to `stderr`.
     pub fn print_hint(&self, buff: &mut BufWriter<Stderr>) {
         if let Some(hint) = &self.hint {
             writeln!(buff, "{}{}", "Hint: ".bright_cyan(), hint.bright_cyan())
@@ -76,6 +113,20 @@ impl Diagnostic {
     }
 }
 
+/// Prints a diagnostic message based on the provided error. The function matches
+/// the error type with corresponding diagnostics and logs it prettily.
+///
+/// # Arguments
+///
+/// * `err` - An `anyhow::Error` object that encapsulates the actual error.
+/// * `content` - An optional string slice containing the source code related to the error.
+///
+/// # Example
+///
+/// ```
+/// let err = PulseError::SemanticError("Unexpected token".to_string(), span);
+/// print_diagnostic(anyhow::Error::new(err), Some(source_code));
+/// ```
 pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
     let err = err.downcast_ref::<PulseError>().unwrap();
 
