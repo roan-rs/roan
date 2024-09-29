@@ -4,19 +4,33 @@ use roan_error::error::PulseError::{ExpectedToken, UnexpectedToken};
 use crate::ast::{Ast, BinOpAssociativity, BinOpKind, BinOperator, Block, ElseBlock, Expr, FnParam, FunctionType, Stmt, TypeAnnotation, UnOpKind, UnOperator};
 use crate::lexer::token::{Token, TokenKind};
 
+/// Struct responsible for parsing the tokens into an AST
 #[derive(Debug)]
 pub struct Parser {
+    /// The tokens to parse from the lexer
     pub tokens: Vec<Token>,
+    /// The current token index
     pub current: usize,
 }
 
 impl Parser {
+    /// Creates a new parser with the given tokens
+    ///
+    /// # Example
+    /// ```rs
+    ///  let mut lexer = Lexer::from_source(main_content);
+    ///  let tokens = lexer.lex()?;
+    ///
+    ///  let mut parser = Parser::new(tokens.clone());
+    ///  let ast = parser.parse()?;
+    /// ```
     pub fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, current: 0 }
     }
 }
 
 impl Parser {
+    /// Parses the tokens into an AST until the last token or EOF
     pub fn parse(&mut self) -> Result<Ast> {
         let mut ast = Ast::new();
 
@@ -31,6 +45,7 @@ impl Parser {
         Ok(ast)
     }
 
+    /// Consumes the current token and returns the previous token
     pub fn consume(&mut self) -> Token {
         if !self.is_eof() {
             self.current += 1;
@@ -39,12 +54,14 @@ impl Parser {
         self.previous()
     }
 
+    /// Returns the previous token
     pub fn previous(&self) -> Token {
         assert!(self.current > 0);
 
         self.tokens[self.current - 1].clone()
     }
 
+    /// Returns the next token
     pub fn peek(&self) -> Token {
         self.tokens[self.current].clone()
     }
@@ -57,12 +74,14 @@ impl Parser {
         self.current >= self.tokens.len() || self.peek().kind == TokenKind::EOF
     }
 
+    /// Consumes the current token if it is of the given kind
     pub fn possible_check(&mut self, kind: TokenKind) {
         if self.peek().kind == kind {
             self.consume();
         }
     }
 
+    /// Expects the current token to be of the given kind and then consumes it or throws an error
     pub fn expect(&mut self, kind: TokenKind) -> Result<Token> {
         let token = self.peek();
 
@@ -80,6 +99,7 @@ impl Parser {
 }
 
 impl Parser {
+    /// Parses a statement from the tokens
     pub fn parse_stmt(&mut self) -> Result<Option<Stmt>> {
         let token = self.peek();
 

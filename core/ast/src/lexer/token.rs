@@ -11,18 +11,24 @@ pub struct Token {
 }
 
 impl Token {
+    /// Creates a new `Token` with the specified `TokenKind` and `TextSpan`.
     pub fn new(kind: TokenKind, span: TextSpan) -> Self {
         Self { kind, span }
     }
 
+    /// Returns the literal value of the token.
     pub fn literal(&self) -> String {
         self.span.literal.clone()
     }
 
+    /// Checks if the token is a string.
     pub fn is_string(&self) -> bool {
         matches!(self.kind, TokenKind::String(_))
     }
 
+    /// Tries to convert the token to a boolean.
+    ///
+    /// Throws a panic if the token is not a boolean.
     pub fn as_bool(&self) -> Option<bool> {
         match self.kind {
             TokenKind::True => Some(true),

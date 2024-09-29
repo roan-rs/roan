@@ -6,6 +6,7 @@ use crate::lexer::token::{Token, TokenKind};
 
 pub mod token;
 
+/// The lexer is responsible for converting the source code into a list of tokens.
 pub struct Lexer {
     pub source: String,
     pub tokens: Vec<Token>,
@@ -13,6 +14,20 @@ pub struct Lexer {
 }
 
 impl Lexer {
+    /// Create a new lexer from a source string.
+    ///
+    /// # Arguments
+    /// - `source` - A string slice containing the source code.
+    ///
+    /// # Example
+    /// ```
+    /// let source = "let x = 10;".to_string();
+    /// let lexer = Lexer::from_source(source);
+    /// let tokens = lexer.lex()?;
+    ///
+    /// assert_eq!(tokens.first().unwrap().kind, TokenKind::Let);
+    /// ```
+    /// ```
     pub fn from_source(source: String) -> Self {
         Self {
             source,
@@ -23,6 +38,12 @@ impl Lexer {
 }
 
 impl Lexer {
+    /// Lex the source code and return a list of tokens.
+    ///
+    /// During the lexing process, the lexer will consume the source code character by character
+    /// and convert it into a list of tokens. The lexer will skip whitespace and comments.
+    ///
+    /// When EOF is reached, the lexer will return the list of tokens.
     pub fn lex(&mut self) -> Result<Vec<Token>> {
         while let Some(token) = self.next_token()? {
             if token.kind == TokenKind::Whitespace {
@@ -38,14 +59,17 @@ impl Lexer {
         Ok(self.tokens.clone())
     }
 
+    /// Check if the lexer has reached the end of the source code.
     pub fn is_eof(&self) -> bool {
         self.position.index >= self.source.len()
     }
 
+    /// Get the current character in the source code.
     pub fn current(&mut self) -> Option<char> {
         self.source.chars().nth(self.position.index)
     }
 
+    /// Consume the current character and move to the next one.
     pub fn consume(&mut self) -> Option<char> {
         if self.position.index >= self.source.len() {
             return None;
@@ -57,6 +81,12 @@ impl Lexer {
         c
     }
 
+    /// Update the position of the lexer.
+    ///
+    /// The position is updated based on the current character.
+    /// The position includes the line, column, and index of the character.
+    ///
+    /// If the character is a newline, the line is incremented and the column is reset to 0.
     fn update_position(&mut self, c: char) {
         if c == '\n' {
             self.position.line += 1;
@@ -67,15 +97,17 @@ impl Lexer {
         self.position.index += 1;
     }
 
-    // can be made of letters, digits, and underscores
+    /// Check if the character is a valid identifier start character.
     pub fn is_identifier_start(&self, c: char) -> bool {
         c.is_alphanumeric() || c == '_'
     }
 
+    /// Check if the character is a valid number start character.
     pub fn is_number_start(&self, c: char) -> bool {
         c.is_digit(10)
     }
 
+    /// Peek at the next character in the source code.
     pub fn peek(&self) -> Option<char> {
         if self.position.index + 1 >= self.source.len() {
             None
@@ -84,6 +116,7 @@ impl Lexer {
         }
     }
 
+    /// Parse a string literal.
     pub fn parse_string(&mut self) -> Result<String> {
         let mut str = String::new();
 
@@ -117,6 +150,7 @@ impl Lexer {
         Ok(str)
     }
 
+    /// Get the next token in the source code.
     pub fn next_token(&mut self) -> Result<Option<Token>> {
         if let Some(c) = self.current() {
             let start_pos = self.position;
@@ -289,6 +323,7 @@ impl Lexer {
         }
     }
 
+    /// Check if the next character matches the given character.
     pub fn match_next(&mut self, ch: char) -> bool {
         if let Some(c) = self.current() {
             if c == ch {
@@ -298,6 +333,7 @@ impl Lexer {
         false
     }
 
+    /// Consume an identifier.
     pub fn consume_identifier(&mut self) -> String {
         let mut ident = String::new();
 
@@ -313,7 +349,9 @@ impl Lexer {
         ident
     }
 
-    // Can be float or integer
+    /// Consume a number.
+    ///
+    /// Can be either an integer or a float.
     pub fn consume_number(&mut self) -> (NumberType, String) {
         let mut number = String::new();
         let mut number_type = NumberType::Integer;
@@ -334,6 +372,7 @@ impl Lexer {
     }
 }
 
+/// The type of number.
 #[derive(Debug)]
 pub enum NumberType {
     Integer,
