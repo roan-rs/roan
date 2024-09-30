@@ -23,9 +23,9 @@ impl Source {
     }
 
     /// Creates a new `Source` from a byte slice.
-    pub fn from_bytes(source: Vec<u8>) -> Self {
+    pub fn from_bytes<T: AsRef<[u8]> + ?Sized>(source: &T) -> Self {
         Self {
-            content: source.iter().map(|&b| b as char).collect(),
+            content: source.as_ref().iter().map(|&b| b as char).collect(),
             path: None,
         }
     }

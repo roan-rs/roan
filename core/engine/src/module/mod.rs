@@ -27,7 +27,7 @@ impl Module {
     /// ```rust
     /// use roan_engine::module::Module;
     /// use roan_ast::source::Source;
-    /// let source = Source::from_bytes("fn main() { }".as_bytes().into_vec());
+    /// let source = Source::from_bytes("fn main() { }");
     ///
     /// let module = Module::new(source);
     /// ```
