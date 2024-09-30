@@ -1,7 +1,8 @@
-use crate::module::{fs::FsModuleLoader, loader::ModuleLoader, Module};
+use crate::module::{loader::{ModuleLoader, BasicModuleLoader}, Module};
 use anyhow::Result;
 use bon::bon;
 use std::{fmt::Debug, rc::Rc};
+
 
 /// Struct to interact with the runtime.
 ///
@@ -57,7 +58,7 @@ impl Context {
     #[builder]
     pub fn new(
         #[builder(
-            default = Rc::new(FsModuleLoader::new(".").unwrap())
+            default = Rc::new(BasicModuleLoader::new())
         )]
         module_loader: Rc<dyn ModuleLoader>,
     ) -> Self {
@@ -82,34 +83,11 @@ impl Context {
     ///
     /// The result of the evaluation.
     pub fn eval(&self, mut module: Module) -> Result<()> {
-        let parsed = module.parse()?;
+        module.parse()?;
+
+        module.interpret()?;
 
         Ok(())
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::module::loader::ModuleLoader;
-    use std::rc::Rc;
-
-    struct MockLoader;
-
-    impl ModuleLoader for MockLoader {
-        fn load(&self) {
-            println!("Loading module");
-        }
-    }
-
-    #[test]
-    fn test_context() {
-        let loader = Rc::new(MockLoader);
-        let ctx = Context::builder().module_loader(loader).build();
-
-        assert_eq!(
-            format!("{:?}", ctx),
-            "Context { module_loader: \"ModuleLoader\" }"
-        );
-    }
-}

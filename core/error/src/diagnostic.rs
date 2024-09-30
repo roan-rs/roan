@@ -57,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-        .expect("Error writing level");
+            .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -132,50 +132,70 @@ impl Diagnostic {
 /// print_diagnostic(anyhow::Error::new(err), Some(source_code));
 /// ```
 pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
-    let err = err.downcast_ref::<PulseError>().unwrap();
+    let err = err.downcast_ref::<PulseError>();
 
-    let err_str = err.to_string();
-    let diagnostic = match err {
-        PulseError::Io(_) => Diagnostic {
-            title: "IO error".to_string(),
-            text: Some(err_str),
-            level: Level::Error,
-            location: None,
-            hint: None,
-            content: None,
-        },
-        PulseError::InvalidToken(_, span)
-        | PulseError::SemanticError(_, span)
-        | PulseError::UnexpectedToken(_, span) => Diagnostic {
-            title: err_str,
-            text: None,
-            level: Level::Error,
-            location: Some(span.clone()),
-            hint: None,
-            content,
-        },
-        PulseError::ExpectedToken(expected, hint, span) => Diagnostic {
-            title: format!("Expected {}", expected),
-            text: None,
-            level: Level::Error,
-            location: Some(span.clone()),
-            hint: Some(hint.clone()),
-            content,
-        },
-        PulseError::ResolverError(_) => Diagnostic {
-            title: err_str,
-            text: None,
-            level: Level::Error,
-            location: None,
-            hint: None,
-            content: None,
-        },
-        _ => {
-            log::error!("{:?}", err);
-            return;
-        }
-    };
+    if let Some(err) = err {
+        let err_str = err.to_string();
+        let diagnostic = match err {
+            PulseError::Io(_) => Diagnostic {
+                title: "IO error".to_string(),
+                text: Some(err_str),
+                level: Level::Error,
+                location: None,
+                hint: None,
+                content: None,
+            },
+            PulseError::InvalidToken(_, span)
+            | PulseError::SemanticError(_, span)
+            | PulseError::UnexpectedToken(_, span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: None,
+                content,
+            },
+            PulseError::ExpectedToken(expected, hint, span) => Diagnostic {
+                title: format!("Expected {}", expected),
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: Some(hint.clone()),
+                content,
+            },
+            PulseError::ResolverError(_) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: None,
+                hint: None,
+                content: None,
+            },
+            PulseError::ModuleError(_) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: None,
+                hint: None,
+                content: None,
+            },
+            PulseError::ModuleNotFoundError(_, span) | PulseError::ImportError(_, span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: None,
+                content,
+            },
+            _ => {
+                log::error!("{:?}", err);
+                return;
+            }
+        };
 
-    let mut buff = BufWriter::new(std::io::stderr());
-    diagnostic.log_pretty(&mut buff);
+        let mut buff = BufWriter::new(std::io::stderr());
+        diagnostic.log_pretty(&mut buff);
+    } else {
+        log::error!("{:?}", err);
+    }
 }

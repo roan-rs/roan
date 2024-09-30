@@ -1,6 +1,7 @@
 use crate::lexer::token::Token;
 use roan_error::span::TextSpan;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
+use std::ops::Deref;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ast {
@@ -135,7 +136,7 @@ impl FunctionType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Fn {
     pub fn_token: Token,
     pub name: String,
@@ -143,6 +144,18 @@ pub struct Fn {
     pub body: Block,
     pub exported: bool,
     pub return_type: Option<FunctionType>,
+}
+
+impl Debug for Fn {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Fn")
+            .field("name", &self.name)
+            .field("params", &self.params)
+            .field("body", &self.body)
+            .field("exported", &self.exported)
+            .field("return_type", &self.return_type)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -168,15 +181,31 @@ pub struct Use {
     pub items: Vec<Token>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Block {
     pub stmts: Vec<Stmt>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+impl Debug for Block {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Block")
+            .field("stmts", &self.stmts.len())
+            .finish()
+    }
+}
+
+#[derive(Clone, PartialEq)]
 pub struct Return {
     pub return_token: Token,
     pub expr: Option<Box<Expr>>,
+}
+
+impl Debug for Return {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Return")
+            .field("expr", &self.expr.clone().unwrap().span().literal)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

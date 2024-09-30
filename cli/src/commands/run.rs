@@ -10,7 +10,7 @@ pub fn run_command(file: String) -> Result<()> {
 
     let ctx = Context::default();
     let source = Source::from_string(content.clone()).with_path(path);
-    let module = Module::new(source);
+    let module = Module::new(source, ctx.clone());
 
     match ctx.eval(module) {
         Ok(_) => Ok(()),

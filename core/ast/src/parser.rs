@@ -89,7 +89,7 @@ impl Parser {
                 format!("Expected token of kind: {}", kind),
                 token.span.clone(),
             )
-            .into())
+                .into())
         }
     }
 }
@@ -239,7 +239,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-            .into());
+                .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -261,7 +261,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-            .into())
+                .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -302,7 +302,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                .into());
+                    .into());
             }
         } else {
             self.consume()
@@ -412,7 +412,7 @@ impl Parser {
                 let equal_precedence = inner_operator.precedence() == operator.precedence();
                 if !(greater_precedence
                     || equal_precedence
-                        && inner_operator.associativity() == BinOpAssociativity::Right)
+                    && inner_operator.associativity() == BinOpAssociativity::Right)
                 {
                     break;
                 }

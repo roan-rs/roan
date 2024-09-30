@@ -18,7 +18,7 @@ impl Token {
 
     /// Returns the literal value of the token.
     pub fn literal(&self) -> String {
-        self.span.literal.clone()
+        self.span.literal.to_string()
     }
 
     /// Checks if the token is a string.
