@@ -1,4 +1,4 @@
-use crate::module::{fs::FsModuleLoader, loader::ModuleLoader};
+use crate::module::{fs::FsModuleLoader, loader::ModuleLoader, Module};
 use anyhow::Result;
 use bon::bon;
 use std::{fmt::Debug, rc::Rc};
@@ -81,7 +81,9 @@ impl Context {
     /// # Returns
     ///
     /// The result of the evaluation.
-    pub fn eval(&self) -> Result<()> {
+    pub fn eval(&self, mut module: Module) -> Result<()> {
+        let parsed = module.parse()?;
+
         Ok(())
     }
 }

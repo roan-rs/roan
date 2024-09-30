@@ -1,12 +1,13 @@
 use crate::lexer::token::{Token, TokenKind};
 use anyhow::Result;
 use roan_error::{error::PulseError::InvalidToken, position::Position, span::TextSpan};
+use crate::source::Source;
 
 pub mod token;
 
 /// The lexer is responsible for converting the source code into a list of tokens.
 pub struct Lexer {
-    pub source: String,
+    pub source: Source,
     pub tokens: Vec<Token>,
     pub position: Position,
 }
@@ -20,14 +21,15 @@ impl Lexer {
     /// # Example
     /// ```rust
     /// use roan_ast::{Lexer, TokenKind};
-    /// let source = "let x = 10;".to_string();
-    /// let mut lexer = Lexer::from_source(source);
+    /// use roan_ast::source::Source;
+    /// let source = Source::from_string("let x = 10;".to_string());
+    /// let mut lexer = Lexer::new(source);
     /// let tokens = lexer.lex().expect("Failed to lex source code");
     ///
     /// assert_eq!(tokens.first().unwrap().kind, TokenKind::Let);
     /// ```
     /// ```
-    pub fn from_source(source: String) -> Self {
+    pub fn new(source: Source) -> Self {
         Self {
             source,
             tokens: vec![],
@@ -303,7 +305,7 @@ impl Lexer {
                             c.to_string(),
                             TextSpan::new(start_pos, self.position, c.to_string()),
                         )
-                        .into());
+                            .into());
                     }
                 };
 
@@ -312,7 +314,7 @@ impl Lexer {
             };
 
             let end_pos = self.position;
-            let literal = self.source[start_pos.index..end_pos.index].to_string();
+            let literal = self.source.get_between(start_pos.index, end_pos.index);
             Ok(Some(Token::new(
                 kind,
                 TextSpan::new(start_pos, end_pos, literal),
