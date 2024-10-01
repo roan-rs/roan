@@ -2,7 +2,7 @@ use crate::module::{loader::{ModuleLoader, BasicModuleLoader}, Module};
 use anyhow::Result;
 use bon::bon;
 use std::{fmt::Debug, rc::Rc};
-
+use log::debug;
 
 /// Struct to interact with the runtime.
 ///
@@ -39,17 +39,9 @@ use std::{fmt::Debug, rc::Rc};
 ///
 /// assert_eq!(result, Ok(Value::Int(3)));
 /// ```
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Context {
     pub module_loader: Rc<dyn ModuleLoader>,
-}
-
-impl Debug for Context {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Context")
-            .field("module_loader", &"ModuleLoader")
-            .finish()
-    }
 }
 
 #[bon]
@@ -68,6 +60,7 @@ impl Context {
 
 impl Default for Context {
     fn default() -> Self {
+        log::debug!("Creating default context");
         Self::builder().build()
     }
 }
@@ -83,11 +76,30 @@ impl Context {
     ///
     /// The result of the evaluation.
     pub fn eval(&self, mut module: Module) -> Result<()> {
+        debug!("Evaluating module: {:?}", module);
         module.parse()?;
-
-        module.interpret()?;
+        module.interpret(self)?;
 
         Ok(())
+    }
+
+    /// Insert a module into the context.
+    ///
+    /// # Arguments
+    /// - `name` - The name of the module.
+    /// - `module` - The module to insert.
+    pub fn insert_module(&self, name: String, module: Module) {
+        debug!("Inserting module: {}", name);
+        self.module_loader.insert(name, module);
+    }
+
+    /// Get a module from the context.
+    ///
+    /// # Arguments
+    /// - `name` - The name of the module.
+    pub fn get_module(&self, name: String) -> Option<Module> {
+        debug!("Getting module: {}", name);
+        self.module_loader.get(name)
     }
 }
 

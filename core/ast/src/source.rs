@@ -5,6 +5,7 @@ use std::{
 };
 use std::io::{Seek, SeekFrom};
 use std::str::Chars;
+use log::debug;
 
 /// A source of Roan code.
 #[derive(Clone, Debug)]
@@ -16,6 +17,7 @@ pub struct Source {
 impl Source {
     /// Creates a new `Source` from a `String`.
     pub fn from_string(string: String) -> Self {
+        debug!("Creating source from string");
         Self {
             content: string,
             path: None,
@@ -24,6 +26,7 @@ impl Source {
 
     /// Creates a new `Source` from a byte slice.
     pub fn from_bytes<T: AsRef<[u8]> + ?Sized>(source: &T) -> Self {
+        debug!("Creating source from bytes");
         Self {
             content: source.as_ref().iter().map(|&b| b as char).collect(),
             path: None,
@@ -32,6 +35,7 @@ impl Source {
 
     /// Creates a new `Source` from a file path.
     pub fn from_path(path: PathBuf) -> io::Result<Self> {
+        debug!("Creating source from path: {:?}", path);
         let file = File::open(&path)?;
         let reader = BufReader::new(file);
         Ok(Self {

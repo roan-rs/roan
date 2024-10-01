@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use roan_ast::source::{Source};
 use anyhow::Result;
@@ -24,7 +25,6 @@ pub struct Module {
     exports: Vec<(String, ExportType)>,
     imports: Vec<Use>,
     variables: Vec<Let>,
-    ctx: Context,
 }
 
 impl Module {
@@ -42,13 +42,12 @@ impl Module {
     /// use roan_ast::source::Source;
     /// use roan_engine::context::Context;
     /// let source = Source::from_bytes("fn main() { }");
-    /// let mut ctx = Context::default();
-    /// let module = Module::new(source, ctx);
+    /// let module = Module::new(source);
     /// ```
-    pub fn new(source: Source, ctx: Context) -> Self {
+    pub fn new(source: Source) -> Self {
         let path = source.path().as_deref().map(Path::to_path_buf);
 
-        Self { source, path, tokens: vec![], functions: vec![], exports: vec![], imports: vec![], variables: vec![], ast: Ast::new(), ctx }
+        Self { source, path, tokens: vec![], functions: vec![], exports: vec![], imports: vec![], variables: vec![], ast: Ast::new() }
     }
 
     /// Returns the path of the module.
@@ -83,18 +82,19 @@ impl Module {
         Ok(())
     }
 
-    pub fn interpret(&mut self) -> Result<()> {
+    pub fn interpret(&mut self, ctx: &Context) -> Result<()> {
         for stmt in self.ast.stmts.clone() {
-            self.interpret_stmt(stmt)?;
+            self.interpret_stmt(stmt, ctx)?;
         }
 
         Ok(())
     }
 
     /// Interpret statement from the module.
-    pub fn interpret_stmt(&mut self, stmt: Stmt) -> Result<()> {
+    pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &Context) -> Result<()> {
         match stmt {
             Stmt::Fn(f) => {
+                debug!("Interpreting function: {}", f.name);
                 self.functions.push(f.clone());
 
                 if f.exported {
@@ -102,14 +102,15 @@ impl Module {
                 }
 
                 for stmt in f.body.stmts {
-                    self.interpret_stmt(stmt)?;
+                    self.interpret_stmt(stmt, ctx)?;
                 }
             }
             Stmt::Use(u) => {
-                let mut module = self.ctx.module_loader.load(&self, &u.from.literal(), self.ctx.clone())
+                debug!("Interpreting use: {}", u.from.literal());
+                let mut module = ctx.module_loader.load(&self, &u.from.literal(), ctx)
                     .map_err(|e| ModuleNotFoundError(u.from.literal(), u.from.span.clone()))?;
                 module.parse()?;
-                module.interpret()?;
+                module.interpret(ctx)?;
 
                 let imported_items: Vec<(String, &Token)> = u.items.iter().map(|i| (i.literal(), i)).collect::<Vec<_>>();
 
@@ -117,7 +118,6 @@ impl Module {
                     match module.find_function(&name) {
                         Some(f) => {
                             self.functions.push(f.clone());
-                            self.exports.push((name.clone(), ExportType::Function(f.clone())));
                         }
                         None => Err(ImportError(name, item.span.clone()))?,
                     }
@@ -131,11 +131,13 @@ impl Module {
 
     /// Looks for a function with the specified name.
     pub fn find_function(&self, name: &str) -> Option<&Fn> {
+        debug!("Looking for function: {}", name);
         self.functions.iter().find(|f| f.name == name)
     }
 
     /// Looks for a variable with the specified name.
     pub fn find_variable(&self, name: &str) -> Option<&Let> {
+        debug!("Looking for variable: {}", name);
         self.variables.iter().find(|v| v.ident.literal() == name)
     }
 }

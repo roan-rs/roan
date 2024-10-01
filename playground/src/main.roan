@@ -1,4 +1,4 @@
-use { add1 } from "./add.roan";
+use { add } from "./add.roan";
 
 export fn main() -> int {
     let i = 3.14;
