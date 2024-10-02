@@ -100,6 +100,21 @@ impl TextSpan {
     }
 }
 
+impl Default for TextSpan {
+    /// Creates a new `TextSpan` with default values.
+    ///
+    /// # Returns
+    ///
+    /// A new `TextSpan` with the starting and ending positions set to `(0, 0, 0)` and an empty string.
+    fn default() -> Self {
+        Self {
+            start: Position::default(),
+            end: Position::default(),
+            literal: String::new(),
+        }
+    }
+}
+
 impl std::fmt::Debug for TextSpan {
     /// Formats the `TextSpan` as `"literal" (line:column)`.
     ///

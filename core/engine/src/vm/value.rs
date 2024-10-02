@@ -21,8 +21,6 @@ impl Value {
     }
 }
 
-// impl add +
-
 impl std::ops::Add for Value {
     type Output = Self;
 

@@ -1,11 +1,19 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use roan_ast::source::{Source};
+
 use anyhow::Result;
 use log::debug;
-use roan_ast::{Lexer, Parser, Token, Fn, Let, Stmt, Use, Ast, Expr, BinOpKind, Variable};
-use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, VariableNotFoundError};
+use roan_ast::source::Source;
+use roan_ast::{
+    BinOpKind, Expr, Fn, Let, Lexer, Parser, Stmt, Token, Use, Ast, Variable,
+};
+use roan_ast::TokenKind::Identifier;
+use roan_error::error::PulseError::{
+    ImportError, ModuleNotFoundError, VariableNotFoundError,
+};
 use roan_error::print_diagnostic;
+
 use crate::context::Context;
 use crate::vm::{Frame, VM};
 use crate::vm::value::Value;
@@ -27,7 +35,7 @@ pub struct Module {
     functions: Vec<Fn>,
     exports: Vec<(String, ExportType)>,
     imports: Vec<Use>,
-    variables: Vec<(Value, Variable)>,
+    scopes: Vec<HashMap<String, Value>>, // Stack of scopes
     vm: VM,
 }
 
@@ -51,7 +59,17 @@ impl Module {
     pub fn new(source: Source) -> Self {
         let path = source.path().as_deref().map(Path::to_path_buf);
 
-        Self { source, path, tokens: vec![], functions: vec![], exports: vec![], imports: vec![], variables: vec![], ast: Ast::new(), vm: VM::new() }
+        Self {
+            source,
+            path,
+            tokens: vec![],
+            functions: vec![],
+            exports: vec![],
+            imports: vec![],
+            scopes: vec![HashMap::new()], // Initialize with global scope
+            vm: VM::new(),
+            ast: Ast::new(),
+        }
     }
 
     /// Returns the path of the module.
@@ -94,6 +112,53 @@ impl Module {
         Ok(())
     }
 
+    /// Enter a new scope by pushing a new HashMap onto the scopes stack.
+    fn enter_scope(&mut self) {
+        debug!("Entering new scope");
+        self.scopes.push(HashMap::new());
+    }
+
+    /// Exit the current scope by popping the top HashMap from the scopes stack.
+    fn exit_scope(&mut self) {
+        debug!("Exiting current scope");
+        self.scopes.pop();
+    }
+
+    /// Declare a new variable in the current (innermost) scope.
+    fn declare_variable(&mut self, name: String, val: Value) {
+        debug!("Declaring variable '{}' in current scope", name);
+        if let Some(current_scope) = self.scopes.last_mut() {
+            current_scope.insert(name, val);
+        }
+    }
+
+    /// Set an existing variable's value in the nearest enclosing scope.
+    fn set_variable(&mut self, name: &str, val: Value) -> Result<()> {
+        for scope in self.scopes.iter_mut().rev() {
+            if scope.contains_key(name) {
+                debug!("Setting variable '{}' to {:?}", name, val);
+                scope.insert(name.to_string(), val);
+                return Ok(());
+            }
+        }
+        Err(VariableNotFoundError(
+            name.to_string(),
+            Default::default(),
+        ).into())
+    }
+
+    /// Finds a variable by name, searching from the innermost scope outward.
+    pub fn find_variable(&self, name: &str) -> Option<&Value> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(val) = scope.get(name) {
+                debug!("Found variable '{}' with value {:?}", name, val);
+                return Some(val);
+            }
+        }
+        debug!("Variable '{}' not found in any scope", name);
+        None
+    }
+
     /// Interpret statement from the module.
     pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &Context) -> Result<()> {
         match stmt {
@@ -102,33 +167,38 @@ impl Module {
                 self.functions.push(f.clone());
 
                 if f.exported {
-                    self.exports.push((f.name.clone(), ExportType::Function(f.clone())));
+                    self.exports
+                        .push((f.name.clone(), ExportType::Function(f.clone())));
                 }
             }
             Stmt::Use(u) => {
                 debug!("Interpreting use: {}", u.from.literal());
-                let mut module = ctx.module_loader.load(&self, &u.from.literal(), ctx)
-                    .map_err(|e| ModuleNotFoundError(u.from.literal(), u.from.span.clone()))?;
+                let mut module = ctx
+                    .module_loader
+                    .load(&self, &u.from.literal(), ctx)
+                    .map_err(|_| ModuleNotFoundError(u.from.literal(), u.from.span.clone()))?;
 
-                match module.parse() {
-                    Ok(_) => {}
-                    Err(e) => {
-                        print_diagnostic(e, Some(module.source().content()));
-
-                        return Err(anyhow::anyhow!("Failed to parse module"));
-                    }
-                };
+                if let Err(e) = module.parse() {
+                    print_diagnostic(e, Some(module.source().content()));
+                    return Err(anyhow::anyhow!("Failed to parse module"));
+                }
 
                 module.interpret(ctx)?;
 
-                let imported_items: Vec<(String, &Token)> = u.items.iter().map(|i| (i.literal(), i)).collect::<Vec<_>>();
+                let imported_items: Vec<(String, &Token)> = u
+                    .items
+                    .iter()
+                    .map(|i| (i.literal(), i))
+                    .collect();
 
                 for (name, item) in imported_items {
                     match module.find_function(&name) {
                         Some(f) => {
                             self.functions.push(f.clone());
                         }
-                        None => Err(ImportError(name, item.span.clone()))?,
+                        None => {
+                            return Err(ImportError(name, item.span.clone()).into());
+                        }
                     }
                 }
             }
@@ -136,8 +206,14 @@ impl Module {
                 debug!("Interpreting let: {:?}", l.ident);
                 self.interpret_expr(l.initializer.as_ref(), ctx)?;
 
-                let var = Variable { token: l.ident.clone(), ident: l.ident.literal() };
-                self.variables.push((self.vm.pop().unwrap(), var));
+                let val = self.vm.pop().unwrap();
+                let ident = l.ident.literal();
+                self.declare_variable(ident.clone(), val);
+                //
+                // if l.exported {
+                //     self.exports
+                //         .push((ident.clone(), ExportType::Variable));
+                // }
             }
             Stmt::Expr(expr) => {
                 debug!("Interpreting expression: {:?}", expr);
@@ -151,6 +227,14 @@ impl Module {
                     self.interpret_expr(expr.as_ref(), ctx)?;
                 }
             }
+            Stmt::Block(block) => {
+                debug!("Interpreting block statement");
+                self.enter_scope();
+                for stmt in block.stmts {
+                    self.interpret_stmt(stmt, ctx)?;
+                }
+                self.exit_scope();
+            }
             _ => {}
         }
 
@@ -162,13 +246,14 @@ impl Module {
             Expr::Variable(v) => {
                 debug!("Interpreting variable: {}", v.ident);
 
-                let variable = self.find_variable(&v.ident)
+                let variable = self
+                    .find_variable(&v.ident)
                     .ok_or_else(|| VariableNotFoundError(
                         v.ident.clone(),
                         v.token.span.clone(),
                     ))?;
 
-                Ok(variable.0.clone())
+                Ok(variable.clone())
             }
             Expr::Literal(l) => {
                 debug!("Interpreting literal: {:?}", l);
@@ -188,17 +273,18 @@ impl Module {
                 }
 
                 let function = {
-                    let func = self.find_function(&call.callee)
+                    let func = self
+                        .find_function(&call.callee)
                         .ok_or_else(|| ImportError(call.callee.clone(), call.token.span.clone()))?;
                     func.clone()
                 };
 
-                for (expr, val) in function.params.iter().zip(
-                    args
-                ) {
-                    let var = Variable { token: expr.ident.clone(), ident: expr.ident.literal() };
+                // Enter a new scope for function execution
+                self.enter_scope();
 
-                    self.variables.push((val, var));
+                for (param, val) in function.params.iter().zip(args) {
+                    let ident = param.ident.literal();
+                    self.declare_variable(ident.clone(), val.clone());
                 }
 
                 let frame = Frame::new(
@@ -207,20 +293,16 @@ impl Module {
                     Frame::path_or_unknown(self.path()),
                 );
                 self.vm.push_frame(frame);
-                self.vm.push_frame(
-                    Frame::new(function.name.clone(), function.fn_token.span.clone(), Frame::path_or_unknown(self.path()))
-                );
 
                 for stmt in function.body.stmts {
                     self.interpret_stmt(stmt, ctx)?;
                 }
 
                 self.vm.pop_frame();
-                self.vm.pop_frame();
+                self.exit_scope();
 
                 let val = self.vm.pop()
                     .ok_or_else(|| VariableNotFoundError(call.callee.clone(), call.token.span.clone()))?;
-                println!("val: {:?}", val);
                 Ok(val)
             }
             Expr::Parenthesized(p) => {
@@ -230,12 +312,24 @@ impl Module {
 
                 Ok(self.vm.pop().unwrap())
             }
+            Expr::Assign(assign) => {
+                debug!("Interpreting assign: {:?}", assign);
+
+                self.interpret_expr(&assign.value, ctx)?;
+                let val = self.vm.pop().unwrap();
+
+                let ident = assign.ident.literal();
+
+                self.set_variable(&ident, val.clone())?;
+
+                Ok(val)
+            }
             Expr::Binary(b) => {
                 debug!("Interpreting binary: {:?}", b);
 
                 self.interpret_expr(&b.left, ctx)?;
-                self.interpret_expr(&b.right, ctx)?;
                 let left = self.vm.pop().unwrap();
+                self.interpret_expr(&b.right, ctx)?;
                 let right = self.vm.pop().unwrap();
 
                 let val = match (left.clone(), b.operator, right.clone()) {
@@ -276,6 +370,7 @@ impl Module {
             _ => todo!("missing expr: {:?}", expr),
         };
 
+
         self.vm.push(val?);
 
         Ok(())
@@ -285,11 +380,5 @@ impl Module {
     pub fn find_function(&self, name: &str) -> Option<&Fn> {
         debug!("Looking for function: {}", name);
         self.functions.iter().find(|f| f.name == name)
-    }
-
-    /// Looks for a variable with the specified name.
-    pub fn find_variable(&self, name: &str) -> Option<(Value, &Variable)> {
-        debug!("Looking for variable: {}", name);
-        self.variables.iter().find(|v| v.1.ident == name).map(|(val, let_var)| (val.clone(), let_var))
     }
 }

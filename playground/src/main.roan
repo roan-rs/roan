@@ -2,6 +2,7 @@ use { add } from "./add.roan";
 
 export fn main() -> int {
     let i = 3.14;
+    i = i - 1;
 
     let sum = add(i, 2.71);
 
