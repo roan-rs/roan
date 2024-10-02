@@ -223,6 +223,13 @@ impl Module {
                 println!("val: {:?}", val);
                 Ok(val)
             }
+            Expr::Parenthesized(p) => {
+                debug!("Interpreting parenthesized: {:?}", p);
+
+                self.interpret_expr(&p.expr, ctx)?;
+
+                Ok(self.vm.pop().unwrap())
+            }
             Expr::Binary(b) => {
                 debug!("Interpreting binary: {:?}", b);
 
@@ -231,12 +238,8 @@ impl Module {
                 let left = self.vm.pop().unwrap();
                 let right = self.vm.pop().unwrap();
 
-                let val = match (left, b.operator, right) {
-                    (Value::Int(a), BinOpKind::Plus, Value::Int(b)) => Value::Int(a + b),
-                    (Value::Float(a), BinOpKind::Plus, Value::Float(b)) => Value::Float(a + b),
-                    (Value::Int(a), BinOpKind::Plus, Value::Float(b)) => Value::Float(a as f64 + b),
-                    (Value::Float(a), BinOpKind::Plus, Value::Int(b)) => Value::Float(a + b as f64),
-                    (Value::String(a), BinOpKind::Plus, Value::String(b)) => Value::String(a + &b),
+                let val = match (left.clone(), b.operator, right.clone()) {
+                    (_, BinOpKind::Plus, _) => left + right,
 
                     (Value::Int(a), BinOpKind::Minus, Value::Int(b)) => Value::Int(a - b),
                     (Value::Float(a), BinOpKind::Minus, Value::Float(b)) => Value::Float(a - b),
