@@ -5,14 +5,11 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use log::debug;
 use roan_ast::source::Source;
-use roan_ast::{
-    BinOpKind, Expr, Fn, Let, Lexer, Parser, Stmt, Token, Use, Ast, Variable,
-};
-use roan_ast::TokenKind::Identifier;
+use roan_ast::{BinOpKind, Expr, Fn, Let, Lexer, Parser, Stmt, Token, Use, Ast, Variable, If, Block};
 use roan_error::error::PulseError::{
     ImportError, ModuleNotFoundError, VariableNotFoundError,
 };
-use roan_error::print_diagnostic;
+use roan_error::{print_diagnostic, TextSpan};
 
 use crate::context::Context;
 use crate::vm::{Frame, VM};
@@ -141,10 +138,12 @@ impl Module {
                 return Ok(());
             }
         }
+        // Variable not found in any scope
         Err(VariableNotFoundError(
             name.to_string(),
-            Default::default(),
-        ).into())
+            TextSpan::default(),
+        )
+            .into())
     }
 
     /// Finds a variable by name, searching from the innermost scope outward.
@@ -209,11 +208,6 @@ impl Module {
                 let val = self.vm.pop().unwrap();
                 let ident = l.ident.literal();
                 self.declare_variable(ident.clone(), val);
-                //
-                // if l.exported {
-                //     self.exports
-                //         .push((ident.clone(), ExportType::Variable));
-                // }
             }
             Stmt::Expr(expr) => {
                 debug!("Interpreting expression: {:?}", expr);
@@ -226,18 +220,81 @@ impl Module {
                 if let Some(expr) = r.expr {
                     self.interpret_expr(expr.as_ref(), ctx)?;
                 }
+                // Handle return value as per your VM's design
             }
             Stmt::Block(block) => {
                 debug!("Interpreting block statement");
-                self.enter_scope();
-                for stmt in block.stmts {
-                    self.interpret_stmt(stmt, ctx)?;
-                }
-                self.exit_scope();
+                self.execute_block(block, ctx)?;
             }
-            _ => {}
+            Stmt::If(if_stmt) => {
+                debug!("Interpreting if statement");
+                self.interpret_if(if_stmt, ctx)?;
+            }
         }
 
+        Ok(())
+    }
+
+    fn interpret_if(&mut self, if_stmt: If, ctx: &Context) -> Result<()> {
+        self.interpret_expr(&if_stmt.condition, ctx)?;
+        let condition_value = self.vm.pop().ok_or_else(|| {
+            anyhow::anyhow!("Expected a value on the VM stack for if condition")
+        })?;
+
+        let condition = match condition_value {
+            Value::Bool(b) => b,
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "If condition does not evaluate to a boolean"
+                ))
+            }
+        };
+
+        if condition {
+            self.execute_block(if_stmt.then_block, ctx)?;
+        } else {
+            let mut executed = false;
+            for else_if in if_stmt.else_ifs {
+                self.interpret_expr(&else_if.condition, ctx)?;
+                let else_if_condition = self.vm.pop().ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Expected a value on the VM stack for else-if condition"
+                    )
+                })?;
+
+                let else_if_result = match else_if_condition {
+                    Value::Bool(b) => b,
+                    _ => {
+                        return Err(anyhow::anyhow!(
+                            "Else-if condition does not evaluate to a boolean"
+                        ))
+                    }
+                };
+
+                if else_if_result {
+                    self.execute_block(else_if.block, ctx)?;
+                    executed = true;
+                    break;
+                }
+            }
+
+            if !executed {
+                if let Some(else_block) = if_stmt.else_block {
+                    self.execute_block(else_block.block, ctx)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Execute a block of statements within a new scope.
+    fn execute_block(&mut self, block: Block, ctx: &Context) -> Result<()> {
+        self.enter_scope();
+        for stmt in block.stmts {
+            self.interpret_stmt(stmt, ctx)?;
+        }
+        self.exit_scope();
         Ok(())
     }
 
@@ -361,6 +418,11 @@ impl Module {
                     (Value::Bool(a), BinOpKind::And, Value::Bool(b)) => Value::Bool(a && b),
                     (Value::Bool(a), BinOpKind::Or, Value::Bool(b)) => Value::Bool(a || b),
 
+                    (Value::Int(a), BinOpKind::GreaterThan, Value::Int(b)) => Value::Bool(a > b),
+                    (Value::Float(a), BinOpKind::GreaterThan, Value::Float(b)) => Value::Bool(a > b),
+                    (Value::Int(a), BinOpKind::GreaterThan, Value::Float(b)) => Value::Bool(a as f64 > b),
+                    (Value::Float(a), BinOpKind::GreaterThan, Value::Int(b)) => Value::Bool(a > b as f64),
+
                     _ => todo!("missing binary operator: {:?}", b.operator),
                 };
 
@@ -369,7 +431,6 @@ impl Module {
 
             _ => todo!("missing expr: {:?}", expr),
         };
-
 
         self.vm.push(val?);
 
