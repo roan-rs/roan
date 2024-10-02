@@ -5,6 +5,7 @@ use anyhow::Result;
 use log::debug;
 use roan_ast::{Lexer, Parser, Token, Fn, Let, Stmt, Use, Ast, Expr, BinOpKind, Variable};
 use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, VariableNotFoundError};
+use roan_error::print_diagnostic;
 use crate::context::Context;
 use crate::vm::{Frame, VM};
 use crate::vm::value::Value;
@@ -108,7 +109,16 @@ impl Module {
                 debug!("Interpreting use: {}", u.from.literal());
                 let mut module = ctx.module_loader.load(&self, &u.from.literal(), ctx)
                     .map_err(|e| ModuleNotFoundError(u.from.literal(), u.from.span.clone()))?;
-                module.parse()?;
+
+                match module.parse() {
+                    Ok(_) => {}
+                    Err(e) => {
+                        print_diagnostic(e, Some(module.source().content()));
+
+                        return Err(anyhow::anyhow!("Failed to parse module"));
+                    }
+                };
+
                 module.interpret(ctx)?;
 
                 let imported_items: Vec<(String, &Token)> = u.items.iter().map(|i| (i.literal(), i)).collect::<Vec<_>>();
@@ -221,13 +231,45 @@ impl Module {
                 let left = self.vm.pop().unwrap();
                 let right = self.vm.pop().unwrap();
 
-                let val = match b.operator {
-                    BinOpKind::Plus => left + right,
+                let val = match (left, b.operator, right) {
+                    (Value::Int(a), BinOpKind::Plus, Value::Int(b)) => Value::Int(a + b),
+                    (Value::Float(a), BinOpKind::Plus, Value::Float(b)) => Value::Float(a + b),
+                    (Value::Int(a), BinOpKind::Plus, Value::Float(b)) => Value::Float(a as f64 + b),
+                    (Value::Float(a), BinOpKind::Plus, Value::Int(b)) => Value::Float(a + b as f64),
+                    (Value::String(a), BinOpKind::Plus, Value::String(b)) => Value::String(a + &b),
+
+                    (Value::Int(a), BinOpKind::Minus, Value::Int(b)) => Value::Int(a - b),
+                    (Value::Float(a), BinOpKind::Minus, Value::Float(b)) => Value::Float(a - b),
+                    (Value::Int(a), BinOpKind::Minus, Value::Float(b)) => Value::Float(a as f64 - b),
+                    (Value::Float(a), BinOpKind::Minus, Value::Int(b)) => Value::Float(a - b as f64),
+
+                    (Value::Int(a), BinOpKind::Multiply, Value::Int(b)) => Value::Int(a * b),
+                    (Value::Float(a), BinOpKind::Multiply, Value::Float(b)) => Value::Float(a * b),
+                    (Value::Int(a), BinOpKind::Multiply, Value::Float(b)) => Value::Float(a as f64 * b),
+                    (Value::Float(a), BinOpKind::Multiply, Value::Int(b)) => Value::Float(a * b as f64),
+
+                    (Value::Int(a), BinOpKind::Divide, Value::Int(b)) => Value::Int(a / b),
+                    (Value::Float(a), BinOpKind::Divide, Value::Float(b)) => Value::Float(a / b),
+                    (Value::Int(a), BinOpKind::Divide, Value::Float(b)) => Value::Float(a as f64 / b),
+                    (Value::Float(a), BinOpKind::Divide, Value::Int(b)) => Value::Float(a / b as f64),
+
+                    (Value::Int(a), BinOpKind::Equals, Value::Int(b)) => Value::Bool(a == b),
+                    (Value::Float(a), BinOpKind::Equals, Value::Float(b)) => Value::Bool(a == b),
+                    (Value::String(a), BinOpKind::Equals, Value::String(b)) => Value::Bool(a == b),
+
+                    (Value::Int(a), BinOpKind::BangEquals, Value::Int(b)) => Value::Bool(a != b),
+                    (Value::Float(a), BinOpKind::BangEquals, Value::Float(b)) => Value::Bool(a != b),
+                    (Value::String(a), BinOpKind::BangEquals, Value::String(b)) => Value::Bool(a != b),
+
+                    (Value::Bool(a), BinOpKind::And, Value::Bool(b)) => Value::Bool(a && b),
+                    (Value::Bool(a), BinOpKind::Or, Value::Bool(b)) => Value::Bool(a || b),
+
                     _ => todo!("missing binary operator: {:?}", b.operator),
                 };
 
                 Ok(val)
             }
+
             _ => todo!("missing expr: {:?}", expr),
         };
 

@@ -132,9 +132,9 @@ impl Diagnostic {
 /// print_diagnostic(anyhow::Error::new(err), Some(source_code));
 /// ```
 pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
-    let err = err.downcast_ref::<PulseError>();
+    let pulse_error = err.downcast_ref::<PulseError>();
 
-    if let Some(err) = err {
+    if let Some(err) = pulse_error {
         let err_str = err.to_string();
         let diagnostic = match err {
             PulseError::Io(_) => Diagnostic {

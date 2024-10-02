@@ -466,6 +466,8 @@ impl Parser {
             TokenKind::LeftParen => {
                 let expr = self.parse_expr()?;
 
+                self.expect(TokenKind::RightParen)?;
+
                 Ok(Expr::new_parenthesized(expr))
             }
             TokenKind::String(s) => Ok(Expr::new_string(token.clone(), s.clone())),

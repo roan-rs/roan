@@ -55,6 +55,11 @@ impl Source {
         }
     }
 
+    /// Returns the content of this `Source`.
+    pub fn content(&self) -> String {
+        self.content.clone()
+    }
+
     /// Returns the path associated with this `Source`, if any.
     pub fn path(&self) -> Option<PathBuf> {
         self.path.clone()
