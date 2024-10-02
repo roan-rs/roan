@@ -6,6 +6,7 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     String(String),
+    Vec(Vec<Value>),
     Null,
 }
 

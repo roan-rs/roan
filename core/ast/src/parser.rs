@@ -462,6 +462,7 @@ impl Parser {
             TokenKind::True | TokenKind::False => {
                 Ok(Expr::new_bool(token.clone(), token.as_bool().unwrap()))
             }
+            TokenKind::LeftBracket => self.parse_vector(),
             TokenKind::Identifier => {
                 log::debug!("Parsing identifier: {}", token.literal());
                 if self.peek().kind == TokenKind::LeftParen {
@@ -510,6 +511,27 @@ impl Parser {
         } else {
             Ok(None)
         }
+    }
+
+    pub fn parse_vector(&mut self) -> Result<Expr> {
+        debug!("Parsing vector");
+
+        let mut elements = vec![];
+        if self.peek().kind != TokenKind::RightBracket {
+            while self.peek().kind != TokenKind::RightBracket && !self.is_eof() {
+                let arg = self.parse_expr()?;
+
+                elements.push(arg);
+
+                if self.peek().kind != TokenKind::RightBracket {
+                    self.expect(TokenKind::Comma)?;
+                }
+            }
+        }
+
+        self.expect(TokenKind::RightBracket)?;
+
+        Ok(Expr::new_vec(elements))
     }
 
     pub fn parse_assignment(&mut self) -> Result<Expr> {

@@ -8,6 +8,7 @@ export fn main() -> int {
     let i = 3.14;
 
     let sum = add(i, 2.71 + 1);
+    let vec = [1, 2, 3, 4, 5];
 
     if sum == 11.7 {
         println("Success!");

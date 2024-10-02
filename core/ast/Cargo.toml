@@ -7,3 +7,4 @@ edition = "2021"
 anyhow = { workspace = true }
 roan-error = { workspace = true }
 log = { workspace = true }
+colored = { workspace = true }

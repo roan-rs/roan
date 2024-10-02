@@ -113,6 +113,11 @@ impl Stmt {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct VecExpr {
+    pub exprs: Vec<Expr>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct FnParam {
     pub ident: Token,
     pub type_annotation: TypeAnnotation,
@@ -409,6 +414,7 @@ pub enum Expr {
     Parenthesized(Parenthesized),
     Call(CallExpr),
     Assign(Assign),
+    Vec(VecExpr),
 }
 
 impl GetSpan for Expr {
@@ -431,6 +437,14 @@ impl GetSpan for Expr {
                 let value = a.value.span();
 
                 TextSpan::combine(vec![ident, value])
+            }
+            Expr::Vec(v) => {
+                let mut spans = vec![];
+                for expr in &v.exprs {
+                    spans.push(expr.span());
+                }
+
+                TextSpan::combine(spans)
             }
         }
     }
@@ -521,5 +535,9 @@ impl Expr {
         Expr::Parenthesized(Parenthesized {
             expr: Box::new(expr),
         })
+    }
+
+    pub fn new_vec(exprs: Vec<Expr>) -> Self {
+        Expr::Vec(VecExpr { exprs })
     }
 }

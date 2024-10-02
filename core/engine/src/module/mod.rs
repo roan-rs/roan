@@ -379,6 +379,18 @@ impl Module {
 
                 Ok(val)
             }
+            Expr::Vec(vec) => {
+                debug!("Interpreting vec: {:?}", vec);
+
+                let mut values = vec![];
+
+                for expr in vec.exprs.iter() {
+                    self.interpret_expr(expr, ctx)?;
+                    values.push(self.vm.pop().unwrap());
+                }
+
+                Ok(Value::Vec(values))
+            }
             Expr::Binary(b) => {
                 debug!("Interpreting binary: {:?}", b);
 
