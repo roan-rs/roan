@@ -316,6 +316,13 @@ impl Parser {
             while self.peek().kind != TokenKind::RightParen && !self.is_eof() {
                 self.possible_check(TokenKind::Comma);
 
+                // Rest parameter TODO: Implement
+                let is_rest = self.peek().kind == TokenKind::TripleDot;
+
+                if is_rest {
+                    self.consume();
+                }
+
                 let param = self.consume();
                 let type_annotation = self.parse_type_annotation()?;
 

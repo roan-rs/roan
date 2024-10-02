@@ -47,6 +47,8 @@ impl Display for TokenKind {
             TokenKind::RightBrace => write!(f, "}}"),
             TokenKind::LeftBracket => write!(f, "["),
             TokenKind::RightBracket => write!(f, "]"),
+            TokenKind::TripleDot => write!(f, "..."),
+            TokenKind::DoubleDot => write!(f, ".."),
             TokenKind::Comma => write!(f, ","),
             TokenKind::Dot => write!(f, "."),
             TokenKind::Colon => write!(f, ":"),
@@ -118,6 +120,8 @@ pub enum TokenKind {
     Colon,
     Semicolon,
     Arrow,
+    DoubleDot,
+    TripleDot,
 
     // Literals
     Identifier,

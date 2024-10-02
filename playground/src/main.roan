@@ -1,5 +1,9 @@
 use { add } from "./add.roan";
 
+fn println(...args: string) -> int {
+    return 0;
+}
+
 export fn main() -> int {
     let i = 3.14;
 

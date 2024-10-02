@@ -202,7 +202,19 @@ impl Lexer {
                     '[' => TokenKind::LeftBracket,
                     ']' => TokenKind::RightBracket,
                     ',' => TokenKind::Comma,
-                    '.' => TokenKind::Dot,
+                    '.' => {
+                        if self.match_next('.') {
+                            self.consume();
+                            if self.match_next('.') {
+                                self.consume();
+                                TokenKind::TripleDot
+                            } else {
+                                TokenKind::DoubleDot
+                            }
+                        } else {
+                            TokenKind::Dot
+                        }
+                    }
                     ':' => TokenKind::Colon,
                     ';' => TokenKind::Semicolon,
                     '/' => {
