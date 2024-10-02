@@ -6,9 +6,7 @@ use anyhow::Result;
 use log::debug;
 use roan_ast::source::Source;
 use roan_ast::{BinOpKind, Expr, Fn, Let, Lexer, Parser, Stmt, Token, Use, Ast, Variable, If, Block};
-use roan_error::error::PulseError::{
-    ImportError, ModuleNotFoundError, VariableNotFoundError,
-};
+use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedFunctionError, VariableNotFoundError};
 use roan_error::{print_diagnostic, TextSpan};
 
 use crate::context::Context;
@@ -332,7 +330,7 @@ impl Module {
                 let function = {
                     let func = self
                         .find_function(&call.callee)
-                        .ok_or_else(|| ImportError(call.callee.clone(), call.token.span.clone()))?;
+                        .ok_or_else(|| UndefinedFunctionError(call.callee.clone(), call.token.span.clone()))?;
                     func.clone()
                 };
 
@@ -358,8 +356,8 @@ impl Module {
                 self.vm.pop_frame();
                 self.exit_scope();
 
-                let val = self.vm.pop()
-                    .ok_or_else(|| VariableNotFoundError(call.callee.clone(), call.token.span.clone()))?;
+                let val = self.vm.pop().expect("Expected value on stack");
+
                 Ok(val)
             }
             Expr::Parenthesized(p) => {
