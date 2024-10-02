@@ -16,7 +16,7 @@ impl Lexer {
     /// Create a new lexer from a source string.
     ///
     /// # Arguments
-    /// - `source` - A string slice containing the source code.
+    /// - `source` - An instance of `Source` containing the source code.
     ///
     /// # Example
     /// ```rust
@@ -27,7 +27,6 @@ impl Lexer {
     /// let tokens = lexer.lex().expect("Failed to lex source code");
     ///
     /// assert_eq!(tokens.first().unwrap().kind, TokenKind::Let);
-    /// ```
     /// ```
     pub fn new(source: Source) -> Self {
         Self {

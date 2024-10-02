@@ -179,7 +179,10 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content: None,
             },
-            PulseError::ModuleNotFoundError(_, span) | PulseError::ImportError(_, span) => Diagnostic {
+            PulseError::ModuleNotFoundError(_, span) |
+            PulseError::UndefinedFunctionError(_, span) |
+            PulseError::VariableNotFoundError(_, span) |
+            PulseError::ImportError(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,

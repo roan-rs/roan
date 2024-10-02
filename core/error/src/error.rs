@@ -21,4 +21,8 @@ pub enum PulseError {
     ImportError(String, TextSpan),
     #[error("Tried to import module that does not exist: {0}")]
     ModuleNotFoundError(String, TextSpan),
+    #[error("Couldn't find variable: {0}")]
+    VariableNotFoundError(String, TextSpan),
+    #[error("Call to undefined function: {0}")]
+    UndefinedFunctionError(String, TextSpan),
 }

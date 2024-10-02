@@ -3,9 +3,11 @@ use std::path::{Path, PathBuf};
 use roan_ast::source::{Source};
 use anyhow::Result;
 use log::debug;
-use roan_ast::{Lexer, Parser, Token, Fn, Let, Stmt, Use, Ast};
-use roan_error::error::PulseError::{ImportError, ModuleNotFoundError};
+use roan_ast::{Lexer, Parser, Token, Fn, Let, Stmt, Use, Ast, Expr, BinOpKind, Variable};
+use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, VariableNotFoundError};
 use crate::context::Context;
+use crate::vm::{Frame, VM};
+use crate::vm::value::Value;
 
 pub mod loader;
 
@@ -24,7 +26,8 @@ pub struct Module {
     functions: Vec<Fn>,
     exports: Vec<(String, ExportType)>,
     imports: Vec<Use>,
-    variables: Vec<Let>,
+    variables: Vec<(Value, Variable)>,
+    vm: VM,
 }
 
 impl Module {
@@ -47,12 +50,12 @@ impl Module {
     pub fn new(source: Source) -> Self {
         let path = source.path().as_deref().map(Path::to_path_buf);
 
-        Self { source, path, tokens: vec![], functions: vec![], exports: vec![], imports: vec![], variables: vec![], ast: Ast::new() }
+        Self { source, path, tokens: vec![], functions: vec![], exports: vec![], imports: vec![], variables: vec![], ast: Ast::new(), vm: VM::new() }
     }
 
     /// Returns the path of the module.
-    pub fn path(&self) -> Option<&Path> {
-        self.path.as_deref()
+    pub fn path(&self) -> Option<PathBuf> {
+        self.path.clone()
     }
 
     /// Returns the source of the module.
@@ -100,10 +103,6 @@ impl Module {
                 if f.exported {
                     self.exports.push((f.name.clone(), ExportType::Function(f.clone())));
                 }
-
-                for stmt in f.body.stmts {
-                    self.interpret_stmt(stmt, ctx)?;
-                }
             }
             Stmt::Use(u) => {
                 debug!("Interpreting use: {}", u.from.literal());
@@ -123,8 +122,116 @@ impl Module {
                     }
                 }
             }
+            Stmt::Let(l) => {
+                debug!("Interpreting let: {:?}", l.ident);
+                self.interpret_expr(l.initializer.as_ref(), ctx)?;
+
+                let var = Variable { token: l.ident.clone(), ident: l.ident.literal() };
+                self.variables.push((self.vm.pop().unwrap(), var));
+            }
+            Stmt::Expr(expr) => {
+                debug!("Interpreting expression: {:?}", expr);
+
+                self.interpret_expr(expr.as_ref(), ctx)?;
+            }
+            Stmt::Return(r) => {
+                debug!("Interpreting return: {:?}", r);
+
+                if let Some(expr) = r.expr {
+                    self.interpret_expr(expr.as_ref(), ctx)?;
+                }
+            }
             _ => {}
         }
+
+        Ok(())
+    }
+
+    pub fn interpret_expr(&mut self, expr: &Expr, ctx: &Context) -> Result<()> {
+        let val: Result<Value> = match expr {
+            Expr::Variable(v) => {
+                debug!("Interpreting variable: {}", v.ident);
+
+                let variable = self.find_variable(&v.ident)
+                    .ok_or_else(|| VariableNotFoundError(
+                        v.ident.clone(),
+                        v.token.span.clone(),
+                    ))?;
+
+                Ok(variable.0.clone())
+            }
+            Expr::Literal(l) => {
+                debug!("Interpreting literal: {:?}", l);
+
+                Ok(Value::from_literal(l.clone()))
+            }
+            Expr::Call(call) => {
+                debug!("Interpreting call: {:?}", call);
+
+                let mut args = vec![];
+
+                for arg in call.args.iter() {
+                    self.interpret_expr(arg, ctx)?;
+                    args.push(
+                        self.vm.pop().expect("Expected value on stack"),
+                    );
+                }
+
+                let function = {
+                    let func = self.find_function(&call.callee)
+                        .ok_or_else(|| ImportError(call.callee.clone(), call.token.span.clone()))?;
+                    func.clone()
+                };
+
+                for (expr, val) in function.params.iter().zip(
+                    args
+                ) {
+                    let var = Variable { token: expr.ident.clone(), ident: expr.ident.literal() };
+
+                    self.variables.push((val, var));
+                }
+
+                let frame = Frame::new(
+                    call.callee.clone(),
+                    call.token.span.clone(),
+                    Frame::path_or_unknown(self.path()),
+                );
+                self.vm.push_frame(frame);
+                self.vm.push_frame(
+                    Frame::new(function.name.clone(), function.fn_token.span.clone(), Frame::path_or_unknown(self.path()))
+                );
+
+                for stmt in function.body.stmts {
+                    self.interpret_stmt(stmt, ctx)?;
+                }
+
+                self.vm.pop_frame();
+                self.vm.pop_frame();
+
+                let val = self.vm.pop()
+                    .ok_or_else(|| VariableNotFoundError(call.callee.clone(), call.token.span.clone()))?;
+                println!("val: {:?}", val);
+                Ok(val)
+            }
+            Expr::Binary(b) => {
+                debug!("Interpreting binary: {:?}", b);
+
+                self.interpret_expr(&b.left, ctx)?;
+                self.interpret_expr(&b.right, ctx)?;
+                let left = self.vm.pop().unwrap();
+                let right = self.vm.pop().unwrap();
+
+                let val = match b.operator {
+                    BinOpKind::Plus => left + right,
+                    _ => todo!("missing binary operator: {:?}", b.operator),
+                };
+
+                Ok(val)
+            }
+            _ => todo!("missing expr: {:?}", expr),
+        };
+
+        self.vm.push(val?);
 
         Ok(())
     }
@@ -136,8 +243,8 @@ impl Module {
     }
 
     /// Looks for a variable with the specified name.
-    pub fn find_variable(&self, name: &str) -> Option<&Let> {
+    pub fn find_variable(&self, name: &str) -> Option<(Value, &Variable)> {
         debug!("Looking for variable: {}", name);
-        self.variables.iter().find(|v| v.ident.literal() == name)
+        self.variables.iter().find(|v| v.1.ident == name).map(|(val, let_var)| (val.clone(), let_var))
     }
 }

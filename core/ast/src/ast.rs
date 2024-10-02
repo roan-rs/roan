@@ -437,6 +437,19 @@ impl GetSpan for Expr {
 }
 
 impl Expr {
+    pub fn into_stmt(self) -> Stmt {
+        Stmt::Expr(Box::new(self))
+    }
+
+    pub fn into_variable(self) -> Variable {
+        match self {
+            Expr::Variable(v) => v,
+            _ => panic!("Expected variable"),
+        }
+    }
+}
+
+impl Expr {
     pub fn new_unary(operator: UnOperator, expr: Expr, token: Token) -> Self {
         Expr::Unary(Unary {
             operator,
