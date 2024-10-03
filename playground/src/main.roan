@@ -1,6 +1,6 @@
 use { add } from "./add.roan";
 
-fn println(...args: string, ...test: string) -> int {
+fn println(...args: string) -> int {
     return 0;
 }
 
