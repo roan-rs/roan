@@ -411,28 +411,28 @@ impl Parser {
             if operator_precedence < precedence {
                 break;
             }
+
             self.consume();
+
             let mut right = self.parse_unary_expression()?;
 
-            while let Some(inner_operator) = self.parse_binary_operator() {
-                let greater_precedence = inner_operator.precedence() > operator.precedence();
-                let equal_precedence = inner_operator.precedence() == operator.precedence();
-                if !(greater_precedence
-                    || equal_precedence
-                    && inner_operator.associativity() == BinOpAssociativity::Right)
-                {
+            while let Some(next_operator) = self.parse_binary_operator() {
+                let next_precedence = next_operator.precedence();
+
+                if next_precedence > operator_precedence ||
+                    (next_precedence == operator_precedence && next_operator.associativity() == BinOpAssociativity::Right) {
+                    right = self.parse_binary_expression_recurse(right, next_precedence)?;
+                } else {
                     break;
                 }
-
-                right = self.parse_binary_expression_recurse(
-                    right,
-                    std::cmp::max(operator.precedence(), inner_operator.precedence()),
-                )?;
             }
+
             left = Expr::new_binary(left, operator, right);
         }
+
         Ok(left)
     }
+
 
     pub fn parse_unary_operator(&mut self) -> Option<UnOperator> {
         let token = self.peek();

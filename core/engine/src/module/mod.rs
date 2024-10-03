@@ -433,6 +433,37 @@ impl Module {
                     (Value::Int(a), BinOpKind::GreaterThan, Value::Float(b)) => Value::Bool(a as f64 > b),
                     (Value::Float(a), BinOpKind::GreaterThan, Value::Int(b)) => Value::Bool(a > b as f64),
 
+                    (Value::Int(a), BinOpKind::LessThan, Value::Int(b)) => Value::Bool((a as f64) < (b as f64)),
+                    (Value::Float(a), BinOpKind::LessThan, Value::Float(b)) => Value::Bool(a < b),
+                    (Value::Int(a), BinOpKind::LessThan, Value::Float(b)) => Value::Bool((a as f64) < b),
+                    (Value::Float(a), BinOpKind::LessThan, Value::Int(b)) => Value::Bool(a < (b as f64)),
+
+                    (Value::Int(a), BinOpKind::GreaterThanOrEqual, Value::Int(b)) => Value::Bool(a >= b),
+                    (Value::Float(a), BinOpKind::GreaterThanOrEqual, Value::Float(b)) => Value::Bool(a >= b),
+                    (Value::Int(a), BinOpKind::GreaterThanOrEqual, Value::Float(b)) => Value::Bool(a as f64 >= b),
+                    (Value::Float(a), BinOpKind::GreaterThanOrEqual, Value::Int(b)) => Value::Bool(a >= b as f64),
+
+                    (Value::Int(a), BinOpKind::LessThanOrEqual, Value::Int(b)) => Value::Bool(a <= b),
+                    (Value::Float(a), BinOpKind::LessThanOrEqual, Value::Float(b)) => Value::Bool(a <= b),
+                    (Value::Int(a), BinOpKind::LessThanOrEqual, Value::Float(b)) => Value::Bool(a as f64 <= b),
+                    (Value::Float(a), BinOpKind::LessThanOrEqual, Value::Int(b)) => Value::Bool(a <= b as f64),
+
+                    (Value::Int(a), BinOpKind::Modulo, Value::Int(b)) => Value::Int(a % b),
+                    (Value::Float(a), BinOpKind::Modulo, Value::Float(b)) => Value::Float(a % b),
+                    (Value::Int(a), BinOpKind::Modulo, Value::Float(b)) => Value::Float(a as f64 % b),
+                    (Value::Float(a), BinOpKind::Modulo, Value::Int(b)) => Value::Float(a % b as f64),
+
+
+                    // TODO: add more bitwise operators
+                    (Value::Int(a), BinOpKind::And, Value::Int(b)) => Value::Int(a & b),
+                    (Value::Int(a), BinOpKind::Or, Value::Int(b)) => Value::Int(a | b),
+                    (Value::Int(a), BinOpKind::BitwiseXor, Value::Int(b)) => Value::Int(a ^ b),
+
+                    (Value::Int(a), BinOpKind::Power, Value::Int(b)) => Value::Int(a.pow(b as u32)),
+                    (Value::Float(a), BinOpKind::Power, Value::Float(b)) => Value::Float(a.powf(b)),
+                    (Value::Int(a), BinOpKind::Power, Value::Float(b)) => Value::Float((a as f64).powf(b)),
+                    (Value::Float(a), BinOpKind::Power, Value::Int(b)) => Value::Float((a).powi(b as i32)),
+
                     _ => todo!("missing binary operator: {:?}", b.operator),
                 };
 

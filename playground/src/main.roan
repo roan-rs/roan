@@ -5,12 +5,10 @@ fn println(...args: string) -> int {
 }
 
 export fn main() -> int {
-    let i = 3.14;
-
-    let sum = add(i, 2.71 + 1);
     let vec = [1, 2, 3, 4, 5];
+    let sum = add(10, 2.3);
 
-    if sum == 11.7 {
+    if 2 + 2 == 8  {
         println("Success!");
     } else if sum > 11.7 {
         println("Greater than expected!");

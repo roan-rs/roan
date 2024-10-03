@@ -231,35 +231,35 @@ pub struct Literal {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum BinOpKind {
     // Arithmetic
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
-    Power,
-    Modulo,
+    Plus, // +
+    Minus, // -
+    Multiply, // *
+    Divide, // /
+    Power, // **
+    Modulo, // %
     // Bitwise
-    BitwiseAnd,
-    BitwiseOr,
-    BitwiseXor,
+    BitwiseAnd, // &
+    BitwiseOr, // |
+    BitwiseXor, // ^
     // Relational
-    Equals,
-    NotEquals,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
+    Equals, // ==
+    NotEquals, // !=
+    LessThan, // <
+    LessThanOrEqual, // <=
+    GreaterThan, // >
+    GreaterThanOrEqual, // >=
     // Logical
-    And,
-    Or,
+    And, // &&
+    Or, // ||
     // Equality
-    EqualsEquals,
-    BangEquals,
+    EqualsEquals, // ==
+    BangEquals, // !=
     // Increment/Decrement
-    Increment,
-    Decrement,
+    Increment, // ++
+    Decrement, // --
     // Assignment
-    MinusEquals,
-    PlusEquals,
+    MinusEquals, // -=
+    PlusEquals, // +=
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -364,6 +364,7 @@ impl BinOperator {
 
     pub fn precedence(&self) -> u8 {
         match self.kind {
+            // Highest precedence
             BinOpKind::Power => 20,
             BinOpKind::Multiply => 19,
             BinOpKind::Divide => 19,
@@ -373,20 +374,25 @@ impl BinOperator {
             BinOpKind::BitwiseAnd => 17,
             BinOpKind::BitwiseXor => 16,
             BinOpKind::BitwiseOr => 15,
-            BinOpKind::Equals => 30,
-            BinOpKind::NotEquals => 30,
-            BinOpKind::LessThan => 29,
-            BinOpKind::LessThanOrEqual => 29,
-            BinOpKind::GreaterThan => 29,
-            BinOpKind::GreaterThanOrEqual => 29,
-            BinOpKind::And => 10,
-            BinOpKind::Or => 9,
-            BinOpKind::EqualsEquals => 30,
-            BinOpKind::BangEquals => 30,
-            BinOpKind::Increment => 17,
-            BinOpKind::Decrement => 17,
-            BinOpKind::MinusEquals => 17,
-            BinOpKind::PlusEquals => 17,
+            // Relational operators
+            BinOpKind::LessThan => 14,
+            BinOpKind::LessThanOrEqual => 14,
+            BinOpKind::GreaterThan => 14,
+            BinOpKind::GreaterThanOrEqual => 14,
+            // Equality operators
+            BinOpKind::Equals => 13,
+            BinOpKind::NotEquals => 13,
+            BinOpKind::EqualsEquals => 13,
+            BinOpKind::BangEquals => 13,
+            // Logical operators
+            BinOpKind::And => 12,
+            BinOpKind::Or => 11,
+            // Increment/Decrement
+            BinOpKind::Increment => 10,
+            BinOpKind::Decrement => 10,
+            // Assignment operators
+            BinOpKind::MinusEquals => 9,
+            BinOpKind::PlusEquals => 9,
         }
     }
 
@@ -397,6 +403,7 @@ impl BinOperator {
         }
     }
 }
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BinOpAssociativity {
