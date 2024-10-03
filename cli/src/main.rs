@@ -1,7 +1,6 @@
 use anyhow::Result;
 use clap::{
-    builder::{styling, PossibleValuesParser, Styles, TypedValueParser},
-    Args, Parser, Subcommand, ValueHint,
+    Parser,
 };
 use cli::{Cli, Commands};
 use commands::run::run_command;
@@ -12,6 +11,7 @@ pub mod cli;
 pub mod commands;
 pub mod logger;
 pub mod panic_handler;
+mod std;
 
 fn main() -> Result<()> {
     setup_panic_handler();

@@ -198,10 +198,6 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content,
             },
-            _ => {
-                log::error!("{:?}", err);
-                return;
-            }
         };
 
         let mut buff = BufWriter::new(std::io::stderr());

@@ -2,7 +2,6 @@ pub mod frame;
 pub mod value;
 
 pub use frame::Frame;
-use crate::module::Module;
 use crate::vm::value::Value;
 
 /// Virtual machine for executing Roan code.

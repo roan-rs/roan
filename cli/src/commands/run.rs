@@ -3,8 +3,11 @@ use roan_engine::{context::Context, print_diagnostic};
 use std::{fs::read_to_string, path::PathBuf};
 use roan_engine::module::Module;
 use roan_engine::source::Source;
+use crate::std::prepare_home_dir;
 
 pub fn run_command(file: String) -> Result<()> {
+    prepare_home_dir()?;
+
     let path = PathBuf::from(file);
     let content = read_to_string(&path)?;
 

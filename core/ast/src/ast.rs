@@ -1,7 +1,6 @@
 use crate::lexer::token::Token;
 use roan_error::span::TextSpan;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ast {

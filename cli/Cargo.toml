@@ -12,3 +12,4 @@ log = "0.4.22"
 thiserror = "1.0.64"
 vit_logger = "0.1.6"
 roan-engine = { workspace = true }
+dirs = { workspace = true }

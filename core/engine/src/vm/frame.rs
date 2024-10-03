@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use roan_error::TextSpan;
 
 /// A frame represents a single function call.

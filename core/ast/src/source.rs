@@ -1,9 +1,8 @@
 use std::{
     fs::File,
-    io::{self, BufReader, Bytes, Cursor, Read},
+    io::{self, BufReader, Read},
     path::PathBuf,
 };
-use std::io::{Seek, SeekFrom};
 use std::str::Chars;
 use log::debug;
 

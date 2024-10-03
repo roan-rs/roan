@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use log::debug;
 use roan_ast::source::Source;
-use roan_ast::{BinOpKind, Expr, Fn, Let, Lexer, Parser, Stmt, Token, Use, Ast, Variable, If, Block};
+use roan_ast::{BinOpKind, Expr, Fn, Lexer, Parser, Stmt, Token, Use, Ast, If, Block};
 use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedFunctionError, VariableNotFoundError};
 use roan_error::{print_diagnostic, TextSpan};
 

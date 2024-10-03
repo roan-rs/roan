@@ -1,13 +1,12 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::path::{Component, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 use crate::module::Module;
 use anyhow::Result;
 use log::debug;
 use roan_ast::source::Source;
-use roan_error::error::PulseError::ModuleError;
 use crate::context::Context;
 
 /// Trait that defines the interface for a module loader.
@@ -22,7 +21,7 @@ pub trait ModuleLoader: Debug {
     /// # Arguments
     /// - `module` - The module to insert into the cache.
     /// - `name` - The name of the module to insert into the cache.
-    fn insert(&self, name: String, module: Module) {}
+    fn insert(&self, _name: String, _module: Module) {}
 
     /// Get module from cache if the loader caches modules.
     ///
@@ -30,7 +29,7 @@ pub trait ModuleLoader: Debug {
     ///
     /// # Arguments
     /// - `name` - The name of the module to get from the cache.
-    fn get(&self, name: String) -> Option<Module> {
+    fn get(&self, _name: String) -> Option<Module> {
         None
     }
 
@@ -67,7 +66,7 @@ pub trait ModuleLoader: Debug {
             spec
         });
 
-        let mut spec_path = PathBuf::from(str_path);
+        let spec_path = PathBuf::from(str_path);
 
         let path = if spec_path.is_absolute() {
             spec_path

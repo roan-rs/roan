@@ -168,7 +168,7 @@ impl Parser {
             self.consume();
 
             if self.peek().kind == TokenKind::If {
-                let if_token = self.consume();
+                self.consume();
                 self.possible_check(TokenKind::LeftParen);
 
                 let condition = self.parse_expr()?;
@@ -215,9 +215,7 @@ impl Parser {
 
         self.expect(TokenKind::LeftBrace)?;
 
-        let mut i = 0;
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
-            i += 1;
             let item = self.expect(TokenKind::Identifier)?;
 
             if self.peek().kind != TokenKind::RightBrace {
@@ -312,7 +310,6 @@ impl Parser {
         self.expect(TokenKind::LeftParen)?;
         let mut params = vec![];
 
-        let mut index = 0;
         let mut has_rest_param = false;
 
         if self.peek().kind != TokenKind::RightParen {
@@ -341,7 +338,6 @@ impl Parser {
                     ident: param,
                     is_rest,
                 });
-                index += 1;
             }
         }
 
