@@ -116,12 +116,12 @@ impl BasicModuleLoader {
 impl ModuleLoader for BasicModuleLoader {
     fn load(&self, referrer: &Module, spec: &str, _: &Context) -> Result<Module> {
         debug!("Loading module: {}", spec);
-        let modules = self.modules.borrow();
-        if let Some(module) = modules.get(spec).cloned() {
+        if let Some(module) = self.get(
+            remove_surrounding_quotes(spec).to_string(),
+        ) {
             debug!("Module found in cache");
             return Ok(module);
         }
-        drop(modules);
 
         let path = self.resolve_referrer(referrer, spec)?;
         let source = Source::from_path(path)?;

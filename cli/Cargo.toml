@@ -13,7 +13,8 @@ thiserror = "1.0.64"
 vit_logger = "0.1.6"
 roan-engine = { workspace = true }
 dirs = { workspace = true }
+tar = "0.4.42"
 
 [build-dependencies]
-tar = "0.4.42"
 project-root = "0.2.2"
+tar = "0.4.42"
