@@ -11,7 +11,7 @@ pub fn run_command(file: String) -> Result<()> {
     let path = PathBuf::from(file);
     let content = read_to_string(&path)?;
 
-    let mut ctx = Context::default();
+    let ctx = Context::default();
     let source = Source::from_string(content.clone()).with_path(path);
     let module = Module::new(source);
 

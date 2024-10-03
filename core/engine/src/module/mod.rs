@@ -218,7 +218,6 @@ impl Module {
                 if let Some(expr) = r.expr {
                     self.interpret_expr(expr.as_ref(), ctx)?;
                 }
-                // Handle return value as per your VM's design
             }
             Stmt::Block(block) => {
                 debug!("Interpreting block statement");
@@ -337,9 +336,15 @@ impl Module {
                 // Enter a new scope for function execution
                 self.enter_scope();
 
-                for (param, val) in function.params.iter().zip(args) {
+                for (param, val) in function.params.iter().zip(args.clone()) {
                     let ident = param.ident.literal();
-                    self.declare_variable(ident.clone(), val.clone());
+
+                    if param.is_rest {
+                        let rest = args.iter().skip(function.params.len() - 1).cloned().collect();
+                        self.declare_variable(ident, Value::Vec(rest));
+                    } else {
+                        self.declare_variable(ident, val);
+                    }
                 }
 
                 let frame = Frame::new(
@@ -356,7 +361,7 @@ impl Module {
                 self.vm.pop_frame();
                 self.exit_scope();
 
-                let val = self.vm.pop().expect("Expected value on stack");
+                let val = self.vm.pop().or(Some(Value::Void)).unwrap();
 
                 Ok(val)
             }

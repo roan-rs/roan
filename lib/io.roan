@@ -1,0 +1,3 @@
+fn println(msg: string, ...args: string) -> void {
+
+}

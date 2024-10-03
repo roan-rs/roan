@@ -8,6 +8,7 @@ pub enum Value {
     String(String),
     Vec(Vec<Value>),
     Null,
+    Void,
 }
 
 impl Value {

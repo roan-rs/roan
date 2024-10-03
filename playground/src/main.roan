@@ -1,18 +1,8 @@
-use { add } from "std::lib";
-
-fn println(...args: string) -> int {
-    return 0;
-}
+use { println } from "std::io";
 
 export fn main() -> int {
-    let vec = [1, 2, 3, 4, 5];
-    let sum = add(10, 2.3);
+    println("{} + {} = {}", 1, 2, 1 + 2);
 
-    if sum == 8 {
-        println("sum is 8");
-    } else {
-        println("sum is not 8");
-    }
     return 0;
 }
 
