@@ -145,6 +145,14 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content: None,
             },
+            PulseError::RestParameterNotLast(span) | PulseError::RestParameterNotLastPosition(span) | PulseError::MultipleRestParameters(span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: None,
+                content,
+            },
             PulseError::InvalidToken(_, span)
             | PulseError::SemanticError(_, span)
             | PulseError::UnexpectedToken(_, span) => Diagnostic {

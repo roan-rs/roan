@@ -7,7 +7,7 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_error::error::PulseError::{ExpectedToken, UnexpectedToken};
+use roan_error::error::PulseError::{ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition, UnexpectedToken};
 
 /// Struct responsible for parsing the tokens into an AST
 #[derive(Debug)]
@@ -312,24 +312,36 @@ impl Parser {
         self.expect(TokenKind::LeftParen)?;
         let mut params = vec![];
 
+        let mut index = 0;
+        let mut has_rest_param = false;
+
         if self.peek().kind != TokenKind::RightParen {
             while self.peek().kind != TokenKind::RightParen && !self.is_eof() {
                 self.possible_check(TokenKind::Comma);
 
-                // Rest parameter TODO: Implement
                 let is_rest = self.peek().kind == TokenKind::TripleDot;
 
                 if is_rest {
+                    if has_rest_param {
+                        return Err(MultipleRestParameters(self.peek().span.clone()).into());
+                    }
+                    has_rest_param = true;
                     self.consume();
                 }
 
                 let param = self.consume();
                 let type_annotation = self.parse_type_annotation()?;
 
+                if has_rest_param && self.peek().kind != TokenKind::RightParen {
+                    return Err(RestParameterNotLastPosition(param.span.clone()).into());
+                }
+
                 params.push(FnParam {
                     type_annotation,
                     ident: param,
+                    is_rest,
                 });
+                index += 1;
             }
         }
 

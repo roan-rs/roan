@@ -121,6 +121,7 @@ pub struct VecExpr {
 pub struct FnParam {
     pub ident: Token,
     pub type_annotation: TypeAnnotation,
+    pub is_rest: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]

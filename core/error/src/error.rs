@@ -25,4 +25,10 @@ pub enum PulseError {
     VariableNotFoundError(String, TextSpan),
     #[error("Call to undefined function: {0}")]
     UndefinedFunctionError(String, TextSpan),
+    #[error("Found normal parameter after rest parameter.")]
+    RestParameterNotLast(TextSpan),
+    #[error("Found rest parameter in non-last position.")]
+    RestParameterNotLastPosition(TextSpan),
+    #[error("Found more than one rest parameter.")]
+    MultipleRestParameters(TextSpan),
 }
