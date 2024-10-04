@@ -10,6 +10,7 @@ use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedF
 use roan_error::{print_diagnostic, TextSpan};
 
 use crate::context::Context;
+use crate::module::loader::remove_surrounding_quotes;
 use crate::natives::get_stored_function;
 use crate::natives::io::__print;
 use crate::vm::{Frame, VM};
@@ -163,6 +164,10 @@ impl Module {
         }
         debug!("Variable '{}' not found in any scope", name);
         None
+    }
+
+    pub fn name(&self) -> String {
+        self.path().unwrap().file_stem().unwrap().to_string_lossy().to_string()
     }
 
     /// Interpret statement from the module.
@@ -511,9 +516,10 @@ impl Module {
         Ok(())
     }
 
-    /// Looks for a function with the specified name.
+    /// Finds a function by name.
     pub fn find_function(&self, name: &str) -> Option<&StoredFunction> {
         debug!("Looking for function: {}", name);
+
         self.functions.iter().find(|f| {
             match f {
                 StoredFunction::Native(n) => n.name == name,

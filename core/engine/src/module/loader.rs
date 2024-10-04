@@ -79,7 +79,7 @@ pub trait ModuleLoader: Debug {
     }
 }
 
-fn remove_surrounding_quotes(s: &str) -> &str {
+pub fn remove_surrounding_quotes(s: &str) -> &str {
     if s.starts_with('"') && s.ends_with('"') {
         &s[1..s.len() - 1]
     } else {
