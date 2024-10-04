@@ -10,6 +10,7 @@ use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedF
 use roan_error::{print_diagnostic, TextSpan};
 
 use crate::context::Context;
+use crate::natives::get_stored_function;
 use crate::natives::io::__print;
 use crate::vm::{Frame, VM};
 use crate::vm::native_fn::NativeFunction;
@@ -66,7 +67,7 @@ impl Module {
             source,
             path,
             tokens: vec![],
-            functions: vec![StoredFunction::Native(__print())],
+            functions: get_stored_function(),
             exports: vec![],
             imports: vec![],
             scopes: vec![HashMap::new()], // Initialize with global scope

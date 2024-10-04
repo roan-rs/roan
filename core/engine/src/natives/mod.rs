@@ -1,12 +1,12 @@
+use crate::module::StoredFunction;
+use crate::natives::io::__print;
+
 pub mod io;
 
-/// Macro for defining a native function
 #[macro_export]
 macro_rules! native_function {
-    (fn $name:ident ($($arg:ident: $arg_type:ident),*) {$($body:tt)*}) => {
-        use crate::vm::native_fn::{NativeFunctionParam,NativeFunction};
-        use crate::vm::value::Value;
-
+    (fn $name:ident($($arg:ident: $arg_type:ident),* $(, ...$rest:ident: Vec)?) {$($body:tt)*}) => {
+        use crate::vm::native_fn::{NativeFunction, NativeFunctionParam};
         pub fn $name() -> NativeFunction {
             NativeFunction {
                 name: stringify!($name).to_string(),
@@ -15,9 +15,13 @@ macro_rules! native_function {
                     $(
                         let $arg = match args_iter.next() {
                             Some(Value::$arg_type(value)) => value,
-                            _ => panic!("Expected argument of type {}", stringify!($arg_type)),
+                            _ => panic!("Expected argument of type {} but got {:?}", stringify!($arg_type), args_iter.next().unwrap()),
                         };
                     )*
+
+                    $(
+                        let $rest = args_iter.collect::<Vec<Value>>();
+                    )?
 
                     $($body)*
                 },
@@ -26,11 +30,24 @@ macro_rules! native_function {
                         NativeFunctionParam {
                             name: stringify!($arg).to_string(),
                             ty: stringify!(Value::$arg_type).to_string(),
-                            is_rest: stringify!($arg).starts_with("..."),
+                            is_rest: false,
                         },
                     )*
+                    $(
+                        NativeFunctionParam {
+                            name: stringify!($rest).to_string(),
+                            ty: "Vec<Value>".to_string(),
+                            is_rest: true,
+                        },
+                    )?
                 ],
             }
         }
     };
+}
+
+pub fn get_stored_function() -> Vec<StoredFunction> {
+    vec![
+        StoredFunction::Native(__print())
+    ]
 }

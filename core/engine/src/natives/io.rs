@@ -1,9 +1,13 @@
 use crate::native_function;
+use crate::vm::value::Value;
 
 native_function!(fn __print(
-    arg: String
+    msg: String,
+    ...args: Vec
 ) {
-    println!("dwa {}", arg);
+    for arg in args {
+        print!("{:?}", arg);
+    }
 
     Value::Void
 });
