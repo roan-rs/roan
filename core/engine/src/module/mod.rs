@@ -10,7 +10,9 @@ use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedF
 use roan_error::{print_diagnostic, TextSpan};
 
 use crate::context::Context;
+use crate::natives::io::__print;
 use crate::vm::{Frame, VM};
+use crate::vm::native_fn::NativeFunction;
 use crate::vm::value::Value;
 
 pub mod loader;
@@ -21,13 +23,19 @@ pub enum ExportType {
     Variable,
 }
 
+#[derive(Debug, Clone)]
+pub enum StoredFunction {
+    Native(NativeFunction),
+    Function(Fn),
+}
+
 #[derive(Clone, Debug)]
 pub struct Module {
     source: Source,
     path: Option<PathBuf>,
     tokens: Vec<Token>,
     ast: Ast,
-    functions: Vec<Fn>,
+    functions: Vec<StoredFunction>,
     exports: Vec<(String, ExportType)>,
     imports: Vec<Use>,
     scopes: Vec<HashMap<String, Value>>, // Stack of scopes
@@ -58,7 +66,7 @@ impl Module {
             source,
             path,
             tokens: vec![],
-            functions: vec![],
+            functions: vec![StoredFunction::Native(__print())],
             exports: vec![],
             imports: vec![],
             scopes: vec![HashMap::new()], // Initialize with global scope
@@ -161,7 +169,7 @@ impl Module {
         match stmt {
             Stmt::Fn(f) => {
                 debug!("Interpreting function: {}", f.name);
-                self.functions.push(f.clone());
+                self.functions.push(StoredFunction::Function(f.clone()));
 
                 if f.exported {
                     self.exports
@@ -336,27 +344,46 @@ impl Module {
                 // Enter a new scope for function execution
                 self.enter_scope();
 
-                for (param, val) in function.params.iter().zip(args.clone()) {
-                    let ident = param.ident.literal();
+                match function {
+                    StoredFunction::Native(n) => {
+                        let mut params = vec![];
+                        for (param, val) in n.params.iter().zip(args.clone()) {
+                            if param.is_rest {
+                                let rest = args.iter().skip(n.params.len() - 1).cloned().collect();
+                                params.push(Value::Vec(rest));
+                            } else {
+                                params.push(val);
+                            }
+                        }
 
-                    if param.is_rest {
-                        let rest = args.iter().skip(function.params.len() - 1).cloned().collect();
-                        self.declare_variable(ident, Value::Vec(rest));
-                    } else {
-                        self.declare_variable(ident, val);
+                        let result = (n.func)(params);
+
+                        self.vm.push(result);
                     }
-                }
+                    StoredFunction::Function(f) => {
+                        for (param, val) in f.params.iter().zip(args.clone()) {
+                            let ident = param.ident.literal();
 
-                let frame = Frame::new(
-                    call.callee.clone(),
-                    call.token.span.clone(),
-                    Frame::path_or_unknown(self.path()),
-                );
-                self.vm.push_frame(frame);
+                            if param.is_rest {
+                                let rest = args.iter().skip(f.params.len() - 1).cloned().collect();
+                                self.declare_variable(ident, Value::Vec(rest));
+                            } else {
+                                self.declare_variable(ident, val);
+                            }
+                        }
 
-                for stmt in function.body.stmts {
-                    self.interpret_stmt(stmt, ctx)?;
-                }
+                        let frame = Frame::new(
+                            call.callee.clone(),
+                            call.token.span.clone(),
+                            Frame::path_or_unknown(self.path()),
+                        );
+                        self.vm.push_frame(frame);
+
+                        for stmt in f.body.stmts {
+                            self.interpret_stmt(stmt, ctx)?;
+                        }
+                    }
+                };
 
                 self.vm.pop_frame();
                 self.exit_scope();
@@ -484,8 +511,13 @@ impl Module {
     }
 
     /// Looks for a function with the specified name.
-    pub fn find_function(&self, name: &str) -> Option<&Fn> {
+    pub fn find_function(&self, name: &str) -> Option<&StoredFunction> {
         debug!("Looking for function: {}", name);
-        self.functions.iter().find(|f| f.name == name)
+        self.functions.iter().find(|f| {
+            match f {
+                StoredFunction::Native(n) => n.name == name,
+                StoredFunction::Function(f) => f.name == name,
+            }
+        })
     }
 }

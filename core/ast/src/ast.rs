@@ -123,6 +123,16 @@ pub struct FnParam {
     pub is_rest: bool,
 }
 
+impl FnParam {
+    pub fn new(ident: Token, type_annotation: TypeAnnotation, is_rest: bool) -> Self {
+        Self {
+            ident,
+            type_annotation,
+            is_rest,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeAnnotation {
     pub colon: Token,
