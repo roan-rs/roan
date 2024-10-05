@@ -8,10 +8,9 @@ native_function!(fn __print(
     if args.is_empty() {
         print!("{}", msg);
     } else {
-        print!("{}", msg);
-        for arg in args {
-            print!("{:?}", arg);
-        }
+        let mut args_iter = args.into_iter();
+        
+        print!("{}", msg.replace("{}", &args_iter.next().unwrap().to_string()));
     }
 
     Value::Void

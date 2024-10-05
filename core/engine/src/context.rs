@@ -4,6 +4,7 @@ use bon::bon;
 use std::{fmt::Debug, rc::Rc};
 use std::sync::{Arc, Mutex};
 use log::debug;
+use roan_error::print_diagnostic;
 
 /// Struct to interact with the runtime.
 ///
@@ -80,8 +81,14 @@ impl Context {
         debug!("Evaluating module: {:?}", module);
         {
             let mut main_module_guard = module.lock().unwrap();
-            main_module_guard.parse()?;
-            main_module_guard.interpret(&self)?;
+
+            if let Err(e) = {
+                main_module_guard.parse()?;
+                main_module_guard.interpret(&self)?;
+                Ok(())
+            } {
+                print_diagnostic(e, Some(main_module_guard.source().content()));
+            }
         }
 
         Ok(())

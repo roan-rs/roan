@@ -106,7 +106,13 @@ impl Module {
 
     pub fn interpret(&mut self, ctx: &Context) -> Result<()> {
         for stmt in self.ast.stmts.clone() {
-            self.interpret_stmt(stmt, ctx)?;
+            match self.interpret_stmt(stmt, ctx) {
+                Ok(_) => {}
+                Err(e) => {
+                    print_diagnostic(e, Some(self.source.content()));
+                    return Err(anyhow::anyhow!("Failed to interpret module"));
+                }
+            }
         }
 
         Ok(())
@@ -183,9 +189,6 @@ impl Module {
             Stmt::Use(u) => {
                 debug!("Interpreting use: {}", u.from.literal());
 
-                // Lock the current module for thread-safe access
-                let current_module = Arc::clone(&Arc::new(Mutex::new(self.clone())));
-
                 // Load the module as an Arc<Mutex<Module>>
                 let module = ctx
                     .module_loader
@@ -195,12 +198,21 @@ impl Module {
                 // Lock the loaded module for parsing and interpretation
                 let mut loaded_module = module.lock().expect("Failed to lock loaded module");
 
-                if let Err(e) = loaded_module.parse() {
-                    print_diagnostic(e, Some(loaded_module.source().content()));
-                    return Err(anyhow::anyhow!("Failed to parse module"));
+                match loaded_module.parse() {
+                    Ok(_) => {}
+                    Err(e) => {
+                        print_diagnostic(e, Some(loaded_module.source().content()));
+                        return Err(anyhow::anyhow!("Failed to parse module"));
+                    }
                 }
 
-                loaded_module.interpret(ctx)?;
+                match loaded_module.interpret(ctx) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        print_diagnostic(e, Some(loaded_module.source().content()));
+                        return Err(anyhow::anyhow!("Failed to interpret module"));
+                    }
+                }
 
                 // Collect the items to import
                 let imported_items: Vec<(String, &Token)> = u
@@ -504,6 +516,7 @@ impl Module {
         for (param, val) in native.params.iter().zip(args.clone()) {
             if param.is_rest {
                 let rest = args.iter().skip(native.params.len() - 1).cloned().collect();
+
                 params.push(Value::Vec(rest));
             } else {
                 params.push(val);
@@ -530,13 +543,15 @@ impl Module {
 
         {
             let mut defining_module_guard = defining_module.lock().unwrap();
-            for (param, arg) in function.params.iter().zip(args.clone()) {
+      
+
+            for (param, arg) in function.params.iter().zip(args.iter().chain(std::iter::repeat(&Value::Null))) {
                 let ident = param.ident.literal();
                 if param.is_rest {
                     let rest = args.iter().skip(function.params.len() - 1).cloned().collect();
                     defining_module_guard.declare_variable(ident, Value::Vec(rest));
                 } else {
-                    defining_module_guard.declare_variable(ident, arg);
+                    defining_module_guard.declare_variable(ident, arg.clone());
                 }
             }
         }
