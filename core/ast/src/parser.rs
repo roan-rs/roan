@@ -1,12 +1,10 @@
-use crate::{
-    ast::{
-        Ast, BinOpAssociativity, BinOpKind, BinOperator, Block, ElseBlock, Expr, FnParam,
-        FunctionType, Stmt, TypeAnnotation, UnOpKind, UnOperator,
-    },
-    lexer::token::{Token, TokenKind},
-};
+use crate::{ast::{
+    Ast, BinOpAssociativity, BinOpKind, BinOperator, Block, ElseBlock, Expr, FnParam,
+    FunctionType, Stmt, TypeAnnotation, UnOpKind, UnOperator,
+}, lexer::token::{Token, TokenKind}, Item};
 use anyhow::Result;
 use log::debug;
+use uuid::Uuid;
 use roan_error::error::PulseError::{ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition, UnexpectedToken};
 
 /// Struct responsible for parsing the tokens into an AST
@@ -16,29 +14,24 @@ pub struct Parser {
     pub tokens: Vec<Token>,
     /// The current token index
     pub current: usize,
+    pub ast: Ast,
 }
 
 impl Parser {
     /// Creates a new parser with the given tokens
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, current: 0 }
+        Self { tokens, current: 0, ast: Ast::new() }
     }
 }
 
 impl Parser {
     /// Parses the tokens into an AST until the last token or EOF
     pub fn parse(&mut self) -> Result<Ast> {
-        let mut ast = Ast::new();
-
         while !self.is_eof() {
-            let stmt = self.parse_stmt()?;
-
-            if let Some(stmt) = stmt {
-                ast.stmts.push(stmt);
-            }
+            self.parse_item()?;
         }
 
-        Ok(ast)
+        Ok(self.ast.clone())
     }
 
     /// Consumes the current token and returns the previous token
@@ -94,13 +87,37 @@ impl Parser {
     }
 }
 
+enum RetVal {
+    Stmt(Stmt),
+    Expr(Uuid),
+}
+
 impl Parser {
     /// Parses a statement from the tokens
-    pub fn parse_stmt(&mut self) -> Result<Option<Stmt>> {
+    pub fn parse_item(&mut self) -> Result<()> {
+        let token = self.peek();
+
+        match token.kind {
+            TokenKind::Fn | TokenKind::Export => {
+                self.parse_fn()?;
+                Ok(())
+            }
+            _ => {
+                let id = self.parse_stmt()?;
+                
+                if let Some(id) = id {
+                    self.ast.insert_item(Item::Stmt(id));
+                }
+
+                Ok(())
+            }
+        }
+    }
+
+    pub fn parse_stmt(&mut self) -> Result<Option<Uuid>> {
         let token = self.peek();
 
         let stmt = match token.kind {
-            TokenKind::Fn | TokenKind::Export => Some(self.parse_fn()?),
             TokenKind::Use => Some(self.parse_use()?),
             TokenKind::If => Some(self.parse_if()?),
             TokenKind::Let => Some(self.parse_let()?),
@@ -108,9 +125,9 @@ impl Parser {
                 self.consume();
                 let block = self.parse_block()?;
                 self.expect(TokenKind::RightBrace)?;
-                Some(Stmt::Block(block))
+                                       Some(self.ast.insert_stmt(Stmt::Block(block)))
             }
-            TokenKind::Return => self.parse_return()?,
+            TokenKind::Return => Some(self.parse_return()?),
             TokenKind::Semicolon => {
                 self.consume();
                 None
@@ -118,34 +135,38 @@ impl Parser {
             _ => Some(self.expression_stmt()?),
         };
 
-        Ok(stmt)
+        if let Some(stmt) = stmt {
+            Ok(Some(self.ast.insert_item(Item::Stmt(stmt))))
+        } else {
+            Ok(None)
+        }
     }
 
-    pub fn parse_return(&mut self) -> Result<Option<Stmt>> {
+    pub fn parse_return(&mut self) -> Result<Uuid> {
         debug!("Parsing return statement");
         let return_token = self.consume();
         let value = if self.peek().kind != TokenKind::Semicolon {
-            Some(Box::new(self.parse_expr()?))
+            Some(self.parse_expr()?)
         } else {
             None
         };
 
         self.possible_check(TokenKind::Semicolon);
 
-        Ok(Some(Stmt::new_return(return_token, value)))
+        Ok(self.ast.insert_stmt(Stmt::new_return(return_token, value)))
     }
 
-    pub fn parse_let(&mut self) -> Result<Stmt> {
+    pub fn parse_let(&mut self) -> Result<Uuid> {
         debug!("Parsing let statement");
         self.expect(TokenKind::Let)?;
         let ident = self.expect(TokenKind::Identifier)?;
         let type_annotation = self.parse_optional_type_annotation()?;
         self.expect(TokenKind::Equals)?;
         let value = self.parse_expr()?;
-        Ok(Stmt::new_let(ident, Box::new(value), type_annotation))
+        Ok(self.ast.insert_stmt(Stmt::new_let(ident, value, type_annotation)))
     }
 
-    pub fn parse_if(&mut self) -> Result<Stmt> {
+    pub fn parse_if(&mut self) -> Result<Uuid> {
         debug!("Parsing if statement");
         let if_token = self.consume();
 
@@ -179,7 +200,7 @@ impl Parser {
                 self.expect(TokenKind::RightBrace)?;
 
                 elseif_blocks.push(ElseBlock {
-                    condition: Box::new(condition),
+                    condition,
                     block: body,
                     else_if: true,
                 });
@@ -191,23 +212,23 @@ impl Parser {
                 self.expect(TokenKind::RightBrace)?;
 
                 else_block = Some(ElseBlock {
-                    condition: Box::new(condition.clone()),
+                    condition,
                     block: body,
                     else_if: false,
                 });
             }
         }
 
-        Ok(Stmt::new_if(
+        Ok(self.ast.insert_stmt(Stmt::new_if(
             if_token,
             condition.into(),
             body,
             elseif_blocks.into(),
             else_block,
-        ))
+        )))
     }
 
-    pub fn parse_use(&mut self) -> Result<Stmt> {
+    pub fn parse_use(&mut self) -> Result<Uuid> {
         debug!("Parsing use statement");
         let use_token = self.consume();
 
@@ -240,7 +261,7 @@ impl Parser {
                 .into());
         };
 
-        Ok(Stmt::new_use(use_token, from, items))
+        Ok(self.ast.insert_stmt(Stmt::new_use(use_token, from, items)))
     }
 
     pub fn parse_type_annotation(&mut self) -> Result<TypeAnnotation> {
@@ -275,16 +296,16 @@ impl Parser {
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let stmt = self.parse_stmt()?;
 
-            if let Some(stmt) = stmt {
-                debug!("Adding statement to block");
-                stmts.push(stmt);
-            }
+            debug!("Adding statement to block");
+
+            stmts.push(stmt);
         }
 
+        let stmts = stmts.into_iter().filter_map(|stmt| stmt).collect();
         Ok(Block { stmts })
     }
 
-    pub fn parse_fn(&mut self) -> Result<Stmt> {
+    pub fn parse_fn(&mut self) -> Result<Uuid> {
         debug!("Parsing function");
         let mut exported = false;
         let fn_token = if self.peek().kind == TokenKind::Export {
@@ -351,31 +372,26 @@ impl Parser {
 
         self.expect(TokenKind::RightBrace)?;
 
-        Ok(Stmt::new_fn(
-            fn_token,
-            name.literal(),
-            params,
-            body,
-            exported,
-            return_type,
-        ))
+        Ok(self.ast.insert_item(Item::Fn(
+            Stmt::new_fn(fn_token, name.literal(), params, body, exported, return_type)
+        )))
     }
 }
 
 impl Parser {
-    pub fn parse_expr(&mut self) -> Result<Expr> {
+    pub fn parse_expr(&mut self) -> Result<Uuid> {
         self.parse_assignment()
     }
 
-    pub fn expression_stmt(&mut self) -> Result<Stmt> {
+    pub fn expression_stmt(&mut self) -> Result<Uuid> {
         let expr = self.parse_expr()?;
 
         self.possible_check(TokenKind::Semicolon);
 
-        Ok(expr.into())
+        Ok(expr)
     }
 
-    pub fn parse_binary_expression(&mut self) -> Result<Expr> {
+    pub fn parse_binary_expression(&mut self) -> Result<Uuid> {
         let left = self.parse_unary_expression()?;
         self.parse_binary_expression_recurse(left, 0)
     }
@@ -411,9 +427,9 @@ impl Parser {
 
     pub fn parse_binary_expression_recurse(
         &mut self,
-        mut left: Expr,
+        mut left: Uuid,
         precedence: u8,
-    ) -> Result<Expr> {
+    ) -> Result<Uuid> {
         while let Some(operator) = self.parse_binary_operator() {
             let operator_precedence = operator.precedence();
             if operator_precedence < precedence {
@@ -435,7 +451,7 @@ impl Parser {
                 }
             }
 
-            left = Expr::new_binary(left, operator, right);
+            left = self.ast.insert_expr(Expr::new_binary(left, operator, right));
         }
 
         Ok(left)
@@ -452,23 +468,27 @@ impl Parser {
         kind.map(|kind| UnOperator::new(kind, token.clone()))
     }
 
-    pub fn parse_unary_expression(&mut self) -> Result<Expr> {
+    pub fn parse_unary_expression(&mut self) -> Result<Uuid> {
         if let Some(operator) = self.parse_unary_operator() {
             let token = self.consume();
             let operand = self.parse_unary_expression();
-            return Ok(Expr::new_unary(operator, operand?, token));
+            return Ok(
+                self.ast.insert_expr(
+                    Expr::new_unary(operator, operand?, token)
+                )
+            );
         }
         self.parse_primary_expression()
     }
 
-    pub fn parse_primary_expression(&mut self) -> Result<Expr> {
+    pub fn parse_primary_expression(&mut self) -> Result<Uuid> {
         let token = self.consume();
 
         match &token.kind.clone() {
-            TokenKind::Integer(int) => Ok(Expr::new_integer(token, *int)),
-            TokenKind::Float(float) => Ok(Expr::new_float(token, *float)),
+            TokenKind::Integer(int) => Ok(self.ast.insert_expr(Expr::new_integer(token, *int))),
+            TokenKind::Float(float) => Ok(self.ast.insert_expr(Expr::new_float(token, *float))),
             TokenKind::True | TokenKind::False => {
-                Ok(Expr::new_bool(token.clone(), token.as_bool().unwrap()))
+                Ok(self.ast.insert_expr(Expr::new_bool(token.clone(), token.as_bool().unwrap())))
             }
             TokenKind::LeftBracket => self.parse_vector(),
             TokenKind::Identifier => {
@@ -476,7 +496,7 @@ impl Parser {
                 if self.peek().kind == TokenKind::LeftParen {
                     self.parse_call_expr(token)
                 } else {
-                    Ok(Expr::new_variable(token.clone(), token.literal()))
+                    Ok(self.ast.insert_expr(Expr::new_variable(token.clone(), token.literal())))
                 }
             }
             TokenKind::LeftParen => {
@@ -484,14 +504,14 @@ impl Parser {
 
                 self.expect(TokenKind::RightParen)?;
 
-                Ok(Expr::new_parenthesized(expr))
+                Ok(self.ast.insert_expr(Expr::new_parenthesized(expr)))
             }
-            TokenKind::String(s) => Ok(Expr::new_string(token.clone(), s.clone())),
+            TokenKind::String(s) => Ok(self.ast.insert_expr(Expr::new_string(token.clone(), s.clone()))),
             _ => Err(UnexpectedToken(token.kind.to_string(), token.span.clone()).into()),
         }
     }
 
-    pub fn parse_call_expr(&mut self, callee: Token) -> Result<Expr> {
+    pub fn parse_call_expr(&mut self, callee: Token) -> Result<Uuid> {
         self.expect(TokenKind::LeftParen)?;
 
         let mut args = vec![];
@@ -510,7 +530,7 @@ impl Parser {
 
         self.expect(TokenKind::RightParen)?;
 
-        Ok(Expr::new_call(callee.literal(), args, callee))
+        Ok(self.ast.insert_expr(Expr::new_call(callee.literal(), args, callee)))
     }
 
     pub fn parse_optional_type_annotation(&mut self) -> Result<Option<TypeAnnotation>> {
@@ -521,7 +541,7 @@ impl Parser {
         }
     }
 
-    pub fn parse_vector(&mut self) -> Result<Expr> {
+    pub fn parse_vector(&mut self) -> Result<Uuid> {
         debug!("Parsing vector");
 
         let mut elements = vec![];
@@ -539,17 +559,17 @@ impl Parser {
 
         self.expect(TokenKind::RightBracket)?;
 
-        Ok(Expr::new_vec(elements))
+        Ok(self.ast.insert_expr(Expr::new_vec(elements)))
     }
 
-    pub fn parse_assignment(&mut self) -> Result<Expr> {
+    pub fn parse_assignment(&mut self) -> Result<Uuid> {
         log::debug!("Parsing assignment");
         if self.peek().kind == TokenKind::Identifier && self.peek_next().kind == TokenKind::Equals {
             let ident = self.consume();
             let equals = self.consume();
             let value = self.parse_expr()?;
 
-            Ok(Expr::new_assign(ident, equals, value))
+            Ok(self.ast.insert_expr(Expr::new_assign(ident, equals, value)))
         } else {
             Ok(self.parse_binary_expression()?)
         }

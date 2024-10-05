@@ -8,7 +8,7 @@ use roan_ast::source::Source;
 use roan_ast::{BinOpKind, Expr, Fn, Lexer, Parser, Stmt, Token, Use, Ast, If, Block};
 use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedFunctionError, VariableNotFoundError};
 use roan_error::{print_diagnostic, TextSpan};
-
+use uuid::Uuid;
 use crate::context::Context;
 use crate::module::loader::remove_surrounding_quotes;
 use crate::natives::get_stored_function;
@@ -36,7 +36,7 @@ pub struct Module {
     source: Source,
     path: Option<PathBuf>,
     tokens: Vec<Token>,
-    ast: Ast,
+    pub(crate) ast: Ast,
     functions: Vec<StoredFunction>,
     exports: Vec<(String, ExportType)>,
     imports: Vec<Use>,
@@ -45,22 +45,6 @@ pub struct Module {
 }
 
 impl Module {
-    /// Creates a new `Module` from the specified `Source`.
-    ///
-    /// # Parameters
-    /// - `source` - The source of the module.
-    ///
-    /// # Returns
-    /// The new `Module`.
-    ///
-    /// # Examples
-    /// ```rust
-    /// use roan_engine::module::Module;
-    /// use roan_ast::source::Source;
-    /// use roan_engine::context::Context;
-    /// let source = Source::from_bytes("fn main() { }");
-    /// let module = Module::new(source);
-    /// ```
     pub fn new(source: Source) -> Self {
         let path = source.path().as_deref().map(Path::to_path_buf);
 
@@ -77,19 +61,14 @@ impl Module {
         }
     }
 
-    /// Returns the path of the module.
     pub fn path(&self) -> Option<PathBuf> {
         self.path.clone()
     }
 
-    /// Returns the source of the module.
     pub fn source(&self) -> &Source {
         &self.source
     }
 
-    /// Parses the module.
-    ///
-    /// First, the module is lexed into tokens. Then, the tokens are parsed into an AST.
     pub fn parse(&mut self) -> Result<()> {
         debug!("Parsing module from source");
         let mut lexer = Lexer::new(self.source.clone());
@@ -110,26 +89,32 @@ impl Module {
     }
 
     pub fn interpret(&mut self, ctx: &Context) -> Result<()> {
-        for stmt in self.ast.stmts.clone() {
-            self.interpret_stmt(stmt, ctx)?;
-        }
+        println!("{:#?}", self.ast);
+        // for stmt in self.ast.stmts.clone() {
+        //     match self.interpret_stmt(stmt.0, ctx) {
+        //         Ok(_) => {}
+        //         Err(e) => {
+        //             print_diagnostic(e, Some(self.source.content()));
+        // 
+        //             // Is this a good idea?
+        //             std::process::exit(1);
+        //         }
+        //     }
+        // }
 
         Ok(())
     }
 
-    /// Enter a new scope by pushing a new HashMap onto the scopes stack.
     fn enter_scope(&mut self) {
         debug!("Entering new scope");
         self.scopes.push(HashMap::new());
     }
 
-    /// Exit the current scope by popping the top HashMap from the scopes stack.
     fn exit_scope(&mut self) {
         debug!("Exiting current scope");
         self.scopes.pop();
     }
 
-    /// Declare a new variable in the current (innermost) scope.
     fn declare_variable(&mut self, name: String, val: Value) {
         debug!("Declaring variable '{}' in current scope", name);
         if let Some(current_scope) = self.scopes.last_mut() {
@@ -137,7 +122,6 @@ impl Module {
         }
     }
 
-    /// Set an existing variable's value in the nearest enclosing scope.
     fn set_variable(&mut self, name: &str, val: Value) -> Result<()> {
         for scope in self.scopes.iter_mut().rev() {
             if scope.contains_key(name) {
@@ -146,7 +130,6 @@ impl Module {
                 return Ok(());
             }
         }
-        // Variable not found in any scope
         Err(VariableNotFoundError(
             name.to_string(),
             TextSpan::default(),
@@ -154,7 +137,6 @@ impl Module {
             .into())
     }
 
-    /// Finds a variable by name, searching from the innermost scope outward.
     pub fn find_variable(&self, name: &str) -> Option<&Value> {
         for scope in self.scopes.iter().rev() {
             if let Some(val) = scope.get(name) {
@@ -170,8 +152,9 @@ impl Module {
         self.path().unwrap().file_stem().unwrap().to_string_lossy().to_string()
     }
 
-    /// Interpret statement from the module.
-    pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &Context) -> Result<()> {
+    pub fn interpret_stmt(&mut self, stmt: Uuid, ctx: &Context) -> Result<()> {
+        let stmt = self.ast.query(stmt).clone();
+
         match stmt {
             Stmt::Fn(f) => {
                 debug!("Interpreting function: {}", f.name);
@@ -215,7 +198,8 @@ impl Module {
             }
             Stmt::Let(l) => {
                 debug!("Interpreting let: {:?}", l.ident);
-                self.interpret_expr(l.initializer.as_ref(), ctx)?;
+                let initializer_clone = l.initializer.clone();
+                self.interpret_expr(initializer_clone, ctx)?;
 
                 let val = self.vm.pop().unwrap();
                 let ident = l.ident.literal();
@@ -224,13 +208,15 @@ impl Module {
             Stmt::Expr(expr) => {
                 debug!("Interpreting expression: {:?}", expr);
 
-                self.interpret_expr(expr.as_ref(), ctx)?;
+                let expr_clone = expr.clone();
+                self.interpret_expr(expr_clone.clone(), ctx)?;
             }
             Stmt::Return(r) => {
                 debug!("Interpreting return: {:?}", r);
 
                 if let Some(expr) = r.expr {
-                    self.interpret_expr(expr.as_ref(), ctx)?;
+                    let expr_clone = expr.clone();
+                    self.interpret_expr(expr_clone, ctx)?;
                 }
             }
             Stmt::Block(block) => {
@@ -247,7 +233,8 @@ impl Module {
     }
 
     fn interpret_if(&mut self, if_stmt: If, ctx: &Context) -> Result<()> {
-        self.interpret_expr(&if_stmt.condition, ctx)?;
+        let condition_clone = if_stmt.condition.clone();
+        self.interpret_expr(condition_clone, ctx)?;
         let condition_value = self.vm.pop().ok_or_else(|| {
             anyhow::anyhow!("Expected a value on the VM stack for if condition")
         })?;
@@ -266,7 +253,8 @@ impl Module {
         } else {
             let mut executed = false;
             for else_if in if_stmt.else_ifs {
-                self.interpret_expr(&else_if.condition, ctx)?;
+                let else_if_condition_clone = else_if.condition.clone();
+                self.interpret_expr(else_if_condition_clone, ctx)?;
                 let else_if_condition = self.vm.pop().ok_or_else(|| {
                     anyhow::anyhow!(
                         "Expected a value on the VM stack for else-if condition"
@@ -299,17 +287,18 @@ impl Module {
         Ok(())
     }
 
-    /// Execute a block of statements within a new scope.
     fn execute_block(&mut self, block: Block, ctx: &Context) -> Result<()> {
         self.enter_scope();
         for stmt in block.stmts {
-            self.interpret_stmt(stmt, ctx)?;
+            self.interpret_stmt(stmt.clone(), ctx)?;
         }
         self.exit_scope();
         Ok(())
     }
 
-    pub fn interpret_expr(&mut self, expr: &Expr, ctx: &Context) -> Result<()> {
+    pub fn interpret_expr(&mut self, expr: Uuid, ctx: &Context) -> Result<()> {
+        let expr = self.ast.query_expr(expr).clone();
+
         let val: Result<Value> = match expr {
             Expr::Variable(v) => {
                 debug!("Interpreting variable: {}", v.ident);
@@ -325,16 +314,16 @@ impl Module {
             }
             Expr::Literal(l) => {
                 debug!("Interpreting literal: {:?}", l);
-
-                Ok(Value::from_literal(l.clone()))
+                Ok(Value::from_literal(l))
             }
             Expr::Call(call) => {
                 debug!("Interpreting call: {:?}", call);
 
                 let mut args = vec![];
 
-                for arg in call.args.iter() {
-                    self.interpret_expr(arg, ctx)?;
+                let call_args = call.args.clone();
+                for arg in call_args.iter() {
+                    self.interpret_expr(*arg, ctx)?;
                     args.push(
                         self.vm.pop().expect("Expected value on stack"),
                     );
@@ -347,7 +336,6 @@ impl Module {
                     func.clone()
                 };
 
-                // Enter a new scope for function execution
                 self.enter_scope();
 
                 match function {
@@ -363,7 +351,6 @@ impl Module {
                         }
 
                         let result = (n.func)(params);
-
                         self.vm.push(result);
                     }
                     StoredFunction::Function(f) => {
@@ -385,8 +372,9 @@ impl Module {
                         );
                         self.vm.push_frame(frame);
 
-                        for stmt in f.body.stmts {
-                            self.interpret_stmt(stmt, ctx)?;
+                        let stmts = f.body.stmts.clone();
+                        for stmt_id in stmts {
+                            self.interpret_stmt(stmt_id, ctx)?;
                         }
                     }
                 };
@@ -401,14 +389,14 @@ impl Module {
             Expr::Parenthesized(p) => {
                 debug!("Interpreting parenthesized: {:?}", p);
 
-                self.interpret_expr(&p.expr, ctx)?;
+                self.interpret_expr(p.expr, ctx)?;
 
                 Ok(self.vm.pop().unwrap())
             }
             Expr::Assign(assign) => {
                 debug!("Interpreting assign: {:?}", assign);
 
-                self.interpret_expr(&assign.value, ctx)?;
+                self.interpret_expr(assign.value, ctx)?;
                 let val = self.vm.pop().unwrap();
 
                 let ident = assign.ident.literal();
@@ -421,9 +409,10 @@ impl Module {
                 debug!("Interpreting vec: {:?}", vec);
 
                 let mut values = vec![];
+                let vec_exprs = vec.exprs.clone();
 
-                for expr in vec.exprs.iter() {
-                    self.interpret_expr(expr, ctx)?;
+                for expr_id in vec_exprs.iter() {
+                    self.interpret_expr(*expr_id, ctx)?;
                     values.push(self.vm.pop().unwrap());
                 }
 
@@ -432,67 +421,36 @@ impl Module {
             Expr::Binary(b) => {
                 debug!("Interpreting binary: {:?}", b);
 
-                self.interpret_expr(&b.left, ctx)?;
+                let b_left_clone = b.left.clone();
+                let b_operator = b.operator.clone();
+                let b_right_clone = b.right.clone();
+
+                self.interpret_expr(b_left_clone, ctx)?;
                 let left = self.vm.pop().unwrap();
-                self.interpret_expr(&b.right, ctx)?;
+
+                self.interpret_expr(b_right_clone, ctx)?;
                 let right = self.vm.pop().unwrap();
 
-                let val = match (left.clone(), b.operator, right.clone()) {
+                let val = match (left.clone(), b_operator, right.clone()) {
                     (_, BinOpKind::Plus, _) => left + right,
-
-                    (Value::Int(a), BinOpKind::Minus, Value::Int(b)) => Value::Int(a - b),
-                    (Value::Float(a), BinOpKind::Minus, Value::Float(b)) => Value::Float(a - b),
-                    (Value::Int(a), BinOpKind::Minus, Value::Float(b)) => Value::Float(a as f64 - b),
-                    (Value::Float(a), BinOpKind::Minus, Value::Int(b)) => Value::Float(a - b as f64),
-
-                    (Value::Int(a), BinOpKind::Multiply, Value::Int(b)) => Value::Int(a * b),
-                    (Value::Float(a), BinOpKind::Multiply, Value::Float(b)) => Value::Float(a * b),
-                    (Value::Int(a), BinOpKind::Multiply, Value::Float(b)) => Value::Float(a as f64 * b),
-                    (Value::Float(a), BinOpKind::Multiply, Value::Int(b)) => Value::Float(a * b as f64),
-
-                    (Value::Int(a), BinOpKind::Divide, Value::Int(b)) => Value::Int(a / b),
-                    (Value::Float(a), BinOpKind::Divide, Value::Float(b)) => Value::Float(a / b),
-                    (Value::Int(a), BinOpKind::Divide, Value::Float(b)) => Value::Float(a as f64 / b),
-                    (Value::Float(a), BinOpKind::Divide, Value::Int(b)) => Value::Float(a / b as f64),
-
-                    (Value::Int(a), BinOpKind::Equals, Value::Int(b)) => Value::Bool(a == b),
-                    (Value::Float(a), BinOpKind::Equals, Value::Float(b)) => Value::Bool(a == b),
-                    (Value::String(a), BinOpKind::Equals, Value::String(b)) => Value::Bool(a == b),
-
-                    (Value::Int(a), BinOpKind::BangEquals, Value::Int(b)) => Value::Bool(a != b),
-                    (Value::Float(a), BinOpKind::BangEquals, Value::Float(b)) => Value::Bool(a != b),
-                    (Value::String(a), BinOpKind::BangEquals, Value::String(b)) => Value::Bool(a != b),
+                    (_, BinOpKind::Minus, _) => left - right,
+                    (_, BinOpKind::Multiply, _) => left * right,
+                    (_, BinOpKind::Divide, _) => left / right,
+                    (_, BinOpKind::Equals, _) => Value::Bool(left == right),
+                    (_, BinOpKind::BangEquals, _) => Value::Bool(left != right),
+                    (_, BinOpKind::GreaterThan, _) => Value::Bool(left > right),
+                    (_, BinOpKind::LessThan, _) => Value::Bool(left < right),
+                    (_, BinOpKind::GreaterThanOrEqual, _) => Value::Bool(left >= right),
+                    (_, BinOpKind::LessThanOrEqual, _) => Value::Bool(left <= right),
 
                     (Value::Bool(a), BinOpKind::And, Value::Bool(b)) => Value::Bool(a && b),
                     (Value::Bool(a), BinOpKind::Or, Value::Bool(b)) => Value::Bool(a || b),
-
-                    (Value::Int(a), BinOpKind::GreaterThan, Value::Int(b)) => Value::Bool(a > b),
-                    (Value::Float(a), BinOpKind::GreaterThan, Value::Float(b)) => Value::Bool(a > b),
-                    (Value::Int(a), BinOpKind::GreaterThan, Value::Float(b)) => Value::Bool(a as f64 > b),
-                    (Value::Float(a), BinOpKind::GreaterThan, Value::Int(b)) => Value::Bool(a > b as f64),
-
-                    (Value::Int(a), BinOpKind::LessThan, Value::Int(b)) => Value::Bool((a as f64) < (b as f64)),
-                    (Value::Float(a), BinOpKind::LessThan, Value::Float(b)) => Value::Bool(a < b),
-                    (Value::Int(a), BinOpKind::LessThan, Value::Float(b)) => Value::Bool((a as f64) < b),
-                    (Value::Float(a), BinOpKind::LessThan, Value::Int(b)) => Value::Bool(a < (b as f64)),
-
-                    (Value::Int(a), BinOpKind::GreaterThanOrEqual, Value::Int(b)) => Value::Bool(a >= b),
-                    (Value::Float(a), BinOpKind::GreaterThanOrEqual, Value::Float(b)) => Value::Bool(a >= b),
-                    (Value::Int(a), BinOpKind::GreaterThanOrEqual, Value::Float(b)) => Value::Bool(a as f64 >= b),
-                    (Value::Float(a), BinOpKind::GreaterThanOrEqual, Value::Int(b)) => Value::Bool(a >= b as f64),
-
-                    (Value::Int(a), BinOpKind::LessThanOrEqual, Value::Int(b)) => Value::Bool(a <= b),
-                    (Value::Float(a), BinOpKind::LessThanOrEqual, Value::Float(b)) => Value::Bool(a <= b),
-                    (Value::Int(a), BinOpKind::LessThanOrEqual, Value::Float(b)) => Value::Bool(a as f64 <= b),
-                    (Value::Float(a), BinOpKind::LessThanOrEqual, Value::Int(b)) => Value::Bool(a <= b as f64),
 
                     (Value::Int(a), BinOpKind::Modulo, Value::Int(b)) => Value::Int(a % b),
                     (Value::Float(a), BinOpKind::Modulo, Value::Float(b)) => Value::Float(a % b),
                     (Value::Int(a), BinOpKind::Modulo, Value::Float(b)) => Value::Float(a as f64 % b),
                     (Value::Float(a), BinOpKind::Modulo, Value::Int(b)) => Value::Float(a % b as f64),
 
-
-                    // TODO: add more bitwise operators
                     (Value::Int(a), BinOpKind::And, Value::Int(b)) => Value::Int(a & b),
                     (Value::Int(a), BinOpKind::Or, Value::Int(b)) => Value::Int(a | b),
                     (Value::Int(a), BinOpKind::BitwiseXor, Value::Int(b)) => Value::Int(a ^ b),
@@ -500,7 +458,7 @@ impl Module {
                     (Value::Int(a), BinOpKind::Power, Value::Int(b)) => Value::Int(a.pow(b as u32)),
                     (Value::Float(a), BinOpKind::Power, Value::Float(b)) => Value::Float(a.powf(b)),
                     (Value::Int(a), BinOpKind::Power, Value::Float(b)) => Value::Float((a as f64).powf(b)),
-                    (Value::Float(a), BinOpKind::Power, Value::Int(b)) => Value::Float((a).powi(b as i32)),
+                    (Value::Float(a), BinOpKind::Power, Value::Int(b)) => Value::Float(a.powi(b as i32)),
 
                     _ => todo!("missing binary operator: {:?}", b.operator),
                 };
@@ -516,7 +474,6 @@ impl Module {
         Ok(())
     }
 
-    /// Finds a function by name.
     pub fn find_function(&self, name: &str) -> Option<&StoredFunction> {
         debug!("Looking for function: {}", name);
 

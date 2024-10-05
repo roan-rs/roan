@@ -1,3 +1,8 @@
-fn println(msg: string, ...args: string) -> void {
+export fn print(msg: string, ...args: string) -> void {
+    __print(msg, args);
+}
 
+export fn println(msg: string, ...args: string) -> void {
+    print(msg, args);
+    print("\n");
 }

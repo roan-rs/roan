@@ -1,25 +1,71 @@
+use std::collections::HashMap;
 use crate::lexer::token::Token;
 use roan_error::span::TextSpan;
 use std::fmt::{Debug, Display, Formatter};
+use indexmap::IndexMap;
+use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ast {
-    pub stmts: Vec<Stmt>,
+    pub stmts: IndexMap<Uuid, Stmt>,
+    pub exprs: IndexMap<Uuid, Expr>,
+    pub items: IndexMap<Uuid, Item>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Item {
+    Stmt(Uuid),
+    Fn(Fn),
 }
 
 impl Ast {
     pub fn new() -> Self {
-        Self { stmts: vec![] }
+        Self {
+            stmts: IndexMap::new(),
+            exprs: IndexMap::new(),
+            items: IndexMap::new(),
+        }
+    }
+
+    /// Inserts a statement into the AST and returns its Uuid.
+    pub fn insert_stmt(&mut self, stmt: Stmt) -> Uuid {
+        let id = Uuid::new_v4();
+        self.stmts.insert(id, stmt);
+        id
+    }
+
+    /// Inserts an expression into the AST and returns its Uuid.
+    pub fn insert_expr(&mut self, expr: Expr) -> Uuid {
+        let id = Uuid::new_v4();
+        self.exprs.insert(id, expr);
+        id
+    }
+
+    /// Retrieves a statement by its Uuid.
+    pub fn query(&self, id: Uuid) -> &Stmt {
+        self.stmts.get(&id).expect("Stmt not found")
+    }
+
+    /// Retrieves an expression by its Uuid.
+    pub fn query_expr(&self, id: Uuid) -> &Expr {
+        self.exprs.get(&id).expect("Expr not found")
+    }
+    
+    /// Inserts an item into the AST and returns its Uuid.
+    pub fn insert_item(&mut self, item: Item) -> Uuid {
+        let id = Uuid::new_v4();
+        self.items.insert(id, item);
+        id
     }
 }
 
 pub trait GetSpan {
-    fn span(&self) -> TextSpan;
+    fn span(&self, ast: Ast) -> TextSpan;
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
-    Expr(Box<Expr>),
+    Expr(Uuid),
     Use(Use),
     Block(Block),
     If(If),
@@ -32,14 +78,8 @@ pub enum Stmt {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Let {
     pub ident: Token,
-    pub initializer: Box<Expr>,
+    pub initializer: Uuid,
     pub type_annotation: Option<TypeAnnotation>,
-}
-
-impl From<Expr> for Stmt {
-    fn from(expr: Expr) -> Self {
-        Stmt::Expr(Box::new(expr))
-    }
 }
 
 impl Stmt {
@@ -50,15 +90,15 @@ impl Stmt {
         body: Block,
         exported: bool,
         return_type: Option<FunctionType>,
-    ) -> Self {
-        Stmt::Fn(Fn {
+    ) -> Fn {
+        Fn {
             fn_token,
             name,
             params,
             body,
             exported,
             return_type,
-        })
+        }
     }
 
     pub fn new_use(use_token: Token, from: Token, items: Vec<Token>) -> Self {
@@ -71,7 +111,7 @@ impl Stmt {
 
     pub fn new_if(
         if_token: Token,
-        condition: Box<Expr>,
+        condition: Uuid,
         then_block: Block,
         else_ifs: Vec<ElseBlock>,
         else_block: Option<ElseBlock>,
@@ -87,7 +127,7 @@ impl Stmt {
 
     pub fn new_let(
         ident: Token,
-        initializer: Box<Expr>,
+        initializer: Uuid,
         type_annotation: Option<TypeAnnotation>,
     ) -> Self {
         Stmt::Let(Let {
@@ -97,7 +137,7 @@ impl Stmt {
         })
     }
 
-    pub fn new_return(return_token: Token, expr: Option<Box<Expr>>) -> Self {
+    pub fn new_return(return_token: Token, expr: Option<Uuid>) -> Self {
         Stmt::Return(Return { return_token, expr })
     }
 }
@@ -113,7 +153,7 @@ impl Stmt {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct VecExpr {
-    pub exprs: Vec<Expr>,
+    pub exprs: Vec<Uuid>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -151,7 +191,7 @@ impl FunctionType {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Fn {
     pub fn_token: Token,
     pub name: String,
@@ -161,22 +201,11 @@ pub struct Fn {
     pub return_type: Option<FunctionType>,
 }
 
-impl Debug for Fn {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Fn")
-            .field("name", &self.name)
-            .field("params", &self.params)
-            .field("body", &self.body)
-            .field("exported", &self.exported)
-            .field("return_type", &self.return_type)
-            .finish()
-    }
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct If {
     pub if_token: Token,
-    pub condition: Box<Expr>,
+    pub condition: Uuid,
     pub then_block: Block,
     pub else_ifs: Vec<ElseBlock>,
     pub else_block: Option<ElseBlock>,
@@ -184,7 +213,7 @@ pub struct If {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElseBlock {
-    pub condition: Box<Expr>,
+    pub condition: Uuid,
     pub block: Block,
     pub else_if: bool,
 }
@@ -196,31 +225,15 @@ pub struct Use {
     pub items: Vec<Token>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Block {
-    pub stmts: Vec<Stmt>,
+    pub stmts: Vec<Uuid>,
 }
 
-impl Debug for Block {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Block")
-            .field("stmts", &self.stmts.len())
-            .finish()
-    }
-}
-
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Return {
     pub return_token: Token,
-    pub expr: Option<Box<Expr>>,
-}
-
-impl Debug for Return {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Return")
-            .field("expr", &self.expr.clone().unwrap().span().literal)
-            .finish()
-    }
+    pub expr: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -274,15 +287,15 @@ pub enum BinOpKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Binary {
-    pub left: Box<Expr>,
+    pub left: Uuid,
     pub operator: BinOpKind,
-    pub right: Box<Expr>,
+    pub right: Uuid,
 }
 
 impl GetSpan for Binary {
-    fn span(&self) -> TextSpan {
-        let left = self.left.span();
-        let right = self.right.span();
+    fn span(&self, ast: Ast) -> TextSpan {
+        let left = ast.query_expr(self.left).span(ast.clone());
+        let right = ast.query_expr(self.right).span(ast.clone());
 
         TextSpan::combine(vec![left, right])
     }
@@ -291,7 +304,7 @@ impl GetSpan for Binary {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Unary {
     pub operator: UnOperator,
-    pub expr: Box<Expr>,
+    pub expr: Uuid,
     pub token: Token,
 }
 
@@ -309,28 +322,28 @@ pub enum LogicalOp {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Logical {
-    pub left: Box<Expr>,
+    pub left: Uuid,
     pub operator: LogicalOp,
-    pub right: Box<Expr>,
+    pub right: Uuid,
     pub token: Token,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Parenthesized {
-    pub expr: Box<Expr>,
+    pub expr: Uuid,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CallExpr {
     pub callee: String,
-    pub args: Vec<Expr>,
+    pub args: Vec<Uuid>,
     pub token: Token,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Assign {
     pub ident: Token,
-    pub value: Box<Expr>,
+    pub value: Uuid,
     pub token: Token,
 }
 
@@ -435,30 +448,31 @@ pub enum Expr {
 }
 
 impl GetSpan for Expr {
-    fn span(&self) -> TextSpan {
+    fn span(&self, ast: Ast) -> TextSpan {
         match &self {
             Expr::Literal(l) => l.clone().token.span,
             Expr::Binary(b) => {
-                let left = b.left.span();
-                let right = b.right.span();
+                let left = ast.query_expr(b.left).span(ast.clone());
+                let right = ast.query_expr(b.right).span(ast.clone());
 
                 TextSpan::combine(vec![left, right])
             }
             Expr::Unary(u) => u.clone().token.span,
             Expr::Variable(v) => v.clone().token.span,
             Expr::Logical(l) => l.clone().token.span,
-            Expr::Parenthesized(p) => p.expr.span(),
+            Expr::Parenthesized(p) => ast.query_expr(p.expr).span(ast.clone()),
             Expr::Call(c) => c.clone().token.span,
             Expr::Assign(a) => {
                 let ident = a.clone().ident.span;
-                let value = a.value.span();
+                let value = ast.query_expr(a.value).span(ast.clone());
 
                 TextSpan::combine(vec![ident, value])
             }
             Expr::Vec(v) => {
                 let mut spans = vec![];
                 for expr in &v.exprs {
-                    spans.push(expr.span());
+                    let span = ast.query_expr(*expr).span(ast.clone());
+                    spans.push(span);
                 }
 
                 TextSpan::combine(spans)
@@ -468,10 +482,6 @@ impl GetSpan for Expr {
 }
 
 impl Expr {
-    pub fn into_stmt(self) -> Stmt {
-        Stmt::Expr(Box::new(self))
-    }
-
     pub fn into_variable(self) -> Variable {
         match self {
             Expr::Variable(v) => v,
@@ -481,27 +491,27 @@ impl Expr {
 }
 
 impl Expr {
-    pub fn new_unary(operator: UnOperator, expr: Expr, token: Token) -> Self {
+    pub fn new_unary(operator: UnOperator, expr: Uuid, token: Token) -> Self {
         Expr::Unary(Unary {
             operator,
-            expr: Box::new(expr),
+            expr,
             token,
         })
     }
 
-    pub fn new_assign(ident: Token, token: Token, value: Expr) -> Self {
+    pub fn new_assign(ident: Token, token: Token, value: Uuid) -> Self {
         Expr::Assign(Assign {
             ident,
-            value: Box::new(value),
+            value,
             token,
         })
     }
 
-    pub fn new_binary(left: Expr, operator: BinOperator, right: Expr) -> Self {
+    pub fn new_binary(left: Uuid, operator: BinOperator, right: Uuid) -> Self {
         Expr::Binary(Binary {
-            left: Box::new(left),
+            left,
             operator: operator.kind,
-            right: Box::new(right),
+            right,
         })
     }
 
@@ -533,7 +543,7 @@ impl Expr {
         })
     }
 
-    pub fn new_call(callee: String, args: Vec<Expr>, token: Token) -> Self {
+    pub fn new_call(callee: String, args: Vec<Uuid>, token: Token) -> Self {
         Expr::Call(CallExpr {
             callee,
             args,
@@ -548,13 +558,13 @@ impl Expr {
         })
     }
 
-    pub fn new_parenthesized(expr: Expr) -> Self {
+    pub fn new_parenthesized(expr: Uuid) -> Self {
         Expr::Parenthesized(Parenthesized {
-            expr: Box::new(expr),
+            expr,
         })
     }
 
-    pub fn new_vec(exprs: Vec<Expr>) -> Self {
+    pub fn new_vec(exprs: Vec<Uuid>) -> Self {
         Expr::Vec(VecExpr { exprs })
     }
 }

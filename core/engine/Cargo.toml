@@ -9,3 +9,4 @@ roan-ast = { workspace = true }
 bon = { workspace = true }
 anyhow = { workspace = true }
 log = "0.4.22"
+uuid = { version = "1.10.0", features = ["v4"] }
