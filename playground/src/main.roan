@@ -1,7 +1,7 @@
-use { print } from "std::io";
+use { println } from "std::io";
 
 export fn main() -> int {
-    print("{} + {} = {}", 1, 2, 1 + 2);
+    println("{} + {} = {}, 123", "");
 
     return 0;
 }

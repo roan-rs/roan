@@ -1,8 +1,7 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::PathBuf;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use crate::module::Module;
 use anyhow::Result;
 use log::debug;
@@ -12,34 +11,28 @@ use crate::context::Context;
 /// Trait that defines the interface for a module loader.
 pub trait ModuleLoader: Debug {
     /// Load a module from a given source.
-    fn load(&self, referrer: &Module, spec: &str, ctx: &Context) -> Result<Module>;
+    fn load(&self, referrer: &Module, spec: &str, ctx: &Context) -> Result<Arc<Mutex<Module>>>;
 
     /// Insert a module into the loader's cache if loader handles caching.
     ///
     /// This function is a no-op for loaders that do not cache modules.
     ///
     /// # Arguments
-    /// - `module` - The module to insert into the cache.
     /// - `name` - The name of the module to insert into the cache.
-    fn insert(&self, _name: String, _module: Module) {}
+    /// - `module` - The module to insert into the cache.
+    fn insert(&self, name: String, module: Arc<Mutex<Module>>) {}
 
-    /// Get module from cache if the loader caches modules.
+    /// Get a module from the cache if the loader caches modules.
     ///
-    /// This function is a no-op for loaders that do not cache modules.
+    /// This function returns `None` for loaders that do not cache modules.
     ///
     /// # Arguments
     /// - `name` - The name of the module to get from the cache.
-    fn get(&self, _name: String) -> Option<Module> {
+    fn get(&self, name: &str) -> Option<Arc<Mutex<Module>>> {
         None
     }
 
-
     /// Resolves the path of a referenced module based on the referrer module's path and the provided specification.
-    ///
-    /// This function constructs a `PathBuf` for the given `spec` relative to the `referrer` module's path.
-    /// If `spec` is an absolute path, it returns it directly. Otherwise, it joins the `spec` with the parent
-    /// directory of the `referrer` module's path. On Windows, it replaces forward slashes in `spec` with
-    /// backslashes to ensure the path is formatted correctly.
     ///
     /// # Arguments
     ///
@@ -55,16 +48,16 @@ pub trait ModuleLoader: Debug {
     ///
     /// This function will panic if the `referrer` module's path has no parent directory.
     fn resolve_referrer(&self, referrer: &Module, spec: &str) -> Result<PathBuf> {
-        debug!("Resolving referrer: {:?}, spec: {}", referrer.path, spec);
+        debug!("Resolving referrer: {:?}, spec: {}", referrer.path(), spec);
         let referrer_path = referrer.path().map_or_else(|| PathBuf::new(), |p| p.to_path_buf());
         let dir = referrer_path.parent().expect("Module path has no parent");
 
-        let w = spec.replace("/", "\\");
-        let str_path = remove_surrounding_quotes(if cfg!(windows) {
-            &w
+        let spec = if cfg!(windows) {
+            spec.replace("/", "\\")
         } else {
-            spec
-        });
+            spec.to_string()
+        };
+        let str_path = remove_surrounding_quotes(&spec);
 
         let spec_path = PathBuf::from(str_path);
 
@@ -79,17 +72,19 @@ pub trait ModuleLoader: Debug {
     }
 }
 
+/// Removes surrounding double quotes from a string slice if present.
 pub fn remove_surrounding_quotes(s: &str) -> &str {
-    if s.starts_with('"') && s.ends_with('"') {
+    if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
         &s[1..s.len() - 1]
     } else {
         s
     }
 }
 
-#[derive(Clone, Debug)]
+/// A basic implementation of the `ModuleLoader` trait that caches modules in memory.
+#[derive(Debug)]
 pub struct BasicModuleLoader {
-    modules: Rc<RefCell<HashMap<String, Module>>>,
+    modules: Arc<Mutex<HashMap<String, Arc<Mutex<Module>>>>>,
 }
 
 impl BasicModuleLoader {
@@ -97,51 +92,83 @@ impl BasicModuleLoader {
     pub fn new() -> Self {
         debug!("Creating new BasicModuleLoader");
         Self {
-            modules: Rc::new(RefCell::new(HashMap::new())),
+            modules: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     /// Creates a new [`BasicModuleLoader`] with the specified cache of modules.
-    pub fn with_modules(cache: Rc<RefCell<HashMap<String, Module>>>) -> Self {
-        debug!("Creating new BasicModuleLoader with modules");
+    pub fn with_modules(cache: Arc<Mutex<HashMap<String, Arc<Mutex<Module>>>>>) -> Self {
+        debug!("Creating new BasicModuleLoader with provided module cache");
         Self { modules: cache }
     }
 
-    /// Returns the cache of modules.
-    pub fn modules(&self) -> Rc<RefCell<HashMap<String, Module>>> {
-        self.modules.clone()
+    /// Returns a clone of the module cache.
+    pub fn modules(&self) -> Arc<Mutex<HashMap<String, Arc<Mutex<Module>>>>> {
+        Arc::clone(&self.modules)
     }
 }
 
 impl ModuleLoader for BasicModuleLoader {
-    fn load(&self, referrer: &Module, spec: &str, _: &Context) -> Result<Module> {
+    /// Loads a module based on the specification `spec` relative to the `referrer` module.
+    ///
+    /// If the module is already in the cache, it returns the cached module.
+    /// Otherwise, it resolves the path, loads the module, caches it, and returns it.
+    fn load(&self, referrer: &Module, spec: &str, ctx: &Context) -> Result<Arc<Mutex<Module>>> {
         debug!("Loading module: {}", spec);
-        if let Some(module) = self.get(
-            remove_surrounding_quotes(spec).to_string(),
-        ) {
-            debug!("Module found in cache");
-            return Ok(module);
+        
+        {
+            // Attempt to retrieve the module from the cache.
+            let cache_key =  remove_surrounding_quotes(spec).to_string();
+            let cache = self.modules.lock().expect("Failed to lock module cache");
+            if let Some(module) = cache.get(&cache_key) {
+                debug!("Module found in cache: {}", cache_key);
+                return Ok(Arc::clone(module));
+            }
         }
 
-        let path = self.resolve_referrer(referrer, spec)?;
-        let source = Source::from_path(path)?;
-        let module = Module::new(source);
+        // Use the resolved path as the cache key to prevent duplicates.
+        let resolved_path = self.resolve_referrer(referrer, spec)?;
+        let cache_key = resolved_path.to_string_lossy().to_string();
 
-        self.modules.borrow_mut().insert(spec.to_string(), module.clone());
-        debug!("Module loaded: {:?}", module);
+        // Module not in cache; proceed to load.
+        debug!("Module not found in cache. Loading from path: {:?}", resolved_path);
+        let source = Source::from_path(resolved_path)?;
+        let module = Module::new(source); // Now returns Arc<Mutex<Module>>
+
+        // Insert the newly loaded module into the cache.
+        {
+            let mut cache = self.modules.lock().expect("Failed to lock module cache");
+            cache.insert(cache_key.clone(), Arc::clone(&module));
+            debug!("Module loaded and cached: {}", cache_key);
+        }
 
         Ok(module)
     }
 
-    #[inline]
-    fn insert(&self, name: String, module: Module) {
+    /// Inserts a module into the loader's cache.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the module to insert into the cache.
+    /// * `module` - The module to insert into the cache.
+    fn insert(&self, name: String, module: Arc<Mutex<Module>>) {
         debug!("Inserting module into cache: {}", name);
-        self.modules.borrow_mut().insert(name, module);
+        let mut cache = self.modules.lock().unwrap();
+        cache.insert(name, module);
     }
 
-    #[inline]
-    fn get(&self, name: String) -> Option<Module> {
-        debug!("Getting module from cache: {}", name);
-        self.modules.borrow().get((&name).into()).cloned()
+    /// Retrieves a module from the cache.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the module to retrieve from the cache.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing the module if found, or `None` otherwise.
+    fn get(&self, name: &str) -> Option<Arc<Mutex<Module>>> {
+        debug!("Retrieving module from cache: {}", name);
+        let cache = self.modules.lock().unwrap();
+        cache.get(name).cloned()
     }
 }

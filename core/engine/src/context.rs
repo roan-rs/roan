@@ -2,6 +2,7 @@ use crate::module::{loader::{ModuleLoader, BasicModuleLoader}, Module};
 use anyhow::Result;
 use bon::bon;
 use std::{fmt::Debug, rc::Rc};
+use std::sync::{Arc, Mutex};
 use log::debug;
 
 /// Struct to interact with the runtime.
@@ -75,10 +76,13 @@ impl Context {
     /// # Returns
     ///
     /// The result of the evaluation.
-    pub fn eval(&self, mut module: Module) -> Result<()> {
+    pub fn eval(&self, module: Arc<Mutex<Module>>) -> Result<()> {
         debug!("Evaluating module: {:?}", module);
-        module.parse()?;
-        module.interpret(self)?;
+        {
+            let mut main_module_guard = module.lock().unwrap();
+            main_module_guard.parse()?;
+            main_module_guard.interpret(&self)?;
+        }
 
         Ok(())
     }
@@ -88,18 +92,9 @@ impl Context {
     /// # Arguments
     /// - `name` - The name of the module.
     /// - `module` - The module to insert.
-    pub fn insert_module(&self, name: String, module: Module) {
+    pub fn insert_module(&self, name: String, module: Arc<Mutex<Module>>) {
         debug!("Inserting module: {}", name);
         self.module_loader.insert(name, module);
-    }
-
-    /// Get a module from the context.
-    ///
-    /// # Arguments
-    /// - `name` - The name of the module.
-    pub fn get_module(&self, name: String) -> Option<Module> {
-        debug!("Getting module: {}", name);
-        self.module_loader.get(name)
     }
 }
 

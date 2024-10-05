@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-
+use std::sync::{Arc, Mutex};
 use anyhow::Result;
 use log::debug;
 use roan_ast::source::Source;
@@ -10,9 +10,7 @@ use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedF
 use roan_error::{print_diagnostic, TextSpan};
 
 use crate::context::Context;
-use crate::module::loader::remove_surrounding_quotes;
 use crate::natives::get_stored_function;
-use crate::natives::io::__print;
 use crate::vm::{Frame, VM};
 use crate::vm::native_fn::NativeFunction;
 use crate::vm::value::Value;
@@ -25,10 +23,14 @@ pub enum ExportType {
     Variable,
 }
 
+/// Represents a function stored in a module.
 #[derive(Debug, Clone)]
 pub enum StoredFunction {
     Native(NativeFunction),
-    Function(Fn),
+    Function {
+        function: Fn,
+        defining_module: Arc<Mutex<Module>>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -45,26 +47,17 @@ pub struct Module {
 }
 
 impl Module {
-    /// Creates a new `Module` from the specified `Source`.
+    /// Creates a new Module from the specified Source.
     ///
     /// # Parameters
-    /// - `source` - The source of the module.
+    /// - source - The source of the module.
     ///
     /// # Returns
-    /// The new `Module`.
-    ///
-    /// # Examples
-    /// ```rust
-    /// use roan_engine::module::Module;
-    /// use roan_ast::source::Source;
-    /// use roan_engine::context::Context;
-    /// let source = Source::from_bytes("fn main() { }");
-    /// let module = Module::new(source);
-    /// ```
-    pub fn new(source: Source) -> Self {
+    /// An `Arc<Mutex<Self>>` containing the new Module.
+    pub fn new(source: Source) -> Arc<Mutex<Self>> {
         let path = source.path().as_deref().map(Path::to_path_buf);
 
-        Self {
+        let module = Self {
             source,
             path,
             tokens: vec![],
@@ -74,7 +67,9 @@ impl Module {
             scopes: vec![HashMap::new()], // Initialize with global scope
             vm: VM::new(),
             ast: Ast::new(),
-        }
+        };
+
+        Arc::new(Mutex::new(module))
     }
 
     /// Returns the path of the module.
@@ -175,7 +170,10 @@ impl Module {
         match stmt {
             Stmt::Fn(f) => {
                 debug!("Interpreting function: {}", f.name);
-                self.functions.push(StoredFunction::Function(f.clone()));
+                self.functions.push(StoredFunction::Function {
+                    function: f.clone(),
+                    defining_module: Arc::clone(&Arc::new(Mutex::new(self.clone()))),
+                });
 
                 if f.exported {
                     self.exports
@@ -184,18 +182,27 @@ impl Module {
             }
             Stmt::Use(u) => {
                 debug!("Interpreting use: {}", u.from.literal());
-                let mut module = ctx
-                    .module_loader
-                    .load(&self, &u.from.literal(), ctx)
-                    .map_err(|_| ModuleNotFoundError(u.from.literal(), u.from.span.clone()))?;
 
-                if let Err(e) = module.parse() {
-                    print_diagnostic(e, Some(module.source().content()));
+                // Lock the current module for thread-safe access
+                let current_module = Arc::clone(&Arc::new(Mutex::new(self.clone())));
+
+                // Load the module as an Arc<Mutex<Module>>
+                let module = ctx
+                    .module_loader
+                    .load(&self.clone(), &u.from.literal(), ctx)
+                    .map_err(|_| ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone()))?;
+
+                // Lock the loaded module for parsing and interpretation
+                let mut loaded_module = module.lock().expect("Failed to lock loaded module");
+
+                if let Err(e) = loaded_module.parse() {
+                    print_diagnostic(e, Some(loaded_module.source().content()));
                     return Err(anyhow::anyhow!("Failed to parse module"));
                 }
 
-                module.interpret(ctx)?;
+                loaded_module.interpret(ctx)?;
 
+                // Collect the items to import
                 let imported_items: Vec<(String, &Token)> = u
                     .items
                     .iter()
@@ -203,9 +210,15 @@ impl Module {
                     .collect();
 
                 for (name, item) in imported_items {
-                    match module.find_function(&name) {
-                        Some(f) => {
-                            self.functions.push(f.clone());
+                    match loaded_module.find_function(&name) {
+                        Some(StoredFunction::Function { function, defining_module }) => {
+                            self.functions.push(StoredFunction::Function {
+                                function: function.clone(),
+                                defining_module: Arc::clone(&defining_module),
+                            });
+                        }
+                        Some(StoredFunction::Native(n)) => {
+                            self.functions.push(StoredFunction::Native(n.clone()));
                         }
                         None => {
                             return Err(ImportError(name, item.span.clone()).into());
@@ -332,71 +345,26 @@ impl Module {
                 debug!("Interpreting call: {:?}", call);
 
                 let mut args = vec![];
-
                 for arg in call.args.iter() {
                     self.interpret_expr(arg, ctx)?;
-                    args.push(
-                        self.vm.pop().expect("Expected value on stack"),
-                    );
+                    args.push(self.vm.pop().expect("Expected value on stack"));
                 }
 
-                let function = {
-                    let func = self
-                        .find_function(&call.callee)
-                        .ok_or_else(|| UndefinedFunctionError(call.callee.clone(), call.token.span.clone()))?;
-                    func.clone()
-                };
+                let stored_function = self
+                    .find_function(&call.callee)
+                    .ok_or_else(|| UndefinedFunctionError(call.callee.clone(), call.token.span.clone()))?
+                    .clone();
 
-                // Enter a new scope for function execution
-                self.enter_scope();
-
-                match function {
+                match stored_function {
                     StoredFunction::Native(n) => {
-                        let mut params = vec![];
-                        for (param, val) in n.params.iter().zip(args.clone()) {
-                            if param.is_rest {
-                                let rest = args.iter().skip(n.params.len() - 1).cloned().collect();
-                                params.push(Value::Vec(rest));
-                            } else {
-                                params.push(val);
-                            }
-                        }
-
-                        let result = (n.func)(params);
-
-                        self.vm.push(result);
+                        self.execute_native_function(n, args)?;
                     }
-                    StoredFunction::Function(f) => {
-                        for (param, val) in f.params.iter().zip(args.clone()) {
-                            let ident = param.ident.literal();
-
-                            if param.is_rest {
-                                let rest = args.iter().skip(f.params.len() - 1).cloned().collect();
-                                self.declare_variable(ident, Value::Vec(rest));
-                            } else {
-                                self.declare_variable(ident, val);
-                            }
-                        }
-
-                        let frame = Frame::new(
-                            call.callee.clone(),
-                            call.token.span.clone(),
-                            Frame::path_or_unknown(self.path()),
-                        );
-                        self.vm.push_frame(frame);
-
-                        for stmt in f.body.stmts {
-                            self.interpret_stmt(stmt, ctx)?;
-                        }
+                    StoredFunction::Function { function, defining_module } => {
+                        self.execute_user_defined_function(function, defining_module, args, ctx)?;
                     }
-                };
+                }
 
-                self.vm.pop_frame();
-                self.exit_scope();
-
-                let val = self.vm.pop().or(Some(Value::Void)).unwrap();
-
-                Ok(val)
+                Ok(self.vm.pop().unwrap())
             }
             Expr::Parenthesized(p) => {
                 debug!("Interpreting parenthesized: {:?}", p);
@@ -520,11 +488,79 @@ impl Module {
     pub fn find_function(&self, name: &str) -> Option<&StoredFunction> {
         debug!("Looking for function: {}", name);
 
-        self.functions.iter().find(|f| {
-            match f {
-                StoredFunction::Native(n) => n.name == name,
-                StoredFunction::Function(f) => f.name == name,
-            }
+        self.functions.iter().find(|f| match f {
+            StoredFunction::Native(n) => n.name == name,
+            StoredFunction::Function { function, .. } => function.name == name,
         })
+    }
+}
+
+impl Module {
+    /// Executes a native function with the provided arguments.
+    fn execute_native_function(&mut self, native: NativeFunction, args: Vec<Value>) -> Result<()> {
+        debug!("Executing native function: {}", native.name);
+
+        let mut params = vec![];
+        for (param, val) in native.params.iter().zip(args.clone()) {
+            if param.is_rest {
+                let rest = args.iter().skip(native.params.len() - 1).cloned().collect();
+                params.push(Value::Vec(rest));
+            } else {
+                params.push(val);
+            }
+        }
+
+        let result = (native.func)(params);
+        self.vm.push(result);
+
+        Ok(())
+    }
+
+    /// Executes a user-defined function with the provided arguments.
+    fn execute_user_defined_function(
+        &mut self,
+        function: Fn,
+        defining_module: Arc<Mutex<Module>>,
+        args: Vec<Value>,
+        ctx: &Context,
+    ) -> Result<()> {
+        debug!("Executing user-defined function: {}", function.name);
+
+        self.enter_scope();
+
+        {
+            let mut defining_module_guard = defining_module.lock().unwrap();
+            for (param, arg) in function.params.iter().zip(args.clone()) {
+                let ident = param.ident.literal();
+                if param.is_rest {
+                    let rest = args.iter().skip(function.params.len() - 1).cloned().collect();
+                    defining_module_guard.declare_variable(ident, Value::Vec(rest));
+                } else {
+                    defining_module_guard.declare_variable(ident, arg);
+                }
+            }
+        }
+
+        let frame = Frame::new(
+            function.name.clone(),
+            function.fn_token.span.clone(),
+            Frame::path_or_unknown(defining_module.lock().unwrap().path()),
+        );
+        self.vm.push_frame(frame);
+
+        {
+            let mut defining_module_guard = defining_module.lock().unwrap();
+            for stmt in function.body.stmts {
+                defining_module_guard.interpret_stmt(stmt, ctx)?;
+            }
+        }
+
+        self.vm.pop_frame();
+        self.exit_scope();
+
+        let val = self.vm.pop().or(Some(Value::Void)).unwrap();
+        self.vm.push(val);
+
+        Ok(())
     }
 }
