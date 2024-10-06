@@ -1,7 +1,7 @@
 use { println } from "std::io";
 
 export fn main() -> int {
-    println("{}", 10 + 10 == 20);
+    println("{}", 10 | 3);
 
     return 0;
 }

@@ -445,7 +445,7 @@ impl Module {
                     (_, BinOpKind::Equals, _) => Value::Bool(left == right),
                     (_, BinOpKind::BangEquals, _) => Value::Bool(left != right),
                     (_, BinOpKind::Power, _) => left.pow(right),
-                    
+
                     (_, BinOpKind::GreaterThan, _) => Value::Bool(left > right),
                     (_, BinOpKind::LessThan, _) => Value::Bool(left < right),
                     (_, BinOpKind::GreaterThanOrEqual, _) => Value::Bool(left >= right),
@@ -455,8 +455,8 @@ impl Module {
                     (Value::Bool(a), BinOpKind::Or, Value::Bool(b)) => Value::Bool(a || b),
 
                     // TODO: add more bitwise operators
-                    (Value::Int(a), BinOpKind::And, Value::Int(b)) => Value::Int(a & b),
-                    (Value::Int(a), BinOpKind::Or, Value::Int(b)) => Value::Int(a | b),
+                    (Value::Int(a), BinOpKind::BitwiseAnd, Value::Int(b)) => Value::Int(a & b),
+                    (Value::Int(a), BinOpKind::BitwiseOr, Value::Int(b)) => Value::Int(a | b),
                     (Value::Int(a), BinOpKind::BitwiseXor, Value::Int(b)) => Value::Int(a ^ b),
 
                     _ => todo!("missing binary operator: {:?}", b.operator),
