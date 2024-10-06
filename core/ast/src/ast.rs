@@ -26,7 +26,23 @@ pub enum Stmt {
     Return(Return),
     Fn(Fn),
     Let(Let),
+    Throw(Throw),
+    Try(Try),
     // TODO: loop, continue, break
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Throw {
+    pub value: Box<Expr>,
+    pub token: Token,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Try {
+    pub try_token: Token,
+    pub try_block: Block,
+    pub error_ident: Token,
+    pub catch_block: Block,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -43,6 +59,22 @@ impl From<Expr> for Stmt {
 }
 
 impl Stmt {
+    pub fn new_try(try_token: Token, try_block: Block, error_ident: Token, catch_block: Block) -> Self {
+        Stmt::Try(Try {
+            try_token,
+            try_block,
+            error_ident,
+            catch_block,
+        })
+    }
+
+    pub fn new_throw(token: Token, value: Expr) -> Self {
+        Stmt::Throw(Throw {
+            value: Box::new(value),
+            token,
+        })
+    }
+
     pub fn new_fn(
         fn_token: Token,
         name: String,

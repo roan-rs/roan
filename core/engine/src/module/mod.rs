@@ -6,12 +6,14 @@ use anyhow::Result;
 use log::debug;
 use roan_ast::source::Source;
 use roan_ast::{BinOpKind, Expr, Fn, Lexer, Parser, Stmt, Token, Use, Ast, If, Block};
+use roan_ast::TokenKind::Throw;
 use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedFunctionError, VariableNotFoundError};
 use roan_error::{print_diagnostic, TextSpan};
-
+use roan_error::error::PulseError;
+use roan_error::frame::Frame;
 use crate::context::Context;
 use crate::natives::get_stored_function;
-use crate::vm::{Frame, VM};
+use crate::vm::{VM};
 use crate::vm::native_fn::NativeFunction;
 use crate::vm::value::Value;
 
@@ -110,7 +112,7 @@ impl Module {
                 Ok(_) => {}
                 Err(e) => {
                     print_diagnostic(e, Some(self.source.content()));
-                    return Err(anyhow::anyhow!("Failed to interpret module"));
+                    std::process::exit(1);
                 }
             }
         }
@@ -210,7 +212,7 @@ impl Module {
                     Ok(_) => {}
                     Err(e) => {
                         print_diagnostic(e, Some(loaded_module.source().content()));
-                        return Err(anyhow::anyhow!("Failed to interpret module"));
+                        std::process::exit(1);
                     }
                 }
 
@@ -237,6 +239,18 @@ impl Module {
                         }
                     }
                 }
+            }
+            Stmt::Throw(throw) => {
+                debug!("Interpreting throw: {:?}", throw);
+
+                self.interpret_expr(&throw.value, ctx)?;
+
+                let val = self.vm.pop().unwrap();
+
+                return Err(PulseError::Throw(val.to_string(), Vec::from(self.vm.frames())).into());
+            }
+            Stmt::Try(try_stmt) => {
+                debug!("Interpreting try: {:?}", try_stmt);
             }
             Stmt::Let(l) => {
                 debug!("Interpreting let: {:?}", l.ident);
@@ -543,7 +557,6 @@ impl Module {
 
         {
             let mut defining_module_guard = defining_module.lock().unwrap();
-      
 
             for (param, arg) in function.params.iter().zip(args.iter().chain(std::iter::repeat(&Value::Null))) {
                 let ident = param.ident.literal();

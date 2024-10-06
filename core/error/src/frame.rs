@@ -1,10 +1,11 @@
+use std::fmt::Debug;
 use std::path::PathBuf;
-use roan_error::TextSpan;
+use crate::TextSpan;
 
 /// A frame represents a single function call.
 ///
 /// It provides info of which function is being executed. This helps in debugging and error reporting.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Frame {
     /// The name of the function being executed.
     pub name: String,
@@ -27,8 +28,8 @@ impl Frame {
     ///
     /// # Examples
     /// ```rust
-    /// use roan_engine::vm::Frame;
     /// use roan_error::{Position, TextSpan};
+    /// use roan_error::frame::Frame;
     /// let frame = Frame::new("main", TextSpan::new(Position::new(1,1,1), Position::new(1,1,1), "main".into()), ".\\src\\main.roan");
     /// ```
     pub fn new(name: impl Into<String>, span: TextSpan, path: impl Into<String>) -> Self {
@@ -46,5 +47,11 @@ impl Frame {
         let path = path.map(PathBuf::from).unwrap_or_else(|| PathBuf::from("unknown"));
 
         path.to_string_lossy().to_string()
+    }
+}
+
+impl Debug for Frame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} at {}:{}:{}", self.name, self.path, self.span.start.line, self.span.start.column)
     }
 }

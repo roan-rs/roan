@@ -104,6 +104,8 @@ impl Parser {
             TokenKind::Use => Some(self.parse_use()?),
             TokenKind::If => Some(self.parse_if()?),
             TokenKind::Let => Some(self.parse_let()?),
+            TokenKind::Throw => Some(self.parse_throw()?),
+            TokenKind::Try => Some(self.parse_try()?),
             TokenKind::LeftBrace => {
                 self.consume();
                 let block = self.parse_block()?;
@@ -119,6 +121,35 @@ impl Parser {
         };
 
         Ok(stmt)
+    }
+
+    pub fn parse_throw(&mut self) -> Result<Stmt> {
+        debug!("Parsing throw statement");
+        let throw_token = self.consume();
+        let value = self.parse_expr()?;
+
+        self.possible_check(TokenKind::Semicolon);
+
+        Ok(Stmt::new_throw(throw_token, value))
+    }
+
+    pub fn parse_try(&mut self) -> Result<Stmt> {
+        debug!("Parsing try statement");
+        let try_token = self.consume();
+
+        self.expect(TokenKind::LeftBrace)?;
+        let try_block = self.parse_block()?;
+        self.expect(TokenKind::RightBrace)?;
+
+        self.expect(TokenKind::Catch)?;
+
+        let error_ident = self.expect(TokenKind::Identifier)?;
+
+        self.expect(TokenKind::LeftBrace)?;
+        let catch_block = self.parse_block()?;
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Stmt::new_try(try_token, try_block, error_ident, catch_block))
     }
 
     pub fn parse_return(&mut self) -> Result<Option<Stmt>> {

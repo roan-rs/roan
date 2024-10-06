@@ -1,5 +1,6 @@
 use crate::span::TextSpan;
 use thiserror::Error;
+use crate::frame::Frame;
 
 #[derive(Error, Debug)]
 pub enum PulseError {
@@ -31,4 +32,6 @@ pub enum PulseError {
     RestParameterNotLastPosition(TextSpan),
     #[error("Found more than one rest parameter.")]
     MultipleRestParameters(TextSpan),
+    #[error("{0}")]
+    Throw(String, Vec<Frame>),
 }

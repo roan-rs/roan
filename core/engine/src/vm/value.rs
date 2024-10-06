@@ -1,7 +1,7 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use roan_ast::{Literal, LiteralType};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Value {
     Int(i64),
     Float(f64),
@@ -10,6 +10,20 @@ pub enum Value {
     Vec(Vec<Value>),
     Null,
     Void,
+}
+
+impl Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Int(i) => write!(f, "Int({})", i),
+            Value::Float(fl) => write!(f, "Float({})", fl),
+            Value::Bool(b) => write!(f, "Bool({})", b),
+            Value::String(s) => write!(f, "String({})", s),
+            Value::Vec(v) => write!(f, "Vec({:?})", v),
+            Value::Null => write!(f, "Null"),
+            Value::Void => write!(f, "Void"),
+        }
+    }
 }
 
 impl Value {

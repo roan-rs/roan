@@ -82,12 +82,16 @@ impl Context {
         {
             let mut main_module_guard = module.lock().unwrap();
 
-            if let Err(e) = {
+            match {
                 main_module_guard.parse()?;
                 main_module_guard.interpret(&self)?;
                 Ok(())
             } {
-                print_diagnostic(e, Some(main_module_guard.source().content()));
+                Ok(_) => {}
+                Err(e) => {
+                    print_diagnostic(e, Some(main_module_guard.source().content()));
+                    std::process::exit(1);
+                }
             }
         }
 

@@ -190,6 +190,9 @@ impl Lexer {
                     "use" => TokenKind::Use,
                     "export" => TokenKind::Export,
                     "from" => TokenKind::From,
+                    "throw" => TokenKind::Throw,
+                    "try" => TokenKind::Try,
+                    "catch" => TokenKind::Catch,
 
                     _ => TokenKind::Identifier,
                 }

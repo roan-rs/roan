@@ -1,6 +1,7 @@
 use { println } from "std::io";
 
 export fn main() -> int {
+    throw "Hello, World!";
     println("{} + {} = {}, 123");
 
     return 0;

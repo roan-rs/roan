@@ -136,6 +136,17 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
 
     if let Some(err) = pulse_error {
         let err_str = err.to_string();
+
+        if let PulseError::Throw(content, frames) = err {
+            let mut buff = BufWriter::new(std::io::stderr());
+            write!(buff, "{}{}", "error".bright_red(), ": ".dimmed()).expect("Error writing level");
+            writeln!(buff, "{}", content).expect("Error writing text");
+            for frame in frames {
+                writeln!(buff, "{:?}", frame).expect("Error writing text");
+            }
+            return;
+        }
+
         let diagnostic = match err {
             PulseError::Io(_) => Diagnostic {
                 title: "IO error".to_string(),
@@ -198,6 +209,10 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content,
             },
+            _ => {
+                log::error!("{:?}", err);
+                return;
+            }
         };
 
         let mut buff = BufWriter::new(std::io::stderr());

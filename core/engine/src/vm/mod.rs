@@ -1,8 +1,7 @@
-pub mod frame;
 pub mod value;
 pub mod native_fn;
 
-pub use frame::Frame;
+use roan_error::frame::Frame;
 use crate::vm::value::Value;
 
 /// Virtual machine for executing Roan code.
