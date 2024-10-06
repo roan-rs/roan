@@ -344,6 +344,41 @@ pub enum Expr {
     Assign(Assign),
     /// A vector (list) of expressions.
     Vec(VecExpr),
+    /// An access expression (e.g., `struct.name`, `arr[0]`).
+    Access(AccessExpr),
+}
+
+/// Enum representing the kind of access in an access expression.
+#[derive(Debug, Clone, PartialEq)]
+pub enum AccessKind {
+    /// Field access (e.g., `.name`).
+    Field(String),
+    /// Index access (e.g., `[0]`).
+    Index(Box<Expr>),
+}
+
+/// Represents an access expression in the AST.
+/// It includes accessing a field or indexing into a collection.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AccessExpr {
+    /// The base expression being accessed.
+    pub base: Box<Expr>,
+    /// The kind of access (field or index).
+    pub access: AccessKind,
+    /// The token representing the access operation (e.g., `.`, `[`, `]`).
+    pub token: Token,
+}
+
+impl GetSpan for AccessExpr {
+    /// Returns the combined source span of the base expression and the access operation.
+    fn span(&self) -> TextSpan {
+        let base_span = self.base.span();
+        let access_span = match &self.access {
+            AccessKind::Field(_) => self.token.span.clone(), // Span includes the '.' and the field name
+            AccessKind::Index(index_expr) => TextSpan::combine(vec![self.token.span.clone(), index_expr.span()]), // Span includes '[' , index, and ']'
+        };
+        TextSpan::combine(vec![base_span, access_span])
+    }
 }
 
 impl GetSpan for Expr {
@@ -370,6 +405,7 @@ impl GetSpan for Expr {
                 let spans: Vec<TextSpan> = v.exprs.iter().map(|e| e.span()).collect();
                 TextSpan::combine(spans)
             }
+            Expr::Access(a) => a.span(),
         }
     }
 }
@@ -398,6 +434,44 @@ impl Expr {
             Expr::Variable(v) => v,
             _ => panic!("Expected variable"),
         }
+    }
+
+    /// Creates a new field access expression.
+    ///
+    /// # Arguments
+    ///
+    /// * `base` - The base expression being accessed.
+    /// * `field` - The name of the field to access.
+    /// * `token` - The token representing the '.' operator.
+    ///
+    /// # Returns
+    ///
+    /// A new `Expr::Access` variant with `AccessKind::Field`.
+    pub fn new_field_access(base: Expr, field: String, token: Token) -> Self {
+        Expr::Access(AccessExpr {
+            base: Box::new(base),
+            access: AccessKind::Field(field),
+            token,
+        })
+    }
+
+    /// Creates a new index access expression.
+    ///
+    /// # Arguments
+    ///
+    /// * `base` - The base expression being accessed.
+    /// * `index` - The index expression.
+    /// * `token` - The token representing the '[' and ']' operators.
+    ///
+    /// # Returns
+    ///
+    /// A new `Expr::Access` variant with `AccessKind::Index`.
+    pub fn new_index_access(base: Expr, index: Expr, token: Token) -> Self { // **Added**
+        Expr::Access(AccessExpr {
+            base: Box::new(base),
+            access: AccessKind::Index(Box::new(index)),
+            token,
+        })
     }
 
     /// Creates a new unary expression.
