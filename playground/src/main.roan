@@ -1,11 +1,7 @@
 use { println } from "std::io";
 
 export fn main() -> int {
-    if "dwa" {
-        println("Hello, world!");
-    }
-
-    println("{} + {} = {}, 123");
+    println("{}", 10 + 10 == 20);
 
     return 0;
 }
