@@ -1,9 +1,7 @@
+use crate::std::ensure_lib_dir;
 use anyhow::Result;
-use roan_engine::{context::Context, print_diagnostic};
+use roan_engine::{context::Context, module::Module, print_diagnostic, source::Source};
 use std::{fs::read_to_string, path::PathBuf};
-use roan_engine::module::Module;
-use roan_engine::source::Source;
-use crate::std::{ensure_lib_dir};
 
 pub fn run_command(file: String) -> Result<()> {
     let (lib_dir, modules) = ensure_lib_dir()?;

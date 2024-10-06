@@ -1,6 +1,5 @@
-use std::fmt::Debug;
-use std::path::PathBuf;
 use crate::TextSpan;
+use std::{fmt::Debug, path::PathBuf};
 
 /// A frame represents a single function call.
 ///
@@ -41,10 +40,10 @@ impl Frame {
     }
 
     /// If path is None returns "unknown" otherwise returns the path.
-    pub fn path_or_unknown(
-        path: Option<PathBuf>
-    ) -> String {
-        let path = path.map(PathBuf::from).unwrap_or_else(|| PathBuf::from("unknown"));
+    pub fn path_or_unknown(path: Option<PathBuf>) -> String {
+        let path = path
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("unknown"));
 
         path.to_string_lossy().to_string()
     }
@@ -52,6 +51,10 @@ impl Frame {
 
 impl Debug for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} at {}:{}:{}", self.name, self.path, self.span.start.line, self.span.start.column)
+        write!(
+            f,
+            "{} at {}:{}:{}",
+            self.name, self.path, self.span.start.line, self.span.start.column
+        )
     }
 }

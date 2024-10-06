@@ -1,7 +1,13 @@
-use crate::lexer::token::{Token, TokenKind};
+use crate::{
+    lexer::token::{Token, TokenKind},
+    source::Source,
+};
 use anyhow::Result;
-use roan_error::{error::PulseError::InvalidToken, position::Position, span::TextSpan};
-use crate::source::Source;
+use roan_error::{
+    error::PulseError::{InvalidEscapeSequence, InvalidToken},
+    position::Position,
+    span::TextSpan,
+};
 
 pub mod token;
 
@@ -137,7 +143,13 @@ impl Lexer {
                         't' => str.push('\t'),
                         '\\' => str.push('\\'),
                         '"' => str.push('"'),
-                        _ => return Err(anyhow::anyhow!("Invalid escape character")),
+                        _ => {
+                            return Err(InvalidEscapeSequence(
+                                next.to_string(),
+                                TextSpan::new(self.position, self.position, next.to_string()),
+                            )
+                            .into())
+                        }
                     }
                     self.consume();
                 }
@@ -319,7 +331,7 @@ impl Lexer {
                             c.to_string(),
                             TextSpan::new(start_pos, self.position, c.to_string()),
                         )
-                            .into());
+                        .into());
                     }
                 };
 

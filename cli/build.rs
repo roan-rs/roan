@@ -1,11 +1,8 @@
-use std::fs::File;
-use std::path::PathBuf;
+use std::{fs::File, path::PathBuf};
 use tar::Builder;
 
 fn main() {
-    let full_path = PathBuf::from(
-        env!("CARGO_MANIFEST_DIR")
-    ).join("std.tar");
+    let full_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("std.tar");
     println!("cargo:warning=Building tarball at {:?}", full_path);
     let file = File::create(full_path).unwrap();
     let mut builder = Builder::new(file);
@@ -17,9 +14,7 @@ fn main() {
     let lib_path = project_root.join("lib");
     println!("cargo:warning=lib_path: {:?}", lib_path);
 
-    builder.append_dir_all(
-        "", lib_path,
-    ).unwrap();
+    builder.append_dir_all("", lib_path).unwrap();
 
     builder.finish().unwrap();
 

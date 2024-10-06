@@ -1,6 +1,5 @@
-use crate::span::TextSpan;
+use crate::{frame::Frame, span::TextSpan};
 use thiserror::Error;
-use crate::frame::Frame;
 
 #[derive(Error, Debug)]
 pub enum PulseError {
@@ -34,4 +33,8 @@ pub enum PulseError {
     MultipleRestParameters(TextSpan),
     #[error("{0}")]
     Throw(String, Vec<Frame>),
+    #[error("Invalid escape sequence: {0}")]
+    InvalidEscapeSequence(String, TextSpan),
+    #[error("{0} does not evaluate to a boolean.")]
+    NonBooleanCondition(String, TextSpan),
 }

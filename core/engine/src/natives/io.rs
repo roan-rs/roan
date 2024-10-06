@@ -1,5 +1,4 @@
-use crate::native_function;
-use crate::vm::value::Value;
+use crate::{native_function, vm::value::Value};
 
 native_function!(fn __print(
     msg: String,
@@ -9,7 +8,7 @@ native_function!(fn __print(
         print!("{}", msg);
     } else {
         let mut args_iter = args.into_iter();
-        
+
         print!("{}", msg.replace("{}", &args_iter.next().unwrap().to_string()));
     }
 

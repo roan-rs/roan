@@ -1,12 +1,12 @@
 use roan_error::TextSpan;
 
+pub mod expr;
 /// Modules that contain definitions and code for statements and expressions in the AST.
 pub mod statements;
-pub mod expr;
 
+pub use expr::*;
 /// Makes items from `statements` and `expr` modules available for use with the AST.
 pub use statements::*;
-pub use expr::*;
 
 /// Represents the Abstract Syntax Tree (AST) for the language.
 ///

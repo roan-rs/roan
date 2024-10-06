@@ -1,21 +1,28 @@
-use std::collections::HashMap;
-use std::fmt::Debug;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use crate::{
+    context::Context,
+    natives::get_stored_function,
+    vm::{native_fn::NativeFunction, value::Value, VM},
+};
 use anyhow::Result;
 use log::debug;
-use roan_ast::source::Source;
-use roan_ast::{BinOpKind, Expr, Fn, Lexer, Parser, Stmt, Token, Use, Ast, If, Block};
-use roan_ast::TokenKind::Throw;
-use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, UndefinedFunctionError, VariableNotFoundError};
-use roan_error::{print_diagnostic, TextSpan};
-use roan_error::error::PulseError;
-use roan_error::frame::Frame;
-use crate::context::Context;
-use crate::natives::get_stored_function;
-use crate::vm::{VM};
-use crate::vm::native_fn::NativeFunction;
-use crate::vm::value::Value;
+use roan_ast::{source::Source, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If, Lexer, Parser, Stmt, Token, TokenKind::Throw, Use};
+use roan_error::{
+    error::{
+        PulseError,
+        PulseError::{
+            ImportError, ModuleNotFoundError, UndefinedFunctionError, VariableNotFoundError,
+        },
+    },
+    frame::Frame,
+    print_diagnostic, TextSpan,
+};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
+use roan_error::error::PulseError::NonBooleanCondition;
 
 pub mod loader;
 
@@ -150,11 +157,7 @@ impl Module {
             }
         }
         // Variable not found in any scope
-        Err(VariableNotFoundError(
-            name.to_string(),
-            TextSpan::default(),
-        )
-            .into())
+        Err(VariableNotFoundError(name.to_string(), TextSpan::default()).into())
     }
 
     /// Finds a variable by name, searching from the innermost scope outward.
@@ -170,7 +173,12 @@ impl Module {
     }
 
     pub fn name(&self) -> String {
-        self.path().unwrap().file_stem().unwrap().to_string_lossy().to_string()
+        self.path()
+            .unwrap()
+            .file_stem()
+            .unwrap()
+            .to_string_lossy()
+            .to_string()
     }
 
     /// Interpret statement from the module.
@@ -195,7 +203,9 @@ impl Module {
                 let module = ctx
                     .module_loader
                     .load(&self.clone(), &u.from.literal(), ctx)
-                    .map_err(|_| ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone()))?;
+                    .map_err(|_| {
+                        ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone())
+                    })?;
 
                 // Lock the loaded module for parsing and interpretation
                 let mut loaded_module = module.lock().expect("Failed to lock loaded module");
@@ -204,7 +214,7 @@ impl Module {
                     Ok(_) => {}
                     Err(e) => {
                         print_diagnostic(e, Some(loaded_module.source().content()));
-                        return Err(anyhow::anyhow!("Failed to parse module"));
+                        std::process::exit(1);
                     }
                 }
 
@@ -217,15 +227,15 @@ impl Module {
                 }
 
                 // Collect the items to import
-                let imported_items: Vec<(String, &Token)> = u
-                    .items
-                    .iter()
-                    .map(|i| (i.literal(), i))
-                    .collect();
+                let imported_items: Vec<(String, &Token)> =
+                    u.items.iter().map(|i| (i.literal(), i)).collect();
 
                 for (name, item) in imported_items {
                     match loaded_module.find_function(&name) {
-                        Some(StoredFunction::Function { function, defining_module }) => {
+                        Some(StoredFunction::Function {
+                                 function,
+                                 defining_module,
+                             }) => {
                             self.functions.push(StoredFunction::Function {
                                 function: function.clone(),
                                 defining_module: Arc::clone(&defining_module),
@@ -287,16 +297,15 @@ impl Module {
 
     fn interpret_if(&mut self, if_stmt: If, ctx: &Context) -> Result<()> {
         self.interpret_expr(&if_stmt.condition, ctx)?;
-        let condition_value = self.vm.pop().ok_or_else(|| {
-            anyhow::anyhow!("Expected a value on the VM stack for if condition")
-        })?;
+        let condition_value = self
+            .vm
+            .pop()
+            .expect("Expected value on stack");
 
         let condition = match condition_value {
             Value::Bool(b) => b,
             _ => {
-                return Err(anyhow::anyhow!(
-                    "If condition does not evaluate to a boolean"
-                ))
+                return Err(NonBooleanCondition("If condition".into(), TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()])).into())
             }
         };
 
@@ -306,18 +315,12 @@ impl Module {
             let mut executed = false;
             for else_if in if_stmt.else_ifs {
                 self.interpret_expr(&else_if.condition, ctx)?;
-                let else_if_condition = self.vm.pop().ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "Expected a value on the VM stack for else-if condition"
-                    )
-                })?;
+                let else_if_condition = self.vm.pop().expect("Expected value on stack");
 
                 let else_if_result = match else_if_condition {
                     Value::Bool(b) => b,
                     _ => {
-                        return Err(anyhow::anyhow!(
-                            "Else-if condition does not evaluate to a boolean"
-                        ))
+                        return Err(NonBooleanCondition("Else if condition".into(), else_if.condition.span()).into())
                     }
                 };
 
@@ -355,10 +358,7 @@ impl Module {
 
                 let variable = self
                     .find_variable(&v.ident)
-                    .ok_or_else(|| VariableNotFoundError(
-                        v.ident.clone(),
-                        v.token.span.clone(),
-                    ))?;
+                    .ok_or_else(|| VariableNotFoundError(v.ident.clone(), v.token.span.clone()))?;
 
                 Ok(variable.clone())
             }
@@ -378,14 +378,19 @@ impl Module {
 
                 let stored_function = self
                     .find_function(&call.callee)
-                    .ok_or_else(|| UndefinedFunctionError(call.callee.clone(), call.token.span.clone()))?
+                    .ok_or_else(|| {
+                        UndefinedFunctionError(call.callee.clone(), call.token.span.clone())
+                    })?
                     .clone();
 
                 match stored_function {
                     StoredFunction::Native(n) => {
                         self.execute_native_function(n, args)?;
                     }
-                    StoredFunction::Function { function, defining_module } => {
+                    StoredFunction::Function {
+                        function,
+                        defining_module,
+                    } => {
                         self.execute_user_defined_function(function, defining_module, args, ctx)?;
                     }
                 }
@@ -436,55 +441,102 @@ impl Module {
 
                     (Value::Int(a), BinOpKind::Minus, Value::Int(b)) => Value::Int(a - b),
                     (Value::Float(a), BinOpKind::Minus, Value::Float(b)) => Value::Float(a - b),
-                    (Value::Int(a), BinOpKind::Minus, Value::Float(b)) => Value::Float(a as f64 - b),
-                    (Value::Float(a), BinOpKind::Minus, Value::Int(b)) => Value::Float(a - b as f64),
+                    (Value::Int(a), BinOpKind::Minus, Value::Float(b)) => {
+                        Value::Float(a as f64 - b)
+                    }
+                    (Value::Float(a), BinOpKind::Minus, Value::Int(b)) => {
+                        Value::Float(a - b as f64)
+                    }
 
                     (Value::Int(a), BinOpKind::Multiply, Value::Int(b)) => Value::Int(a * b),
                     (Value::Float(a), BinOpKind::Multiply, Value::Float(b)) => Value::Float(a * b),
-                    (Value::Int(a), BinOpKind::Multiply, Value::Float(b)) => Value::Float(a as f64 * b),
-                    (Value::Float(a), BinOpKind::Multiply, Value::Int(b)) => Value::Float(a * b as f64),
+                    (Value::Int(a), BinOpKind::Multiply, Value::Float(b)) => {
+                        Value::Float(a as f64 * b)
+                    }
+                    (Value::Float(a), BinOpKind::Multiply, Value::Int(b)) => {
+                        Value::Float(a * b as f64)
+                    }
 
                     (Value::Int(a), BinOpKind::Divide, Value::Int(b)) => Value::Int(a / b),
                     (Value::Float(a), BinOpKind::Divide, Value::Float(b)) => Value::Float(a / b),
-                    (Value::Int(a), BinOpKind::Divide, Value::Float(b)) => Value::Float(a as f64 / b),
-                    (Value::Float(a), BinOpKind::Divide, Value::Int(b)) => Value::Float(a / b as f64),
+                    (Value::Int(a), BinOpKind::Divide, Value::Float(b)) => {
+                        Value::Float(a as f64 / b)
+                    }
+                    (Value::Float(a), BinOpKind::Divide, Value::Int(b)) => {
+                        Value::Float(a / b as f64)
+                    }
 
                     (Value::Int(a), BinOpKind::Equals, Value::Int(b)) => Value::Bool(a == b),
                     (Value::Float(a), BinOpKind::Equals, Value::Float(b)) => Value::Bool(a == b),
                     (Value::String(a), BinOpKind::Equals, Value::String(b)) => Value::Bool(a == b),
 
                     (Value::Int(a), BinOpKind::BangEquals, Value::Int(b)) => Value::Bool(a != b),
-                    (Value::Float(a), BinOpKind::BangEquals, Value::Float(b)) => Value::Bool(a != b),
-                    (Value::String(a), BinOpKind::BangEquals, Value::String(b)) => Value::Bool(a != b),
+                    (Value::Float(a), BinOpKind::BangEquals, Value::Float(b)) => {
+                        Value::Bool(a != b)
+                    }
+                    (Value::String(a), BinOpKind::BangEquals, Value::String(b)) => {
+                        Value::Bool(a != b)
+                    }
 
                     (Value::Bool(a), BinOpKind::And, Value::Bool(b)) => Value::Bool(a && b),
                     (Value::Bool(a), BinOpKind::Or, Value::Bool(b)) => Value::Bool(a || b),
 
                     (Value::Int(a), BinOpKind::GreaterThan, Value::Int(b)) => Value::Bool(a > b),
-                    (Value::Float(a), BinOpKind::GreaterThan, Value::Float(b)) => Value::Bool(a > b),
-                    (Value::Int(a), BinOpKind::GreaterThan, Value::Float(b)) => Value::Bool(a as f64 > b),
-                    (Value::Float(a), BinOpKind::GreaterThan, Value::Int(b)) => Value::Bool(a > b as f64),
+                    (Value::Float(a), BinOpKind::GreaterThan, Value::Float(b)) => {
+                        Value::Bool(a > b)
+                    }
+                    (Value::Int(a), BinOpKind::GreaterThan, Value::Float(b)) => {
+                        Value::Bool(a as f64 > b)
+                    }
+                    (Value::Float(a), BinOpKind::GreaterThan, Value::Int(b)) => {
+                        Value::Bool(a > b as f64)
+                    }
 
-                    (Value::Int(a), BinOpKind::LessThan, Value::Int(b)) => Value::Bool((a as f64) < (b as f64)),
+                    (Value::Int(a), BinOpKind::LessThan, Value::Int(b)) => {
+                        Value::Bool((a as f64) < (b as f64))
+                    }
                     (Value::Float(a), BinOpKind::LessThan, Value::Float(b)) => Value::Bool(a < b),
-                    (Value::Int(a), BinOpKind::LessThan, Value::Float(b)) => Value::Bool((a as f64) < b),
-                    (Value::Float(a), BinOpKind::LessThan, Value::Int(b)) => Value::Bool(a < (b as f64)),
+                    (Value::Int(a), BinOpKind::LessThan, Value::Float(b)) => {
+                        Value::Bool((a as f64) < b)
+                    }
+                    (Value::Float(a), BinOpKind::LessThan, Value::Int(b)) => {
+                        Value::Bool(a < (b as f64))
+                    }
 
-                    (Value::Int(a), BinOpKind::GreaterThanOrEqual, Value::Int(b)) => Value::Bool(a >= b),
-                    (Value::Float(a), BinOpKind::GreaterThanOrEqual, Value::Float(b)) => Value::Bool(a >= b),
-                    (Value::Int(a), BinOpKind::GreaterThanOrEqual, Value::Float(b)) => Value::Bool(a as f64 >= b),
-                    (Value::Float(a), BinOpKind::GreaterThanOrEqual, Value::Int(b)) => Value::Bool(a >= b as f64),
+                    (Value::Int(a), BinOpKind::GreaterThanOrEqual, Value::Int(b)) => {
+                        Value::Bool(a >= b)
+                    }
+                    (Value::Float(a), BinOpKind::GreaterThanOrEqual, Value::Float(b)) => {
+                        Value::Bool(a >= b)
+                    }
+                    (Value::Int(a), BinOpKind::GreaterThanOrEqual, Value::Float(b)) => {
+                        Value::Bool(a as f64 >= b)
+                    }
+                    (Value::Float(a), BinOpKind::GreaterThanOrEqual, Value::Int(b)) => {
+                        Value::Bool(a >= b as f64)
+                    }
 
-                    (Value::Int(a), BinOpKind::LessThanOrEqual, Value::Int(b)) => Value::Bool(a <= b),
-                    (Value::Float(a), BinOpKind::LessThanOrEqual, Value::Float(b)) => Value::Bool(a <= b),
-                    (Value::Int(a), BinOpKind::LessThanOrEqual, Value::Float(b)) => Value::Bool(a as f64 <= b),
-                    (Value::Float(a), BinOpKind::LessThanOrEqual, Value::Int(b)) => Value::Bool(a <= b as f64),
+                    (Value::Int(a), BinOpKind::LessThanOrEqual, Value::Int(b)) => {
+                        Value::Bool(a <= b)
+                    }
+                    (Value::Float(a), BinOpKind::LessThanOrEqual, Value::Float(b)) => {
+                        Value::Bool(a <= b)
+                    }
+                    (Value::Int(a), BinOpKind::LessThanOrEqual, Value::Float(b)) => {
+                        Value::Bool(a as f64 <= b)
+                    }
+                    (Value::Float(a), BinOpKind::LessThanOrEqual, Value::Int(b)) => {
+                        Value::Bool(a <= b as f64)
+                    }
 
                     (Value::Int(a), BinOpKind::Modulo, Value::Int(b)) => Value::Int(a % b),
                     (Value::Float(a), BinOpKind::Modulo, Value::Float(b)) => Value::Float(a % b),
-                    (Value::Int(a), BinOpKind::Modulo, Value::Float(b)) => Value::Float(a as f64 % b),
-                    (Value::Float(a), BinOpKind::Modulo, Value::Int(b)) => Value::Float(a % b as f64),
-
+                    (Value::Int(a), BinOpKind::Modulo, Value::Float(b)) => {
+                        Value::Float(a as f64 % b)
+                    }
+                    (Value::Float(a), BinOpKind::Modulo, Value::Int(b)) => {
+                        Value::Float(a % b as f64)
+                    }
 
                     // TODO: add more bitwise operators
                     (Value::Int(a), BinOpKind::And, Value::Int(b)) => Value::Int(a & b),
@@ -493,8 +545,12 @@ impl Module {
 
                     (Value::Int(a), BinOpKind::Power, Value::Int(b)) => Value::Int(a.pow(b as u32)),
                     (Value::Float(a), BinOpKind::Power, Value::Float(b)) => Value::Float(a.powf(b)),
-                    (Value::Int(a), BinOpKind::Power, Value::Float(b)) => Value::Float((a as f64).powf(b)),
-                    (Value::Float(a), BinOpKind::Power, Value::Int(b)) => Value::Float((a).powi(b as i32)),
+                    (Value::Int(a), BinOpKind::Power, Value::Float(b)) => {
+                        Value::Float((a as f64).powf(b))
+                    }
+                    (Value::Float(a), BinOpKind::Power, Value::Int(b)) => {
+                        Value::Float((a).powi(b as i32))
+                    }
 
                     _ => todo!("missing binary operator: {:?}", b.operator),
                 };
@@ -558,10 +614,18 @@ impl Module {
         {
             let mut defining_module_guard = defining_module.lock().unwrap();
 
-            for (param, arg) in function.params.iter().zip(args.iter().chain(std::iter::repeat(&Value::Null))) {
+            for (param, arg) in function
+                .params
+                .iter()
+                .zip(args.iter().chain(std::iter::repeat(&Value::Null)))
+            {
                 let ident = param.ident.literal();
                 if param.is_rest {
-                    let rest = args.iter().skip(function.params.len() - 1).cloned().collect();
+                    let rest = args
+                        .iter()
+                        .skip(function.params.len() - 1)
+                        .cloned()
+                        .collect();
                     defining_module_guard.declare_variable(ident, Value::Vec(rest));
                 } else {
                     defining_module_guard.declare_variable(ident, arg.clone());

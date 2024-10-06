@@ -6,7 +6,7 @@
 
 <h2>🧐 Features</h2>
 
-Here're some of the project's best features:
+Here are some of the project's best features:
 
 * Simple syntax inspired by Rust and JavaScript
 * Builtin standard library

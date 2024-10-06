@@ -1,11 +1,7 @@
-use std::env::current_dir;
-use std::fs;
-use std::fs::create_dir;
-use std::io::Cursor;
-use std::path::PathBuf;
 use anyhow::Result;
 use dirs::home_dir;
 use log::debug;
+use std::{env::current_dir, fs, fs::create_dir, io::Cursor, path::PathBuf};
 
 const TAR_BYTES: &'static [u8] = include_bytes!("../std.tar");
 
@@ -22,9 +18,7 @@ const TAR_BYTES: &'static [u8] = include_bytes!("../std.tar");
 // }
 
 // Maybe simplify in the future
-pub fn ensure_lib_dir() -> Result<(PathBuf, Vec<
-    String
->)> {
+pub fn ensure_lib_dir() -> Result<(PathBuf, Vec<String>)> {
     let build_dir = current_dir()?.join("build");
 
     if !build_dir.exists() {

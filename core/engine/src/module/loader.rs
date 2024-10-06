@@ -1,12 +1,13 @@
-use std::collections::HashMap;
-use std::fmt::Debug;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use crate::module::Module;
+use crate::{context::Context, module::Module};
 use anyhow::Result;
 use log::debug;
 use roan_ast::source::Source;
-use crate::context::Context;
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 /// Trait that defines the interface for a module loader.
 pub trait ModuleLoader: Debug {
@@ -49,7 +50,9 @@ pub trait ModuleLoader: Debug {
     /// This function will panic if the `referrer` module's path has no parent directory.
     fn resolve_referrer(&self, referrer: &Module, spec: &str) -> Result<PathBuf> {
         debug!("Resolving referrer: {:?}, spec: {}", referrer.path(), spec);
-        let referrer_path = referrer.path().map_or_else(|| PathBuf::new(), |p| p.to_path_buf());
+        let referrer_path = referrer
+            .path()
+            .map_or_else(|| PathBuf::new(), |p| p.to_path_buf());
         let dir = referrer_path.parent().expect("Module path has no parent");
 
         let spec = if cfg!(windows) {
@@ -115,10 +118,10 @@ impl ModuleLoader for BasicModuleLoader {
     /// Otherwise, it resolves the path, loads the module, caches it, and returns it.
     fn load(&self, referrer: &Module, spec: &str, ctx: &Context) -> Result<Arc<Mutex<Module>>> {
         debug!("Loading module: {}", spec);
-        
+
         {
             // Attempt to retrieve the module from the cache.
-            let cache_key =  remove_surrounding_quotes(spec).to_string();
+            let cache_key = remove_surrounding_quotes(spec).to_string();
             let cache = self.modules.lock().expect("Failed to lock module cache");
             if let Some(module) = cache.get(&cache_key) {
                 debug!("Module found in cache: {}", cache_key);
@@ -131,7 +134,10 @@ impl ModuleLoader for BasicModuleLoader {
         let cache_key = resolved_path.to_string_lossy().to_string();
 
         // Module not in cache; proceed to load.
-        debug!("Module not found in cache. Loading from path: {:?}", resolved_path);
+        debug!(
+            "Module not found in cache. Loading from path: {:?}",
+            resolved_path
+        );
         let source = Source::from_path(resolved_path)?;
         let module = Module::new(source); // Now returns Arc<Mutex<Module>>
 

@@ -1,5 +1,4 @@
-use crate::module::StoredFunction;
-use crate::natives::io::__print;
+use crate::{module::StoredFunction, natives::io::__print};
 
 pub mod io;
 
@@ -47,7 +46,5 @@ macro_rules! native_function {
 }
 
 pub fn get_stored_function() -> Vec<StoredFunction> {
-    vec![
-        StoredFunction::Native(__print())
-    ]
+    vec![StoredFunction::Native(__print())]
 }
