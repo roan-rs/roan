@@ -113,7 +113,7 @@ impl Parser {
                 Some(Stmt::Block(block))
             }
             TokenKind::Return => self.parse_return()?,
-            TokenKind::Semicolon => {
+            TokenKind::Semicolon | TokenKind::Comment => {
                 self.consume();
                 None
             }
