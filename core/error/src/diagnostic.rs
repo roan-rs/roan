@@ -57,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-            .expect("Error writing level");
+        .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -156,7 +156,9 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content: None,
             },
-            PulseError::RestParameterNotLast(span) | PulseError::RestParameterNotLastPosition(span) | PulseError::MultipleRestParameters(span) => Diagnostic {
+            PulseError::RestParameterNotLast(span)
+            | PulseError::RestParameterNotLastPosition(span)
+            | PulseError::MultipleRestParameters(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -166,7 +168,8 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             },
             PulseError::InvalidToken(_, span)
             | PulseError::SemanticError(_, span)
-            | PulseError::UnexpectedToken(_, span) => Diagnostic {
+            | PulseError::UnexpectedToken(_, span)
+            | PulseError::InvalidEscapeSequence(_, span) | PulseError::NonBooleanCondition(_,span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -198,10 +201,10 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content: None,
             },
-            PulseError::ModuleNotFoundError(_, span) |
-            PulseError::UndefinedFunctionError(_, span) |
-            PulseError::VariableNotFoundError(_, span) |
-            PulseError::ImportError(_, span) => Diagnostic {
+            PulseError::ModuleNotFoundError(_, span)
+            | PulseError::UndefinedFunctionError(_, span)
+            | PulseError::VariableNotFoundError(_, span)
+            | PulseError::ImportError(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,

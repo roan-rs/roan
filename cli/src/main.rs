@@ -1,7 +1,5 @@
 use anyhow::Result;
-use clap::{
-    Parser,
-};
+use clap::Parser;
 use cli::{Cli, Commands};
 use commands::run::run_command;
 use logger::setup_logger;

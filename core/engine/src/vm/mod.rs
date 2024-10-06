@@ -1,8 +1,8 @@
-pub mod value;
 pub mod native_fn;
+pub mod value;
 
-use roan_error::frame::Frame;
 use crate::vm::value::Value;
+use roan_error::frame::Frame;
 
 /// Virtual machine for executing Roan code.
 #[derive(Debug, Clone)]
@@ -15,7 +15,10 @@ pub struct VM {
 
 impl VM {
     pub fn new() -> Self {
-        Self { frames: vec![], stack: vec![] }
+        Self {
+            frames: vec![],
+            stack: vec![],
+        }
     }
 }
 

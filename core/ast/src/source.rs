@@ -1,10 +1,10 @@
+use log::debug;
 use std::{
     fs::File,
     io::{self, BufReader, Read},
     path::PathBuf,
+    str::Chars,
 };
-use std::str::Chars;
-use log::debug;
 
 /// A source of Roan code.
 #[derive(Clone, Debug)]
@@ -79,4 +79,3 @@ impl Source {
         self.content[start..end].to_string()
     }
 }
-

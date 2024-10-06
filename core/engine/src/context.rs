@@ -1,10 +1,16 @@
-use crate::module::{loader::{ModuleLoader, BasicModuleLoader}, Module};
+use crate::module::{
+    loader::{BasicModuleLoader, ModuleLoader},
+    Module,
+};
 use anyhow::Result;
 use bon::bon;
-use std::{fmt::Debug, rc::Rc};
-use std::sync::{Arc, Mutex};
 use log::debug;
 use roan_error::print_diagnostic;
+use std::{
+    fmt::Debug,
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
 
 /// Struct to interact with the runtime.
 ///
@@ -108,4 +114,3 @@ impl Context {
         self.module_loader.insert(name, module);
     }
 }
-

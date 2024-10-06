@@ -7,7 +7,9 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_error::error::PulseError::{ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition, UnexpectedToken};
+use roan_error::error::PulseError::{
+    ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition, UnexpectedToken,
+};
 
 /// Struct responsible for parsing the tokens into an AST
 #[derive(Debug)]
@@ -89,7 +91,7 @@ impl Parser {
                 format!("Expected token of kind: {}", kind),
                 token.span.clone(),
             )
-                .into())
+            .into())
         }
     }
 }
@@ -149,7 +151,12 @@ impl Parser {
         let catch_block = self.parse_block()?;
         self.expect(TokenKind::RightBrace)?;
 
-        Ok(Stmt::new_try(try_token, try_block, error_ident, catch_block))
+        Ok(Stmt::new_try(
+            try_token,
+            try_block,
+            error_ident,
+            catch_block,
+        ))
     }
 
     pub fn parse_return(&mut self) -> Result<Option<Stmt>> {
@@ -268,7 +275,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-                .into());
+            .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -290,7 +297,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-                .into())
+            .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -331,7 +338,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                    .into());
+                .into());
             }
         } else {
             self.consume()
@@ -458,8 +465,10 @@ impl Parser {
             while let Some(next_operator) = self.parse_binary_operator() {
                 let next_precedence = next_operator.precedence();
 
-                if next_precedence > operator_precedence ||
-                    (next_precedence == operator_precedence && next_operator.associativity() == BinOpAssociativity::Right) {
+                if next_precedence > operator_precedence
+                    || (next_precedence == operator_precedence
+                        && next_operator.associativity() == BinOpAssociativity::Right)
+                {
                     right = self.parse_binary_expression_recurse(right, next_precedence)?;
                 } else {
                     break;
@@ -471,7 +480,6 @@ impl Parser {
 
         Ok(left)
     }
-
 
     pub fn parse_unary_operator(&mut self) -> Option<UnOperator> {
         let token = self.peek();

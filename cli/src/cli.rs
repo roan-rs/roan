@@ -1,5 +1,6 @@
 use clap::{
-    builder::{styling, Styles}, Parser, Subcommand, ValueHint,
+    builder::{styling, Styles},
+    Parser, Subcommand, ValueHint,
 };
 
 #[derive(Debug, Parser)]

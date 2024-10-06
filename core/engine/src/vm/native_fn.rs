@@ -1,7 +1,9 @@
-use std::fmt;
-use std::fmt::{Display, Formatter};
-use roan_ast::FnParam;
 use crate::vm::value::Value;
+use roan_ast::FnParam;
+use std::{
+    fmt,
+    fmt::{Display, Formatter},
+};
 
 #[derive(Debug, Clone)]
 pub struct NativeFunctionParam {
@@ -18,7 +20,11 @@ pub struct NativeFunction {
 }
 
 impl NativeFunction {
-    pub fn new(name: impl Into<String>, params: Vec<NativeFunctionParam>, func: fn(args: Vec<Value>) -> Value) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        params: Vec<NativeFunctionParam>,
+        func: fn(args: Vec<Value>) -> Value,
+    ) -> Self {
         Self {
             name: name.into(),
             func,

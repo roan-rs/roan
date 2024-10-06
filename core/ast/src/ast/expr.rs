@@ -1,7 +1,6 @@
-use std::fmt::{Display, Formatter};
+use crate::{statements::Stmt, GetSpan, Token};
 use roan_error::TextSpan;
-use crate::{GetSpan, Token};
-use crate::statements::Stmt;
+use std::fmt::{Display, Formatter};
 
 /// Represents a collection of expressions as a vector.
 /// Used to handle lists of expressions, such as arrays or argument lists.
@@ -280,11 +279,15 @@ impl BinOperator {
             BinOpKind::BitwiseXor => 16,
             BinOpKind::BitwiseOr => 15,
             // Relational
-            BinOpKind::LessThan | BinOpKind::LessThanOrEqual |
-            BinOpKind::GreaterThan | BinOpKind::GreaterThanOrEqual => 14,
+            BinOpKind::LessThan
+            | BinOpKind::LessThanOrEqual
+            | BinOpKind::GreaterThan
+            | BinOpKind::GreaterThanOrEqual => 14,
             // Equality
-            BinOpKind::Equals | BinOpKind::NotEquals |
-            BinOpKind::EqualsEquals | BinOpKind::BangEquals => 13,
+            BinOpKind::Equals
+            | BinOpKind::NotEquals
+            | BinOpKind::EqualsEquals
+            | BinOpKind::BangEquals => 13,
             // Logical
             BinOpKind::And => 12,
             BinOpKind::Or => 11,
