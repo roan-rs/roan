@@ -1,6 +1,6 @@
 use log::debug;
 use roan_error::error::PulseError::UnexpectedToken;
-use crate::{BinOpAssociativity, BinOpKind, BinOperator, Expr, Parser, Stmt, Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator};
+use crate::{AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, Parser, Stmt, Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator};
 
 impl Parser {
     /// Parses any expression, starting with an assignment.
@@ -152,7 +152,31 @@ impl Parser {
             let operand = self.parse_unary_expression();
             return Ok(Expr::new_unary(operator, operand?, token));
         }
-        self.parse_primary_expression()
+        self.parse_access_expression()
+    }
+
+    /// Parses an access expression.
+    pub fn parse_access_expression(&mut self) -> anyhow::Result<Expr> {
+        let mut expr = self.parse_primary_expression()?;
+        let mut token = self.peek();
+
+        loop {
+            if token.kind == TokenKind::Dot {
+                self.consume();
+                let field = self.parse_expr()?;
+                expr = Expr::new_field_access(expr, field, token);
+            } else if token.kind == TokenKind::LeftBracket {
+                self.consume();
+                let index = self.parse_expr()?;
+                self.expect(TokenKind::RightBracket)?;
+                expr = Expr::new_index_access(expr, index, token);
+            } else {
+                break;
+            }
+            token = self.peek();
+        }
+
+        Ok(expr)
     }
 
     /// Parses a primary expression, such as literals, identifiers, or parenthesized expressions.
@@ -274,14 +298,37 @@ impl Parser {
     /// - `Err(anyhow::Error)`: An error if parsing fails.
     pub fn parse_assignment(&mut self) -> anyhow::Result<Expr> {
         log::debug!("Parsing assignment");
-        if self.peek().kind == TokenKind::Identifier && self.peek_next().kind == TokenKind::Equals {
-            let ident = self.consume();
-            let equals = self.consume();
-            let value = self.parse_expr()?;
 
-            Ok(Expr::new_assign(ident, equals, value))
-        } else {
-            Ok(self.parse_binary_expression()?)
+        // Parse the left-hand side (LHS) as an access expression
+        let left = self.parse_access_expression()?;
+
+        // Check if the next token is an assignment operator
+        if let Some(assign_op) = self.parse_assignment_operator() {
+            self.consume();
+
+            let right = self.parse_expr()?;
+
+            let operator = AssignOperator::from_token_kind(assign_op);
+            return Ok(Expr::new_assign(left, operator, right));
+        }
+
+        Ok(left)
+    }
+
+    /// Attempts to parse an assignment operator.
+    ///
+    /// This method checks the next token to see if it's an assignment operator and returns it if found.
+    ///
+    /// # Returns
+    /// - `Some(TokenKind)`: The parsed assignment operator if found.
+    /// - `None`: If no assignment operator is found.
+    fn parse_assignment_operator(&mut self) -> Option<TokenKind> {
+        match self.peek().kind {
+            TokenKind::Equals
+            | TokenKind::PlusEquals
+            | TokenKind::MinusEquals
+            | TokenKind::MultiplyEquals | TokenKind::DivideEquals => Some(self.peek().kind.clone()),
+            _ => None,
         }
     }
 }

@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{source::Source, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If, Lexer, Parser, Stmt, Token, TokenKind::Throw, Use};
+use roan_ast::{source::Source, AccessKind, AssignOperator, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If, Lexer, Parser, Stmt, Token, TokenKind::Throw, Use};
 use roan_error::{
     error::{
         PulseError,
@@ -404,17 +404,90 @@ impl Module {
 
                 Ok(self.vm.pop().unwrap())
             }
+            Expr::Access(access) => {
+                match access.access.clone() {
+                    AccessKind::Field(field) => {
+                        unimplemented!("field access")
+                    }
+                    AccessKind::Index(index) => {
+                        self.interpret_expr(&index, ctx)?;
+                        let index = self.vm.pop().unwrap();
+
+                        self.interpret_expr(&access.base, ctx)?;
+                        let base = self.vm.pop().unwrap();
+
+                        Ok(base.access_index(index))
+                    }
+                }
+            }
             Expr::Assign(assign) => {
                 debug!("Interpreting assign: {:?}", assign);
+                let left = assign.left.as_ref();
+                let right = assign.right.as_ref();
+                let operator = assign.op.clone();
 
-                self.interpret_expr(&assign.value, ctx)?;
-                let val = self.vm.pop().unwrap();
+                debug!("{:?} \n\n{:?}\n\n {:?}", left, operator, right);
 
-                let ident = assign.ident.literal();
+                match left {
+                    Expr::Variable(v) => {
+                        self.interpret_expr(right, ctx)?;
+                        let val = self.vm.pop().unwrap();
+                        let ident = v.ident.clone();
 
-                self.set_variable(&ident, val.clone())?;
+                        self.set_variable(&ident, val.clone())?;
 
-                Ok(val)
+                        Ok(val)
+                    }
+                    Expr::Access(access) => {
+                        match &access.access {
+                            AccessKind::Field(_) => {
+                                unimplemented!("field access")
+                            }
+                            AccessKind::Index(index_expr) => {
+                                self.interpret_expr(&access.base, ctx)?;
+                                let base_val = self.vm.pop().unwrap();
+
+                                self.interpret_expr(index_expr, ctx)?;
+                                let index_val = self.vm.pop().unwrap();
+
+                                self.interpret_expr(right, ctx)?;
+                                let new_val = self.vm.pop().unwrap();
+
+                                if let (Value::Vec(mut vec), Value::Int(index)) = (base_val.clone(), index_val) {
+                                    let idx = index as usize;
+                                    if idx >= vec.len() {
+                                        return Err(PulseError::IndexOutOfBounds(
+                                            idx,
+                                            vec.len(),
+                                            index_expr.span()
+                                        )
+                                            .into());
+                                    }
+
+                                    vec[idx] = new_val.clone();
+
+                                    if let Some(var_name) = Self::extract_variable_name(&access.base) {
+                                        self.set_variable(&var_name, Value::Vec(vec))?;
+                                        Ok(new_val)
+                                    } else {
+                                        Err(PulseError::InvalidAssignment(
+                                            "Unable to determine variable for assignment".into(),
+                                            access.base.span(),
+                                        )
+                                            .into())
+                                    }
+                                } else {
+                                    Err(PulseError::TypeMismatch(
+                                        "Left side of assignment must be a vector with integer index".into(),
+                                        access.base.span(),
+                                    )
+                                        .into())
+                                }
+                            }
+                        }
+                    }
+                    _ => todo!("missing left: {:?}", left),
+                }
             }
             Expr::Vec(vec) => {
                 debug!("Interpreting vec: {:?}", vec);
@@ -472,6 +545,15 @@ impl Module {
 
         Ok(())
     }
+
+    pub fn extract_variable_name(expr: &Expr) -> Option<String> {
+        match expr {
+            Expr::Variable(v) => Some(v.ident.clone()),
+            Expr::Access(access) => Self::extract_variable_name(&access.base),
+            _ => None,
+        }
+    }
+
 
     /// Finds a function by name.
     pub fn find_function(&self, name: &str) -> Option<&StoredFunction> {

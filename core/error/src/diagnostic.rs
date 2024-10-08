@@ -57,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-        .expect("Error writing level");
+            .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -169,7 +169,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             PulseError::InvalidToken(_, span)
             | PulseError::SemanticError(_, span)
             | PulseError::UnexpectedToken(_, span)
-            | PulseError::InvalidEscapeSequence(_, span) | PulseError::NonBooleanCondition(_,span) => Diagnostic {
+            | PulseError::InvalidEscapeSequence(_, span) | PulseError::NonBooleanCondition(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -204,7 +204,15 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             PulseError::ModuleNotFoundError(_, span)
             | PulseError::UndefinedFunctionError(_, span)
             | PulseError::VariableNotFoundError(_, span)
-            | PulseError::ImportError(_, span) => Diagnostic {
+            | PulseError::ImportError(_, span) | PulseError::TypeMismatch(_, span) | PulseError::InvalidAssignment(_, span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: None,
+                content,
+            },
+            PulseError::IndexOutOfBounds(_, _, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,

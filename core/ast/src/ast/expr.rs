@@ -1,4 +1,4 @@
-use crate::{statements::Stmt, GetSpan, Token};
+use crate::{statements::Stmt, GetSpan, Token, TokenKind};
 use roan_error::TextSpan;
 use std::fmt::{Display, Formatter};
 
@@ -182,16 +182,43 @@ pub struct CallExpr {
     pub token: Token,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum AssignOperator {
+    /// Assignment operator (`=`).
+    Assign,
+    /// Addition assignment operator (`+=`).
+    PlusEquals,
+    /// Subtraction assignment operator (`-=`).
+    MinusEquals,
+    /// Multiplication assignment operator (`*=`).
+    MultiplyEquals,
+    /// Division assignment operator (`/=`).
+    DivideEquals,
+}
+
+impl AssignOperator {
+    pub fn from_token_kind(kind: TokenKind) -> Self {
+        match kind {
+            TokenKind::Equals => AssignOperator::Assign,
+            TokenKind::PlusEquals => AssignOperator::PlusEquals,
+            TokenKind::MinusEquals => AssignOperator::MinusEquals,
+            TokenKind::MultiplyEquals => AssignOperator::MultiplyEquals,
+            TokenKind::DivideEquals => AssignOperator::DivideEquals,
+            _ => todo!("Proper error")
+        }
+    }
+}
+
 /// Represents an assignment expression in the AST.
 /// An assignment binds a value to a variable.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Assign {
-    /// The token representing the identifier (variable name).
-    pub ident: Token,
-    /// The value being assigned to the identifier.
-    pub value: Box<Expr>,
-    /// The token representing the assignment operation.
-    pub token: Token,
+    /// The variable being assigned to.
+    pub left: Box<Expr>,
+    /// The assignment operator.
+    pub op: AssignOperator,
+    /// The value being assigned.
+    pub right: Box<Expr>,
 }
 
 /// Enum representing unary operator kinds (e.g., `-`, `~`).
@@ -352,7 +379,7 @@ pub enum Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum AccessKind {
     /// Field access (e.g., `.name`).
-    Field(String),
+    Field(Box<Expr>),
     /// Index access (e.g., `[0]`).
     Index(Box<Expr>),
 }
@@ -397,9 +424,9 @@ impl GetSpan for Expr {
             Expr::Parenthesized(p) => p.expr.span(),
             Expr::Call(c) => c.clone().token.span,
             Expr::Assign(a) => {
-                let ident = a.clone().ident.span;
-                let value = a.value.span();
-                TextSpan::combine(vec![ident, value])
+                let left = a.left.span();
+                let right = a.right.span();
+                TextSpan::combine(vec![left, right])
             }
             Expr::Vec(v) => {
                 let spans: Vec<TextSpan> = v.exprs.iter().map(|e| e.span()).collect();
@@ -447,10 +474,10 @@ impl Expr {
     /// # Returns
     ///
     /// A new `Expr::Access` variant with `AccessKind::Field`.
-    pub fn new_field_access(base: Expr, field: String, token: Token) -> Self {
+    pub fn new_field_access(base: Expr, field: Expr, token: Token) -> Self {
         Expr::Access(AccessExpr {
             base: Box::new(base),
-            access: AccessKind::Field(field),
+            access: AccessKind::Field(Box::new(field)),
             token,
         })
     }
@@ -504,11 +531,11 @@ impl Expr {
     /// # Returns
     ///
     /// A new `Expr::Assign` variant.
-    pub fn new_assign(ident: Token, token: Token, value: Expr) -> Self {
+    pub fn new_assign(left: Expr, op: AssignOperator, right: Expr) -> Self {
         Expr::Assign(Assign {
-            ident,
-            value: Box::new(value),
-            token,
+            left: Box::new(left),
+            op,
+            right: Box::new(right),
         })
     }
 

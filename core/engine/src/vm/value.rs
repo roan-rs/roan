@@ -183,3 +183,15 @@ impl Value {
         }
     }
 }
+
+impl Value {
+    pub fn access_index(&self, index: Self) -> Self {
+        match self {
+            Value::Vec(v) => match index {
+                Value::Int(i) => v.get(i as usize).cloned().unwrap_or(Value::Null),
+                _ => Value::Null,
+            },
+            _ => Value::Null
+        }
+    }
+}
