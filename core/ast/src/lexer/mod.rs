@@ -148,7 +148,7 @@ impl Lexer {
                                 next.to_string(),
                                 TextSpan::new(self.position, self.position, next.to_string()),
                             )
-                            .into())
+                                .into())
                         }
                     }
                     self.consume();
@@ -217,19 +217,7 @@ impl Lexer {
                     '[' => TokenKind::LeftBracket,
                     ']' => TokenKind::RightBracket,
                     ',' => TokenKind::Comma,
-                    '.' => {
-                        if self.match_next('.') {
-                            self.consume();
-                            if self.match_next('.') {
-                                self.consume();
-                                TokenKind::TripleDot
-                            } else {
-                                TokenKind::DoubleDot
-                            }
-                        } else {
-                            TokenKind::Dot
-                        }
-                    }
+                    '.' => self.lex_potential_triple('.', TokenKind::Dot, TokenKind::DoubleDot, TokenKind::TripleDot),
                     ':' => TokenKind::Colon,
                     ';' => TokenKind::Semicolon,
                     '/' => {
@@ -241,6 +229,8 @@ impl Lexer {
                                 self.consume();
                             }
                             TokenKind::Comment
+                        } else if self.match_next('=') {
+                            TokenKind::DivideEquals
                         } else {
                             TokenKind::Slash
                         }
@@ -271,67 +261,27 @@ impl Lexer {
                         self.consume();
                         if self.match_next('*') {
                             TokenKind::DoubleAsterisk
+                        } else if self.match_next('=') {
+                            TokenKind::MultiplyEquals
                         } else {
                             TokenKind::Asterisk
                         }
                     }
                     '%' => TokenKind::Percent,
                     '^' => TokenKind::Caret,
-                    '!' => {
-                        self.consume();
-                        if self.match_next('=') {
-                            TokenKind::BangEquals
-                        } else {
-                            TokenKind::Bang
-                        }
-                    }
-                    '=' => {
-                        self.consume();
-                        if self.match_next('=') {
-                            TokenKind::EqualsEquals
-                        } else {
-                            TokenKind::Equals
-                        }
-                    }
-                    '<' => {
-                        self.consume();
-                        if self.match_next('=') {
-                            TokenKind::LessThanEquals
-                        } else {
-                            TokenKind::LessThan
-                        }
-                    }
-                    '>' => {
-                        self.consume();
-                        if self.match_next('=') {
-                            TokenKind::GreaterThanEquals
-                        } else {
-                            TokenKind::GreaterThan
-                        }
-                    }
-                    '&' => {
-                        self.consume();
-                        if self.match_next('&') {
-                            TokenKind::And
-                        } else {
-                            TokenKind::Ampersand
-                        }
-                    }
-                    '|' => {
-                        self.consume();
-                        if self.match_next('|') {
-                            TokenKind::Or
-                        } else {
-                            TokenKind::Pipe
-                        }
-                    }
+                    '!' => self.lex_potential_double('=', TokenKind::Bang, TokenKind::BangEquals),
+                    '=' => self.lex_potential_double('=', TokenKind::Equals, TokenKind::EqualsEquals),
+                    '<' => self.lex_potential_double('<', TokenKind::LessThan, TokenKind::LessThanEquals),
+                    '>' => self.lex_potential_double('=', TokenKind::GreaterThan, TokenKind::GreaterThanEquals),
+                    '&' => self.lex_potential_double('&', TokenKind::Ampersand, TokenKind::And),
+                    '|' => self.lex_potential_double('|', TokenKind::Pipe, TokenKind::Or),
                     _ => {
                         self.consume();
                         return Err(InvalidToken(
                             c.to_string(),
                             TextSpan::new(start_pos, self.position, c.to_string()),
                         )
-                        .into());
+                            .into());
                     }
                 };
 
@@ -347,6 +297,35 @@ impl Lexer {
             )))
         } else {
             Ok(None)
+        }
+    }
+
+    pub fn lex_potential_double(&mut self, expected: char, one_char: TokenKind, double_char: TokenKind) -> TokenKind {
+        if let Some(next) = self.peek() {
+            if next == expected {
+                self.consume();
+                double_char
+            } else {
+                one_char
+            }
+        } else {
+            one_char
+        }
+    }
+
+    pub fn lex_potential_triple(&mut self, expected: char, one_char: TokenKind, double_char: TokenKind, triple_char: TokenKind) -> TokenKind {
+        match self.peek() {
+            Some(next) if next == expected => {
+                self.consume();
+                match self.peek() {
+                    Some(next) if next == expected => {
+                        self.consume();
+                        triple_char
+                    }
+                    _ => double_char,
+                }
+            }
+            _ => one_char,
         }
     }
 
@@ -404,4 +383,61 @@ impl Lexer {
 pub enum NumberType {
     Integer,
     Float,
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::source::Source;
+
+    #[test]
+    fn test_single_dot() {
+        let source = Source::from_string("arr.len();".to_string());
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.lex().unwrap();
+
+        let expected_kinds = vec![
+            TokenKind::Identifier, // arr
+            TokenKind::Dot,        // .
+            TokenKind::Identifier, // len
+            TokenKind::LeftParen,  // (
+            TokenKind::RightParen, // )
+            TokenKind::Semicolon,  // ;
+        ];
+
+        let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
+
+        assert_eq!(actual_kinds, expected_kinds);
+    }
+
+    #[test]
+    fn test_double_dot() {
+        let source = Source::from_string("..".to_string());
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.lex().unwrap();
+
+        let expected_kinds = vec![
+            TokenKind::DoubleDot, // ..
+        ];
+
+        let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
+
+        assert_eq!(actual_kinds, expected_kinds);
+    }
+
+    #[test]
+    fn test_triple_dot() {
+        let source = Source::from_string("...".to_string());
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.lex().unwrap();
+
+        let expected_kinds = vec![
+            TokenKind::TripleDot, // ...
+        ];
+
+        let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
+
+        assert_eq!(actual_kinds, expected_kinds);
+    }
 }

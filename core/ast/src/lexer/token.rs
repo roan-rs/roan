@@ -101,6 +101,8 @@ impl Display for TokenKind {
             TokenKind::Decrement => write!(f, "--"),
             TokenKind::MinusEquals => write!(f, "-="),
             TokenKind::PlusEquals => write!(f, "+="),
+            TokenKind::MultiplyEquals => write!(f, "*="),
+            TokenKind::DivideEquals => write!(f, "/="),
             TokenKind::EOF => write!(f, "EOF"),
             TokenKind::Whitespace => write!(f, "Whitespace"),
             TokenKind::Bad => write!(f, "Bad"),
@@ -179,6 +181,8 @@ pub enum TokenKind {
     Decrement,         // --
     MinusEquals,       // -=
     PlusEquals,        // +=
+    MultiplyEquals,    // *=
+    DivideEquals,      // /=
 
     EOF,
     Whitespace,

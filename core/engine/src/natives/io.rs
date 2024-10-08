@@ -1,4 +1,5 @@
-use crate::{native_function, vm::value::Value};
+use crate::{native_function};
+use crate::value::Value;
 
 native_function!(fn __print(
     msg: String,

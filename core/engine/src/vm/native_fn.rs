@@ -1,9 +1,10 @@
-use crate::vm::value::Value;
 use roan_ast::FnParam;
 use std::{
     fmt,
     fmt::{Display, Formatter},
 };
+use log::debug;
+use crate::value::Value;
 
 #[derive(Debug, Clone)]
 pub struct NativeFunctionParam {
@@ -30,6 +31,23 @@ impl NativeFunction {
             func,
             params,
         }
+    }
+
+    pub fn call(&mut self, args: Vec<Value>) -> anyhow::Result<Value> {
+        debug!("Executing native function: {}", self.name);
+
+        let mut params = vec![];
+        for (param, val) in self.params.iter().zip(args.clone()) {
+            if param.is_rest {
+                let rest = args.iter().skip(self.params.len() - 1).cloned().collect();
+
+                params.push(Value::Vec(rest));
+            } else {
+                params.push(val);
+            }
+        }
+
+        Ok((self.func)(params))
     }
 }
 

@@ -1,6 +1,16 @@
-use roan_ast::{Literal, LiteralType};
+use std::collections::HashMap;
+use roan_ast::{AccessKind, Expr, GetSpan, Literal, LiteralType};
 use std::fmt::{Debug, Display};
 use std::ops;
+use crate::vm::native_fn::NativeFunction;
+use anyhow::Result;
+use roan_error::error::PulseError::{InvalidPropertyAccess, PropertyNotFoundError};
+use crate::value::methods::vec::__vec_len;
+use crate::value::Value::Vec;
+
+pub mod methods {
+    pub mod vec;
+}
 
 #[derive(Clone)]
 pub enum Value {
@@ -8,9 +18,22 @@ pub enum Value {
     Float(f64),
     Bool(bool),
     String(String),
-    Vec(Vec<Value>),
+    Vec(std::vec::Vec<Value>),
     Null,
     Void,
+}
+
+impl Value {
+    pub fn builtin_methods(&self) -> HashMap<String, NativeFunction> {
+        match self {
+            Value::Vec(_) => {
+                let mut map = HashMap::new();
+                map.insert("len".to_string(), __vec_len());
+                map
+            }
+            _ => HashMap::new(),
+        }
+    }
 }
 
 impl Debug for Value {
@@ -180,6 +203,18 @@ impl Value {
             (Value::Int(a), Value::Float(b)) => Value::Float((a as f64).powf(b)),
             (Value::Float(a), Value::Int(b)) => Value::Float(a.powf(b as f64)),
             _ => panic!("Cannot apply power operator on values of different or unsupported types"),
+        }
+    }
+}
+
+impl Value {
+    pub fn access_index(&self, index: Self) -> Self {
+        match self {
+            Value::Vec(v) => match index {
+                Value::Int(i) => v.get(i as usize).cloned().unwrap_or(Value::Null),
+                _ => Value::Null,
+            },
+            _ => Value::Null
         }
     }
 }

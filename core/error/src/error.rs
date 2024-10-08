@@ -37,4 +37,14 @@ pub enum PulseError {
     InvalidEscapeSequence(String, TextSpan),
     #[error("{0} does not evaluate to a boolean.")]
     NonBooleanCondition(String, TextSpan),
+    #[error("Index out of bounds: {0} >= {1}")]
+    IndexOutOfBounds(usize, usize , TextSpan),
+    #[error("Type mismatch: {0}")]
+    TypeMismatch(String, TextSpan),
+    #[error("Invalid assigment {0}")]
+    InvalidAssignment(String, TextSpan),
+    #[error("Attempted to access non-existent property: {0}")]
+    PropertyNotFoundError(String, TextSpan),
+    #[error("Invalid property access")]
+    InvalidPropertyAccess(TextSpan),
 }

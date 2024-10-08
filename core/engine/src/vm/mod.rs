@@ -1,8 +1,7 @@
 pub mod native_fn;
-pub mod value;
 
-use crate::vm::value::Value;
 use roan_error::frame::Frame;
+use crate::value::Value;
 
 /// Virtual machine for executing Roan code.
 #[derive(Debug, Clone)]
