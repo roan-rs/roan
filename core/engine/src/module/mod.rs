@@ -407,7 +407,15 @@ impl Module {
             Expr::Access(access) => {
                 match access.access.clone() {
                     AccessKind::Field(field) => {
-                        unimplemented!("field access")
+                        let base = access.base.clone();
+
+                        self.interpret_expr(&base, ctx)?;
+                        let base = self.vm.pop().unwrap();
+
+                        self.interpret_expr(&field, ctx)?;
+                        let field = self.vm.pop().unwrap();
+
+                        Ok(base.access_field(field))
                     }
                     AccessKind::Index(index) => {
                         self.interpret_expr(&index, ctx)?;
@@ -440,7 +448,12 @@ impl Module {
                     }
                     Expr::Access(access) => {
                         match &access.access {
-                            AccessKind::Field(_) => {
+                            AccessKind::Field(field) => {
+                                let base = access.base.clone();
+
+                                self.interpret_expr(right, ctx)?;
+                                let new_val = self.vm.pop().unwrap();
+                                println!("{:?}", new_val);
                                 unimplemented!("field access")
                             }
                             AccessKind::Index(index_expr) => {
@@ -459,7 +472,7 @@ impl Module {
                                         return Err(PulseError::IndexOutOfBounds(
                                             idx,
                                             vec.len(),
-                                            index_expr.span()
+                                            index_expr.span(),
                                         )
                                             .into());
                                     }

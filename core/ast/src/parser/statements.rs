@@ -132,15 +132,12 @@ impl Parser {
         let if_token = self.consume();
 
         self.possible_check(TokenKind::LeftParen);
-
         let condition = self.parse_expr()?;
 
         self.possible_check(TokenKind::RightParen);
-
         self.expect(TokenKind::LeftBrace)?;
 
         let body = self.parse_block()?;
-
         self.expect(TokenKind::RightBrace)?;
 
         let mut elseif_blocks = vec![];
@@ -167,9 +164,7 @@ impl Parser {
                 });
             } else {
                 self.expect(TokenKind::LeftBrace)?;
-
                 let body = self.parse_block()?;
-
                 self.expect(TokenKind::RightBrace)?;
 
                 else_block = Some(ElseBlock {

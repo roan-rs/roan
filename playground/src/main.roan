@@ -10,7 +10,8 @@ export fn main() -> int {
     str = "Hello, Roan!";
     println("str = {}", str);
 
-    //let len = arr.len();
+    let len = arr.len();
+    println("arr.len() = {}", len);
 
     return 0;
 }

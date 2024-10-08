@@ -1,4 +1,4 @@
-use roan_ast::{Literal, LiteralType};
+use roan_ast::{AccessKind, Literal, LiteralType};
 use std::fmt::{Debug, Display};
 use std::ops;
 
@@ -189,6 +189,21 @@ impl Value {
         match self {
             Value::Vec(v) => match index {
                 Value::Int(i) => v.get(i as usize).cloned().unwrap_or(Value::Null),
+                _ => Value::Null,
+            },
+            _ => Value::Null
+        }
+    }
+
+    pub fn access_field(&self, field: Value) -> Self {
+        match self {
+            Value::Vec(v) => match field {
+                Value::String(s) => {
+                    if s == "len" {
+                        return Value::Int(v.len() as i64);
+                    }
+                    Value::Null
+                }
                 _ => Value::Null,
             },
             _ => Value::Null
