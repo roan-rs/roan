@@ -204,12 +204,20 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             PulseError::ModuleNotFoundError(_, span)
             | PulseError::UndefinedFunctionError(_, span)
             | PulseError::VariableNotFoundError(_, span)
-            | PulseError::ImportError(_, span) | PulseError::TypeMismatch(_, span) | PulseError::InvalidAssignment(_, span) => Diagnostic {
+            | PulseError::ImportError(_, span) | PulseError::PropertyNotFoundError(_, span) | PulseError::TypeMismatch(_, span) | PulseError::InvalidAssignment(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
                 location: Some(span.clone()),
                 hint: None,
+                content,
+            },
+            PulseError::InvalidPropertyAccess(span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: Some("Only string literals or call expressions are allowed".to_string()),
                 content,
             },
             PulseError::IndexOutOfBounds(_, _, span) => Diagnostic {

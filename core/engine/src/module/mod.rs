@@ -1,11 +1,11 @@
 use crate::{
     context::Context,
     natives::get_stored_function,
-    vm::{native_fn::NativeFunction, value::Value, VM},
+    vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{source::Source, AccessKind, AssignOperator, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If, Lexer, Parser, Stmt, Token, TokenKind::Throw, Use};
+use roan_ast::{source::Source, AccessKind, AssignOperator, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If, Lexer, LiteralType, Parser, Stmt, Token, TokenKind::Throw, Use};
 use roan_error::{
     error::{
         PulseError,
@@ -22,7 +22,8 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
-use roan_error::error::PulseError::NonBooleanCondition;
+use roan_error::error::PulseError::{InvalidPropertyAccess, NonBooleanCondition, PropertyNotFoundError};
+use crate::value::Value;
 
 pub mod loader;
 
@@ -351,6 +352,36 @@ impl Module {
         Ok(())
     }
 
+    pub fn access_field(&mut self, value: Value, expr: &Expr, ctx: &Context) -> Result<Value> {
+        match expr {
+            Expr::Call(call) => {
+                let methods = value.builtin_methods();
+                if let Some(method) = methods.get(&call.callee) {
+                    let mut args = vec![
+                        value.clone()
+                    ];
+                    for arg in call.args.iter() {
+                        self.interpret_expr(arg, ctx)?;
+                        args.push(self.vm.pop().expect("Expected value on stack"));
+                    }
+
+                    method.clone().call(args)
+                } else {
+                    Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into())
+                }
+            }
+            Expr::Literal(lit) => {
+                if let LiteralType::String(s) = &lit.value {
+                    unimplemented!("There is not future that requires this code to be implemented now. This will be implemented with objects/structs.");
+                    // self.access_field(&Expr::Literal(lit.clone()))
+                } else {
+                    Err(PropertyNotFoundError("".to_string(), expr.span()).into())
+                }
+            }
+            _ => Err(InvalidPropertyAccess(expr.span()).into())
+        }
+    }
+
     pub fn interpret_expr(&mut self, expr: &Expr, ctx: &Context) -> Result<()> {
         let val: Result<Value> = match expr {
             Expr::Variable(v) => {
@@ -406,19 +437,16 @@ impl Module {
             }
             Expr::Access(access) => {
                 match access.access.clone() {
-                    AccessKind::Field(field) => {
+                    AccessKind::Field(field_expr) => {
                         let base = access.base.clone();
 
                         self.interpret_expr(&base, ctx)?;
                         let base = self.vm.pop().unwrap();
 
-                        self.interpret_expr(&field, ctx)?;
-                        let field = self.vm.pop().unwrap();
-
-                        Ok(base.access_field(field))
+                        Ok(self.access_field(base, &field_expr, ctx)?)
                     }
-                    AccessKind::Index(index) => {
-                        self.interpret_expr(&index, ctx)?;
+                    AccessKind::Index(index_expr) => {
+                        self.interpret_expr(&index_expr, ctx)?;
                         let index = self.vm.pop().unwrap();
 
                         self.interpret_expr(&access.base, ctx)?;
@@ -581,21 +609,10 @@ impl Module {
 
 impl Module {
     /// Executes a native function with the provided arguments.
-    fn execute_native_function(&mut self, native: NativeFunction, args: Vec<Value>) -> Result<()> {
+    fn execute_native_function(&mut self, mut native: NativeFunction, args: Vec<Value>) -> Result<()> {
         debug!("Executing native function: {}", native.name);
 
-        let mut params = vec![];
-        for (param, val) in native.params.iter().zip(args.clone()) {
-            if param.is_rest {
-                let rest = args.iter().skip(native.params.len() - 1).cloned().collect();
-
-                params.push(Value::Vec(rest));
-            } else {
-                params.push(val);
-            }
-        }
-
-        let result = (native.func)(params);
+        let result = native.call(args)?;
         self.vm.push(result);
 
         Ok(())
