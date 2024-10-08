@@ -1,16 +1,21 @@
 use crate::{
     context::Context,
     natives::get_stored_function,
+    value::Value,
     vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{source::Source, AccessKind, AssignOperator, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If, Lexer, LiteralType, Parser, Stmt, Token, TokenKind::Throw, Use};
+use roan_ast::{
+    source::Source, AccessKind, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If,
+    Lexer, LiteralType, Parser, Stmt, Token, Use,
+};
 use roan_error::{
     error::{
         PulseError,
         PulseError::{
-            ImportError, ModuleNotFoundError, UndefinedFunctionError, VariableNotFoundError,
+            ImportError, InvalidPropertyAccess, ModuleNotFoundError, NonBooleanCondition,
+            PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError,
         },
     },
     frame::Frame,
@@ -22,8 +27,6 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
-use roan_error::error::PulseError::{InvalidPropertyAccess, NonBooleanCondition, PropertyNotFoundError};
-use crate::value::Value;
 
 pub mod loader;
 
@@ -234,9 +237,9 @@ impl Module {
                 for (name, item) in imported_items {
                     match loaded_module.find_function(&name) {
                         Some(StoredFunction::Function {
-                                 function,
-                                 defining_module,
-                             }) => {
+                            function,
+                            defining_module,
+                        }) => {
                             self.functions.push(StoredFunction::Function {
                                 function: function.clone(),
                                 defining_module: Arc::clone(&defining_module),
@@ -298,15 +301,16 @@ impl Module {
 
     fn interpret_if(&mut self, if_stmt: If, ctx: &Context) -> Result<()> {
         self.interpret_expr(&if_stmt.condition, ctx)?;
-        let condition_value = self
-            .vm
-            .pop()
-            .expect("Expected value on stack");
+        let condition_value = self.vm.pop().expect("Expected value on stack");
 
         let condition = match condition_value {
             Value::Bool(b) => b,
             _ => {
-                return Err(NonBooleanCondition("If condition".into(), TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()])).into())
+                return Err(NonBooleanCondition(
+                    "If condition".into(),
+                    TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
+                )
+                .into())
             }
         };
 
@@ -321,7 +325,11 @@ impl Module {
                 let else_if_result = match else_if_condition {
                     Value::Bool(b) => b,
                     _ => {
-                        return Err(NonBooleanCondition("Else if condition".into(), else_if.condition.span()).into())
+                        return Err(NonBooleanCondition(
+                            "Else if condition".into(),
+                            else_if.condition.span(),
+                        )
+                        .into())
                     }
                 };
 
@@ -357,9 +365,7 @@ impl Module {
             Expr::Call(call) => {
                 let methods = value.builtin_methods();
                 if let Some(method) = methods.get(&call.callee) {
-                    let mut args = vec![
-                        value.clone()
-                    ];
+                    let mut args = vec![value.clone()];
                     for arg in call.args.iter() {
                         self.interpret_expr(arg, ctx)?;
                         args.push(self.vm.pop().expect("Expected value on stack"));
@@ -378,7 +384,7 @@ impl Module {
                     Err(PropertyNotFoundError("".to_string(), expr.span()).into())
                 }
             }
-            _ => Err(InvalidPropertyAccess(expr.span()).into())
+            _ => Err(InvalidPropertyAccess(expr.span()).into()),
         }
     }
 
@@ -435,27 +441,25 @@ impl Module {
 
                 Ok(self.vm.pop().unwrap())
             }
-            Expr::Access(access) => {
-                match access.access.clone() {
-                    AccessKind::Field(field_expr) => {
-                        let base = access.base.clone();
+            Expr::Access(access) => match access.access.clone() {
+                AccessKind::Field(field_expr) => {
+                    let base = access.base.clone();
 
-                        self.interpret_expr(&base, ctx)?;
-                        let base = self.vm.pop().unwrap();
+                    self.interpret_expr(&base, ctx)?;
+                    let base = self.vm.pop().unwrap();
 
-                        Ok(self.access_field(base, &field_expr, ctx)?)
-                    }
-                    AccessKind::Index(index_expr) => {
-                        self.interpret_expr(&index_expr, ctx)?;
-                        let index = self.vm.pop().unwrap();
-
-                        self.interpret_expr(&access.base, ctx)?;
-                        let base = self.vm.pop().unwrap();
-
-                        Ok(base.access_index(index))
-                    }
+                    Ok(self.access_field(base, &field_expr, ctx)?)
                 }
-            }
+                AccessKind::Index(index_expr) => {
+                    self.interpret_expr(&index_expr, ctx)?;
+                    let index = self.vm.pop().unwrap();
+
+                    self.interpret_expr(&access.base, ctx)?;
+                    let base = self.vm.pop().unwrap();
+
+                    Ok(base.access_index(index))
+                }
+            },
             Expr::Assign(assign) => {
                 debug!("Interpreting assign: {:?}", assign);
                 let left = assign.left.as_ref();
@@ -474,59 +478,60 @@ impl Module {
 
                         Ok(val)
                     }
-                    Expr::Access(access) => {
-                        match &access.access {
-                            AccessKind::Field(field) => {
-                                let base = access.base.clone();
+                    Expr::Access(access) => match &access.access {
+                        AccessKind::Field(field) => {
+                            let base = access.base.clone();
 
-                                self.interpret_expr(right, ctx)?;
-                                let new_val = self.vm.pop().unwrap();
-                                println!("{:?}", new_val);
-                                unimplemented!("field access")
-                            }
-                            AccessKind::Index(index_expr) => {
-                                self.interpret_expr(&access.base, ctx)?;
-                                let base_val = self.vm.pop().unwrap();
+                            self.interpret_expr(right, ctx)?;
+                            let new_val = self.vm.pop().unwrap();
+                            println!("{:?}", new_val);
+                            unimplemented!("field access")
+                        }
+                        AccessKind::Index(index_expr) => {
+                            self.interpret_expr(&access.base, ctx)?;
+                            let base_val = self.vm.pop().unwrap();
 
-                                self.interpret_expr(index_expr, ctx)?;
-                                let index_val = self.vm.pop().unwrap();
+                            self.interpret_expr(index_expr, ctx)?;
+                            let index_val = self.vm.pop().unwrap();
 
-                                self.interpret_expr(right, ctx)?;
-                                let new_val = self.vm.pop().unwrap();
+                            self.interpret_expr(right, ctx)?;
+                            let new_val = self.vm.pop().unwrap();
 
-                                if let (Value::Vec(mut vec), Value::Int(index)) = (base_val.clone(), index_val) {
-                                    let idx = index as usize;
-                                    if idx >= vec.len() {
-                                        return Err(PulseError::IndexOutOfBounds(
-                                            idx,
-                                            vec.len(),
-                                            index_expr.span(),
-                                        )
-                                            .into());
-                                    }
+                            if let (Value::Vec(mut vec), Value::Int(index)) =
+                                (base_val.clone(), index_val)
+                            {
+                                let idx = index as usize;
+                                if idx >= vec.len() {
+                                    return Err(PulseError::IndexOutOfBounds(
+                                        idx,
+                                        vec.len(),
+                                        index_expr.span(),
+                                    )
+                                    .into());
+                                }
 
-                                    vec[idx] = new_val.clone();
+                                vec[idx] = new_val.clone();
 
-                                    if let Some(var_name) = Self::extract_variable_name(&access.base) {
-                                        self.set_variable(&var_name, Value::Vec(vec))?;
-                                        Ok(new_val)
-                                    } else {
-                                        Err(PulseError::InvalidAssignment(
-                                            "Unable to determine variable for assignment".into(),
-                                            access.base.span(),
-                                        )
-                                            .into())
-                                    }
+                                if let Some(var_name) = Self::extract_variable_name(&access.base) {
+                                    self.set_variable(&var_name, Value::Vec(vec))?;
+                                    Ok(new_val)
                                 } else {
-                                    Err(PulseError::TypeMismatch(
-                                        "Left side of assignment must be a vector with integer index".into(),
+                                    Err(PulseError::InvalidAssignment(
+                                        "Unable to determine variable for assignment".into(),
                                         access.base.span(),
                                     )
-                                        .into())
+                                    .into())
                                 }
+                            } else {
+                                Err(PulseError::TypeMismatch(
+                                    "Left side of assignment must be a vector with integer index"
+                                        .into(),
+                                    access.base.span(),
+                                )
+                                .into())
                             }
                         }
-                    }
+                    },
                     _ => todo!("missing left: {:?}", left),
                 }
             }
@@ -595,7 +600,6 @@ impl Module {
         }
     }
 
-
     /// Finds a function by name.
     pub fn find_function(&self, name: &str) -> Option<&StoredFunction> {
         debug!("Looking for function: {}", name);
@@ -609,7 +613,11 @@ impl Module {
 
 impl Module {
     /// Executes a native function with the provided arguments.
-    fn execute_native_function(&mut self, mut native: NativeFunction, args: Vec<Value>) -> Result<()> {
+    fn execute_native_function(
+        &mut self,
+        mut native: NativeFunction,
+        args: Vec<Value>,
+    ) -> Result<()> {
         debug!("Executing native function: {}", native.name);
 
         let result = native.call(args)?;

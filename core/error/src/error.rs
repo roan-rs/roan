@@ -38,7 +38,7 @@ pub enum PulseError {
     #[error("{0} does not evaluate to a boolean.")]
     NonBooleanCondition(String, TextSpan),
     #[error("Index out of bounds: {0} >= {1}")]
-    IndexOutOfBounds(usize, usize , TextSpan),
+    IndexOutOfBounds(usize, usize, TextSpan),
     #[error("Type mismatch: {0}")]
     TypeMismatch(String, TextSpan),
     #[error("Invalid assigment {0}")]

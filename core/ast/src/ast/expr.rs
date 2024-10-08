@@ -204,7 +204,7 @@ impl AssignOperator {
             TokenKind::MinusEquals => AssignOperator::MinusEquals,
             TokenKind::MultiplyEquals => AssignOperator::MultiplyEquals,
             TokenKind::DivideEquals => AssignOperator::DivideEquals,
-            _ => todo!("Proper error")
+            _ => todo!("Proper error"),
         }
     }
 }
@@ -402,7 +402,9 @@ impl GetSpan for AccessExpr {
         let base_span = self.base.span();
         let access_span = match &self.access {
             AccessKind::Field(_) => self.token.span.clone(), // Span includes the '.' and the field name
-            AccessKind::Index(index_expr) => TextSpan::combine(vec![self.token.span.clone(), index_expr.span()]), // Span includes '[' , index, and ']'
+            AccessKind::Index(index_expr) => {
+                TextSpan::combine(vec![self.token.span.clone(), index_expr.span()])
+            } // Span includes '[' , index, and ']'
         };
         TextSpan::combine(vec![base_span, access_span])
     }
@@ -493,7 +495,8 @@ impl Expr {
     /// # Returns
     ///
     /// A new `Expr::Access` variant with `AccessKind::Index`.
-    pub fn new_index_access(base: Expr, index: Expr, token: Token) -> Self { // **Added**
+    pub fn new_index_access(base: Expr, index: Expr, token: Token) -> Self {
+        // **Added**
         Expr::Access(AccessExpr {
             base: Box::new(base),
             access: AccessKind::Index(Box::new(index)),

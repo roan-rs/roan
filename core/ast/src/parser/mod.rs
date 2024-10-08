@@ -1,7 +1,10 @@
 mod expressions;
 mod statements;
 
-use crate::{lexer::token::{Token, TokenKind}, Ast};
+use crate::{
+    lexer::token::{Token, TokenKind},
+    Ast,
+};
 use anyhow::Result;
 use roan_error::error::PulseError::ExpectedToken;
 
@@ -133,7 +136,7 @@ impl Parser {
                 format!("Expected token of kind: {}", kind),
                 token.span.clone(),
             )
-                .into())
+            .into())
         }
     }
 }

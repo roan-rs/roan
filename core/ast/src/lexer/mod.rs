@@ -148,7 +148,7 @@ impl Lexer {
                                 next.to_string(),
                                 TextSpan::new(self.position, self.position, next.to_string()),
                             )
-                                .into())
+                            .into())
                         }
                     }
                     self.consume();
@@ -217,7 +217,12 @@ impl Lexer {
                     '[' => TokenKind::LeftBracket,
                     ']' => TokenKind::RightBracket,
                     ',' => TokenKind::Comma,
-                    '.' => self.lex_potential_triple('.', TokenKind::Dot, TokenKind::DoubleDot, TokenKind::TripleDot),
+                    '.' => self.lex_potential_triple(
+                        '.',
+                        TokenKind::Dot,
+                        TokenKind::DoubleDot,
+                        TokenKind::TripleDot,
+                    ),
                     ':' => TokenKind::Colon,
                     ';' => TokenKind::Semicolon,
                     '/' => {
@@ -270,9 +275,19 @@ impl Lexer {
                     '%' => TokenKind::Percent,
                     '^' => TokenKind::Caret,
                     '!' => self.lex_potential_double('=', TokenKind::Bang, TokenKind::BangEquals),
-                    '=' => self.lex_potential_double('=', TokenKind::Equals, TokenKind::EqualsEquals),
-                    '<' => self.lex_potential_double('<', TokenKind::LessThan, TokenKind::LessThanEquals),
-                    '>' => self.lex_potential_double('=', TokenKind::GreaterThan, TokenKind::GreaterThanEquals),
+                    '=' => {
+                        self.lex_potential_double('=', TokenKind::Equals, TokenKind::EqualsEquals)
+                    }
+                    '<' => self.lex_potential_double(
+                        '<',
+                        TokenKind::LessThan,
+                        TokenKind::LessThanEquals,
+                    ),
+                    '>' => self.lex_potential_double(
+                        '=',
+                        TokenKind::GreaterThan,
+                        TokenKind::GreaterThanEquals,
+                    ),
                     '&' => self.lex_potential_double('&', TokenKind::Ampersand, TokenKind::And),
                     '|' => self.lex_potential_double('|', TokenKind::Pipe, TokenKind::Or),
                     _ => {
@@ -281,7 +296,7 @@ impl Lexer {
                             c.to_string(),
                             TextSpan::new(start_pos, self.position, c.to_string()),
                         )
-                            .into());
+                        .into());
                     }
                 };
 
@@ -300,7 +315,12 @@ impl Lexer {
         }
     }
 
-    pub fn lex_potential_double(&mut self, expected: char, one_char: TokenKind, double_char: TokenKind) -> TokenKind {
+    pub fn lex_potential_double(
+        &mut self,
+        expected: char,
+        one_char: TokenKind,
+        double_char: TokenKind,
+    ) -> TokenKind {
         if let Some(next) = self.peek() {
             if next == expected {
                 self.consume();
@@ -313,7 +333,13 @@ impl Lexer {
         }
     }
 
-    pub fn lex_potential_triple(&mut self, expected: char, one_char: TokenKind, double_char: TokenKind, triple_char: TokenKind) -> TokenKind {
+    pub fn lex_potential_triple(
+        &mut self,
+        expected: char,
+        one_char: TokenKind,
+        double_char: TokenKind,
+        triple_char: TokenKind,
+    ) -> TokenKind {
         match self.peek() {
             Some(next) if next == expected => {
                 self.consume();
@@ -384,7 +410,6 @@ pub enum NumberType {
     Integer,
     Float,
 }
-
 
 #[cfg(test)]
 mod tests {

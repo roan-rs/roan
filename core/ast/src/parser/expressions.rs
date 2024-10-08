@@ -1,6 +1,9 @@
+use crate::{
+    AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, Parser, Stmt, Token,
+    TokenKind, TypeAnnotation, UnOpKind, UnOperator,
+};
 use log::debug;
 use roan_error::error::PulseError::UnexpectedToken;
-use crate::{AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, Parser, Stmt, Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator};
 
 impl Parser {
     /// Parses any expression, starting with an assignment.
@@ -108,7 +111,7 @@ impl Parser {
 
                 if next_precedence > operator_precedence
                     || (next_precedence == operator_precedence
-                    && next_operator.associativity() == BinOpAssociativity::Right)
+                        && next_operator.associativity() == BinOpAssociativity::Right)
                 {
                     right = self.parse_binary_expression_recurse(right, next_precedence)?;
                 } else {
@@ -327,7 +330,8 @@ impl Parser {
             TokenKind::Equals
             | TokenKind::PlusEquals
             | TokenKind::MinusEquals
-            | TokenKind::MultiplyEquals | TokenKind::DivideEquals => Some(self.peek().kind.clone()),
+            | TokenKind::MultiplyEquals
+            | TokenKind::DivideEquals => Some(self.peek().kind.clone()),
             _ => None,
         }
     }

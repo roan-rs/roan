@@ -1,5 +1,4 @@
 use anyhow::Result;
-use dirs::home_dir;
 use log::debug;
 use std::{env::current_dir, fs, fs::create_dir, io::Cursor, path::PathBuf};
 

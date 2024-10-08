@@ -1,6 +1,8 @@
-use log::debug;
-use roan_error::error::PulseError::{ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition};
 use crate::{Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, TokenKind, TypeAnnotation};
+use log::debug;
+use roan_error::error::PulseError::{
+    ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition,
+};
 
 impl Parser {
     /// Parses a statement from the tokens.
@@ -79,7 +81,12 @@ impl Parser {
         let catch_block = self.parse_block()?;
         self.expect(TokenKind::RightBrace)?;
 
-        Ok(Stmt::new_try(try_token, try_block, error_ident, catch_block))
+        Ok(Stmt::new_try(
+            try_token,
+            try_block,
+            error_ident,
+            catch_block,
+        ))
     }
 
     /// Parses a `return` statement.
@@ -175,7 +182,13 @@ impl Parser {
             }
         }
 
-        Ok(Stmt::new_if(if_token, condition.into(), body, elseif_blocks.into(), else_block))
+        Ok(Stmt::new_if(
+            if_token,
+            condition.into(),
+            body,
+            elseif_blocks.into(),
+            else_block,
+        ))
     }
 
     /// Parses a `use` statement for importing modules.
@@ -215,7 +228,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-                .into());
+            .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -252,7 +265,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-                .into())
+            .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -307,7 +320,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                    .into());
+                .into());
             }
         } else {
             self.consume()

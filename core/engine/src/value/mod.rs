@@ -1,12 +1,13 @@
-use std::collections::HashMap;
-use roan_ast::{AccessKind, Expr, GetSpan, Literal, LiteralType};
-use std::fmt::{Debug, Display};
-use std::ops;
-use crate::vm::native_fn::NativeFunction;
-use anyhow::Result;
-use roan_error::error::PulseError::{InvalidPropertyAccess, PropertyNotFoundError};
-use crate::value::methods::vec::__vec_len;
-use crate::value::Value::Vec;
+use crate::{
+    value::methods::vec::__vec_len,
+    vm::native_fn::NativeFunction,
+};
+use roan_ast::{Literal, LiteralType};
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display},
+    ops,
+};
 
 pub mod methods {
     pub mod vec;
@@ -214,7 +215,7 @@ impl Value {
                 Value::Int(i) => v.get(i as usize).cloned().unwrap_or(Value::Null),
                 _ => Value::Null,
             },
-            _ => Value::Null
+            _ => Value::Null,
         }
     }
 }
