@@ -8,9 +8,11 @@ use std::{
     fmt::{Debug, Display},
     ops,
 };
+use crate::value::methods::string::{__string_len, __string_split};
 
 pub mod methods {
     pub mod vec;
+    pub mod string;
 }
 
 #[derive(Clone)]
@@ -30,6 +32,12 @@ impl Value {
             Value::Vec(_) => {
                 let mut map = HashMap::new();
                 map.insert("len".to_string(), __vec_len());
+                map
+            }
+            Value::String(_) => {
+                let mut map = HashMap::new();
+                map.insert("len".to_string(), __string_len());
+                map.insert("split".to_string(), __string_split());
                 map
             }
             _ => HashMap::new(),

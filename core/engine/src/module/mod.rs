@@ -237,9 +237,9 @@ impl Module {
                 for (name, item) in imported_items {
                     match loaded_module.find_function(&name) {
                         Some(StoredFunction::Function {
-                            function,
-                            defining_module,
-                        }) => {
+                                 function,
+                                 defining_module,
+                             }) => {
                             self.functions.push(StoredFunction::Function {
                                 function: function.clone(),
                                 defining_module: Arc::clone(&defining_module),
@@ -310,7 +310,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                .into())
+                    .into())
             }
         };
 
@@ -329,7 +329,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                        .into())
+                            .into())
                     }
                 };
 
@@ -384,7 +384,13 @@ impl Module {
                     Err(PropertyNotFoundError("".to_string(), expr.span()).into())
                 }
             }
-            _ => Err(InvalidPropertyAccess(expr.span()).into()),
+            _ => {
+                self.interpret_expr(expr, ctx)?;
+
+                let field = self.vm.pop().expect("Expected value on stack");
+
+                Ok(field)
+            }
         }
     }
 
@@ -441,25 +447,27 @@ impl Module {
 
                 Ok(self.vm.pop().unwrap())
             }
-            Expr::Access(access) => match access.access.clone() {
-                AccessKind::Field(field_expr) => {
-                    let base = access.base.clone();
+            Expr::Access(access) => {
+                match access.access.clone() {
+                    AccessKind::Field(field_expr) => {
+                        let base = access.base.clone();
 
-                    self.interpret_expr(&base, ctx)?;
-                    let base = self.vm.pop().unwrap();
+                        self.interpret_expr(&base, ctx)?;
+                        let base = self.vm.pop().unwrap();
 
-                    Ok(self.access_field(base, &field_expr, ctx)?)
+                        Ok(self.access_field(base, &field_expr, ctx)?)
+                    }
+                    AccessKind::Index(index_expr) => {
+                        self.interpret_expr(&index_expr, ctx)?;
+                        let index = self.vm.pop().unwrap();
+
+                        self.interpret_expr(&access.base, ctx)?;
+                        let base = self.vm.pop().unwrap();
+
+                        Ok(base.access_index(index))
+                    }
                 }
-                AccessKind::Index(index_expr) => {
-                    self.interpret_expr(&index_expr, ctx)?;
-                    let index = self.vm.pop().unwrap();
-
-                    self.interpret_expr(&access.base, ctx)?;
-                    let base = self.vm.pop().unwrap();
-
-                    Ok(base.access_index(index))
-                }
-            },
+            }
             Expr::Assign(assign) => {
                 debug!("Interpreting assign: {:?}", assign);
                 let left = assign.left.as_ref();
@@ -484,7 +492,6 @@ impl Module {
 
                             self.interpret_expr(right, ctx)?;
                             let new_val = self.vm.pop().unwrap();
-                            println!("{:?}", new_val);
                             unimplemented!("field access")
                         }
                         AccessKind::Index(index_expr) => {
@@ -507,7 +514,7 @@ impl Module {
                                         vec.len(),
                                         index_expr.span(),
                                     )
-                                    .into());
+                                        .into());
                                 }
 
                                 vec[idx] = new_val.clone();
@@ -520,7 +527,7 @@ impl Module {
                                         "Unable to determine variable for assignment".into(),
                                         access.base.span(),
                                     )
-                                    .into())
+                                        .into())
                                 }
                             } else {
                                 Err(PulseError::TypeMismatch(
@@ -528,7 +535,7 @@ impl Module {
                                         .into(),
                                     access.base.span(),
                                 )
-                                .into())
+                                    .into())
                             }
                         }
                     },
@@ -562,7 +569,7 @@ impl Module {
                     (_, BinOpKind::Divide, _) => left / right,
                     (_, BinOpKind::Modulo, _) => left % right,
                     (_, BinOpKind::Equals, _) => Value::Bool(left == right),
-                    (_, BinOpKind::BangEquals, _) => Value::Bool(left != right),
+                    (_, BinOpKind::BangEquals | BinOpKind::NotEquals, _) => Value::Bool(left != right),
                     (_, BinOpKind::Power, _) => left.pow(right),
 
                     (_, BinOpKind::GreaterThan, _) => Value::Bool(left > right),

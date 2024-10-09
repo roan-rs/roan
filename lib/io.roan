@@ -1,4 +1,10 @@
 export fn print(msg: string, ...args: string) -> void {
+    let parts = msg.split("{}");
+
+    if parts.len() != args.len() + 1 {
+        throw "Invalid number of arguments";
+    }
+
     __print(msg, args);
 }
 

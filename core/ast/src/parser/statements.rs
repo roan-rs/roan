@@ -138,10 +138,8 @@ impl Parser {
         debug!("Parsing if statement");
         let if_token = self.consume();
 
-        self.possible_check(TokenKind::LeftParen);
         let condition = self.parse_expr()?;
 
-        self.possible_check(TokenKind::RightParen);
         self.expect(TokenKind::LeftBrace)?;
 
         let body = self.parse_block()?;
@@ -228,7 +226,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-            .into());
+                .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -265,7 +263,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-            .into())
+                .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -320,7 +318,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                .into());
+                    .into());
             }
         } else {
             self.consume()

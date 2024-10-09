@@ -5,7 +5,6 @@ pub mod io;
 #[macro_export]
 macro_rules! native_function {
     (fn $name:ident($($arg:ident: $arg_type:ident),* $(, ...$rest:ident: Vec)?) {$($body:tt)*}) => {
-        use crate::vm::native_fn::{NativeFunction, NativeFunctionParam};
         pub fn $name() -> NativeFunction {
             NativeFunction {
                 name: stringify!($name).to_string(),

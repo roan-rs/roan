@@ -1,17 +1,7 @@
 use { println } from "std::io"
 
 export fn main() -> int {
-    let arr = [1, 2, 3, 4, 5];
-    let str = "Hello, World!";
-    arr[0] = 10;
-
-    println("arr[0] = {}", arr[0]);
-
-    str = "Hello, Roan!";
-    println("str = {}", str);
-
-    let len = arr.len();
-    println("arr.len() = {}", len);
+    println("{} {}", "test")
 
     return 0;
 }

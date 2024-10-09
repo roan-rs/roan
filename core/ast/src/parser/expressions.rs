@@ -111,7 +111,7 @@ impl Parser {
 
                 if next_precedence > operator_precedence
                     || (next_precedence == operator_precedence
-                        && next_operator.associativity() == BinOpAssociativity::Right)
+                    && next_operator.associativity() == BinOpAssociativity::Right)
                 {
                     right = self.parse_binary_expression_recurse(right, next_precedence)?;
                 } else {
@@ -160,14 +160,22 @@ impl Parser {
 
     /// Parses an access expression.
     pub fn parse_access_expression(&mut self) -> anyhow::Result<Expr> {
+        debug!("Parsing access expression");
         let mut expr = self.parse_primary_expression()?;
         let mut token = self.peek();
 
         loop {
             if token.kind == TokenKind::Dot {
                 self.consume();
-                let field = self.parse_expr()?;
-                expr = Expr::new_field_access(expr, field, token);
+
+                let field_token = self.consume();
+                let mut field_expr = Expr::new_variable(field_token.clone(), field_token.literal());
+
+                if self.peek().kind == TokenKind::LeftParen {
+                    field_expr = self.parse_call_expr(field_token)?;
+                }
+
+                expr = Expr::new_field_access(expr, field_expr, token);
             } else if token.kind == TokenKind::LeftBracket {
                 self.consume();
                 let index = self.parse_expr()?;
@@ -181,6 +189,7 @@ impl Parser {
 
         Ok(expr)
     }
+
 
     /// Parses a primary expression, such as literals, identifiers, or parenthesized expressions.
     ///
@@ -302,20 +311,16 @@ impl Parser {
     pub fn parse_assignment(&mut self) -> anyhow::Result<Expr> {
         log::debug!("Parsing assignment");
 
-        // Parse the left-hand side (LHS) as an access expression
-        let left = self.parse_access_expression()?;
-
-        // Check if the next token is an assignment operator
         if let Some(assign_op) = self.parse_assignment_operator() {
             self.consume();
-
+            let left = self.parse_expr()?;
             let right = self.parse_expr()?;
 
             let operator = AssignOperator::from_token_kind(assign_op);
             return Ok(Expr::new_assign(left, operator, right));
         }
 
-        Ok(left)
+        Ok(self.parse_binary_expression()?)
     }
 
     /// Attempts to parse an assignment operator.
