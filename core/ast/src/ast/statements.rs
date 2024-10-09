@@ -125,8 +125,8 @@ impl Stmt {
     /// 
     /// # Returns
     /// A `Stmt::While` variant containing the provided components.
-    pub fn new_while(while_token: Token, condition: Box<Expr>, block: Block) -> Self {
-        Stmt::While(While { while_token, condition, block })
+    pub fn new_while(while_token: Token, condition: Expr, block: Block) -> Self {
+        Stmt::While(While { while_token, condition: Box::new(condition), block })
     }
     
     /// Creates a new `Break` statement.

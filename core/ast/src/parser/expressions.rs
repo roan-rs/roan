@@ -311,16 +311,16 @@ impl Parser {
     pub fn parse_assignment(&mut self) -> anyhow::Result<Expr> {
         log::debug!("Parsing assignment");
 
+        let expr =self.parse_binary_expression()?;
         if let Some(assign_op) = self.parse_assignment_operator() {
             self.consume();
-            let left = self.parse_expr()?;
             let right = self.parse_expr()?;
 
             let operator = AssignOperator::from_token_kind(assign_op);
-            return Ok(Expr::new_assign(left, operator, right));
+            return Ok(Expr::new_assign(expr, operator, right));
         }
 
-        Ok(self.parse_binary_expression()?)
+        Ok(expr)
     }
 
     /// Attempts to parse an assignment operator.

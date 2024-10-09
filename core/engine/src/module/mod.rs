@@ -254,6 +254,68 @@ impl Module {
                     }
                 }
             }
+            Stmt::Break(token) => {
+                debug!("Interpreting break statement");
+                return Err(PulseError::LoopBreak(token.span).into());
+            }
+            Stmt::Continue(token) => {
+                debug!("Interpreting continue statement");
+                return Err(PulseError::LoopContinue(token.span).into());
+            }
+            Stmt::While(while_stmt) => {
+                debug!("Interpreting while loop");
+                loop {
+                    self.interpret_expr(&while_stmt.condition, ctx)?;
+                    let condition_value = self.vm.pop().expect("Expected value on stack");
+
+                    let condition = match condition_value {
+                        Value::Bool(b) => b,
+                        _ => {
+                            return Err(NonBooleanCondition(
+                                "While loop condition".into(),
+                                while_stmt.condition.span(),
+                            )
+                                .into())
+                        }
+                    };
+
+                    if !condition {
+                        break;
+                    }
+
+                    self.enter_scope();
+                    let result = self.execute_block(while_stmt.block.clone(), ctx);
+                    self.exit_scope();
+
+                    match result {
+                        Ok(_) => {}
+                        Err(e) => match e.downcast::<PulseError>() {
+                            Ok(PulseError::LoopBreak(_)) => break,
+                            Ok(PulseError::LoopContinue(_)) => continue,
+                            Ok(other) => return Err(other.into()),
+                            Err(e) => return Err(e),
+                        },
+                    }
+                }
+            }
+            Stmt::Loop(loop_stmt) => {
+                debug!("Interpreting infinite loop");
+                loop {
+                    self.enter_scope();
+                    let result = self.execute_block(loop_stmt.block.clone(), ctx);
+                    self.exit_scope();
+
+                    match result {
+                        Ok(_) => {}
+                        Err(e) => match e.downcast::<PulseError>() {
+                            Ok(PulseError::LoopBreak(_)) => break,
+                            Ok(PulseError::LoopContinue(_)) => continue,
+                            Ok(other) => return Err(other.into()),
+                            Err(e) => return Err(e),
+                        },
+                    }
+                }
+            }
             Stmt::Throw(throw) => {
                 debug!("Interpreting throw: {:?}", throw);
 

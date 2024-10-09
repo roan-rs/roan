@@ -47,4 +47,12 @@ pub enum PulseError {
     PropertyNotFoundError(String, TextSpan),
     #[error("Invalid property access")]
     InvalidPropertyAccess(TextSpan),
+    #[error("Found break or continue statement outside of loop.")]
+    InvalidBreakOrContinue(TextSpan),
+
+    // These two are used for easier loop handling in the interpreter.
+    #[error("Break was used outside loop.")]
+    LoopBreak(TextSpan),
+    #[error("Continue was used outside loop.")]
+    LoopContinue(TextSpan),
 }

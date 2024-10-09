@@ -1,7 +1,12 @@
 use { println } from "std::io"
 
 export fn main() -> int {
-    println("{}", "test")
+    let x = 10;
+
+    while x > 0 {
+        println("x is {}", x);
+        x = x - 1;
+    }
 
     return 0;
 }

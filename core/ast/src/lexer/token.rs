@@ -71,6 +71,7 @@ impl Display for TokenKind {
             TokenKind::Return => write!(f, "return"),
             TokenKind::Break => write!(f, "break"),
             TokenKind::Continue => write!(f, "continue"),
+            TokenKind::Loop => write!(f, "loop"),
             TokenKind::Use => write!(f, "use"),
             TokenKind::From => write!(f, "from"),
             TokenKind::Export => write!(f, "export"),
@@ -151,6 +152,7 @@ pub enum TokenKind {
     Throw,
     Try,
     Catch,
+    Loop,
 
     True,
     False,

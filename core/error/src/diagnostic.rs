@@ -216,6 +216,24 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content,
             },
+             PulseError::InvalidBreakOrContinue(span) => {
+                Diagnostic {
+                    title: err_str,
+                    text: None,
+                    level: Level::Error,
+                    location: Some(span.clone()),
+                    hint: Some("Break and continue statements can only be used inside loops".to_string()),
+                    content,
+                }
+             }
+            PulseError::LoopBreak(span) | PulseError::LoopContinue(span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: Some("Break and continue statements can only be used inside loops".to_string()),
+                content,
+            },
             PulseError::InvalidPropertyAccess(span) => Diagnostic {
                 title: err_str,
                 text: None,
