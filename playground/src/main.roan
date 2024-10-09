@@ -1,7 +1,7 @@
 use { println } from "std::io"
 
 export fn main() -> int {
-    println("{} {}", "test")
+    println("{}", "test")
 
     return 0;
 }
