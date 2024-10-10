@@ -9,13 +9,13 @@ use anyhow::Result;
 
 impl Module {
     /// Interpret an expression.
-    /// 
+    ///
     /// Result of the expression is pushed onto the stack.
-    /// 
+    ///
     /// # Arguments
     /// * `expr` - [Expr] to interpret.
     /// * `ctx` - The context in which to interpret the expression.
-    /// 
+    ///
     /// # Returns
     /// The result of the expression.
     pub fn interpret_expr(&mut self, expr: &Expr, ctx: &Context) -> Result<()> {
@@ -269,12 +269,12 @@ impl Module {
     }
 
     /// Access a field of a value.
-    /// 
+    ///
     /// # Arguments
     /// * `value` - The [Value] to access the field of.
     /// * `expr` - The [Expr] representing the field to access.
     /// * `ctx` - The context in which to access the field.
-    /// 
+    ///
     /// # Returns
     /// The value of the field.
     pub fn access_field(&mut self, value: Value, expr: &Expr, ctx: &Context) -> Result<Value> {

@@ -3,7 +3,15 @@ use { println } from "std::io";
 export fn main() -> int {
     let x = 10;
 
+    loop {
+        x *= 2;
+        println("x = {}", x);
 
+        if x == 20 {
+            println("x is 20");
+            break;
+        }
+    }
 
     return 0;
 }
