@@ -3,9 +3,13 @@ use { println } from "std::io"
 export fn main() -> int {
     let x = 10;
 
-    while x > 0 {
-        println("x is {}", x);
-        x = x - 1;
+    loop {
+        x += 1;
+        println("x = {}", x);
+
+        if x == 20 {
+            break;
+        }
     }
 
     return 0;

@@ -631,7 +631,7 @@ impl Module {
                     (_, BinOpKind::Divide, _) => left / right,
                     (_, BinOpKind::Modulo, _) => left % right,
                     (_, BinOpKind::Equals, _) => Value::Bool(left == right),
-                    (_, BinOpKind::BangEquals | BinOpKind::NotEquals, _) => Value::Bool(left != right),
+                    (_, BinOpKind::BangEquals, _) => Value::Bool(left != right),
                     (_, BinOpKind::Power, _) => left.pow(right),
 
                     (_, BinOpKind::GreaterThan, _) => Value::Bool(left > right),

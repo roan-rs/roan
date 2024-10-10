@@ -63,7 +63,7 @@ impl Parser {
             TokenKind::Caret => Some(BinOpKind::BitwiseXor),
             TokenKind::DoubleAsterisk => Some(BinOpKind::Power),
             TokenKind::EqualsEquals => Some(BinOpKind::Equals),
-            TokenKind::BangEquals => Some(BinOpKind::NotEquals),
+            TokenKind::BangEquals => Some(BinOpKind::BangEquals),
             TokenKind::LessThan => Some(BinOpKind::LessThan),
             TokenKind::LessThanEquals => Some(BinOpKind::LessThanOrEqual),
             TokenKind::GreaterThan => Some(BinOpKind::GreaterThan),
@@ -311,7 +311,7 @@ impl Parser {
     pub fn parse_assignment(&mut self) -> anyhow::Result<Expr> {
         log::debug!("Parsing assignment");
 
-        let expr =self.parse_binary_expression()?;
+        let expr = self.parse_binary_expression()?;
         if let Some(assign_op) = self.parse_assignment_operator() {
             self.consume();
             let right = self.parse_expr()?;
