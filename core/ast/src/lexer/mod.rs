@@ -244,32 +244,36 @@ impl Lexer {
                         }
                     }
                     '+' => {
-                        self.consume();
                         if self.match_next('+') {
+                            self.consume();
                             TokenKind::Increment
                         } else if self.match_next('=') {
+                            self.consume();
                             TokenKind::PlusEquals
                         } else {
                             TokenKind::Plus
                         }
                     }
                     '-' => {
-                        self.consume();
                         if self.match_next('-') {
+                            self.consume();
                             TokenKind::Decrement
                         } else if self.match_next('=') {
+                            self.consume();
                             TokenKind::MinusEquals
                         } else if self.match_next('>') {
+                            self.consume();
                             TokenKind::Arrow
                         } else {
                             TokenKind::Minus
                         }
                     }
                     '*' => {
-                        self.consume();
                         if self.match_next('*') {
+                            self.consume();
                             TokenKind::DoubleAsterisk
                         } else if self.match_next('=') {
+                            self.consume();
                             TokenKind::MultiplyEquals
                         } else {
                             TokenKind::Asterisk
