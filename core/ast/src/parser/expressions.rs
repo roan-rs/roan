@@ -73,8 +73,6 @@ impl Parser {
             TokenKind::Or => Some(BinOpKind::Or),
             TokenKind::Increment => Some(BinOpKind::Increment),
             TokenKind::Decrement => Some(BinOpKind::Decrement),
-            TokenKind::MinusEquals => Some(BinOpKind::MinusEquals),
-            TokenKind::PlusEquals => Some(BinOpKind::PlusEquals),
             _ => None,
         };
         kind.map(|kind| BinOperator::new(kind, token.clone()))
@@ -111,7 +109,7 @@ impl Parser {
 
                 if next_precedence > operator_precedence
                     || (next_precedence == operator_precedence
-                    && next_operator.associativity() == BinOpAssociativity::Right)
+                        && next_operator.associativity() == BinOpAssociativity::Right)
                 {
                     right = self.parse_binary_expression_recurse(right, next_precedence)?;
                 } else {
@@ -189,7 +187,6 @@ impl Parser {
 
         Ok(expr)
     }
-
 
     /// Parses a primary expression, such as literals, identifiers, or parenthesized expressions.
     ///

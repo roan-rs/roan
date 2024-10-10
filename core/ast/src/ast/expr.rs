@@ -309,9 +309,7 @@ impl BinOperator {
             | BinOpKind::GreaterThan
             | BinOpKind::GreaterThanOrEqual => 14,
             // Equality
-            BinOpKind::Equals
-            | BinOpKind::EqualsEquals
-            | BinOpKind::BangEquals => 13,
+            BinOpKind::Equals | BinOpKind::EqualsEquals | BinOpKind::BangEquals => 13,
             // Logical
             BinOpKind::And => 12,
             BinOpKind::Or => 11,

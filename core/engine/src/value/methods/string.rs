@@ -1,6 +1,8 @@
-use crate::native_function;
-use crate::value::Value;
-use crate::vm::native_fn::{NativeFunction, NativeFunctionParam};
+use crate::{
+    native_function,
+    value::Value,
+    vm::native_fn::{NativeFunction, NativeFunctionParam},
+};
 
 native_function!(
     fn __string_len(s: String) {
@@ -10,6 +12,10 @@ native_function!(
 
 native_function!(
     fn __string_split(s: String, sep: String) {
-        Value::Vec(s.split(&sep).map(|s| Value::String(s.to_string())).collect())
+        Value::Vec(
+            s.split(&sep)
+                .map(|s| Value::String(s.to_string()))
+                .collect(),
+        )
     }
 );

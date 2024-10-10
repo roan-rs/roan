@@ -1,16 +1,11 @@
-use { println } from "std::io"
+use { println } from "std::io";
 
 export fn main() -> int {
     let x = 10;
 
-    loop {
-        x += 1;
-        println("x = {}", x);
+    x /= 3;
 
-        if x == 20 {
-            break;
-        }
-    }
+    println("{}", x);
 
     return 0;
 }

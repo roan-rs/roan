@@ -1,3 +1,4 @@
+#![feature(unboxed_closures)]
 extern crate core;
 
 pub mod context;

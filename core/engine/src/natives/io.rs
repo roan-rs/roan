@@ -1,5 +1,8 @@
-use crate::{native_function, value::Value};
-use crate::vm::native_fn::{NativeFunction, NativeFunctionParam};
+use crate::{
+    native_function,
+    value::Value,
+    vm::native_fn::{NativeFunction, NativeFunctionParam},
+};
 
 native_function!(fn __print(
     msg: String,

@@ -58,9 +58,9 @@ impl Parser {
     }
 
     /// Parses a `while` statement.
-    /// 
+    ///
     /// A `while` statement is used to execute a block of code repeatedly as long as a condition is true.
-    /// 
+    ///
     /// # Returns
     /// - `Ok(Stmt)`: A while statement.
     /// - `Err`: If there is a parsing error.
@@ -75,7 +75,7 @@ impl Parser {
 
         Ok(Some(Stmt::new_while(while_token, condition, block)))
     }
-    
+
     /// Parses a `throw` statement.
     ///
     /// A `throw` statement is used to raise an exception.
@@ -261,7 +261,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-                .into());
+            .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -298,7 +298,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-                .into())
+            .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -353,7 +353,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                    .into());
+                .into());
             }
         } else {
             self.consume()

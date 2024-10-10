@@ -1,5 +1,8 @@
 use crate::{
-    value::methods::vec::__vec_len,
+    value::methods::{
+        string::{__string_len, __string_split},
+        vec::__vec_len,
+    },
     vm::native_fn::NativeFunction,
 };
 use roan_ast::{Literal, LiteralType};
@@ -8,11 +11,10 @@ use std::{
     fmt::{Debug, Display},
     ops,
 };
-use crate::value::methods::string::{__string_len, __string_split};
 
 pub mod methods {
-    pub mod vec;
     pub mod string;
+    pub mod vec;
 }
 
 #[derive(Clone)]
