@@ -57,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-        .expect("Error writing level");
+            .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -234,6 +234,14 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: Some(
                     "Break and continue statements can only be used inside loops".to_string(),
                 ),
+                content,
+            },
+            PulseError::InvalidSpread(span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: Some("Spread operator can only be used in function calls or vectors".to_string()),
                 content,
             },
             PulseError::InvalidPropertyAccess(span) => Diagnostic {

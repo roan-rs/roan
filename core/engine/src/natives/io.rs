@@ -11,10 +11,29 @@ native_function!(fn __print(
     if args.is_empty() {
         print!("{}", msg);
     } else {
-        let mut args_iter = args.into_iter();
-
-        print!("{}", msg.replace("{}", &args_iter.next().unwrap().to_string()));
+        print!("{}", format(msg, args));
     }
 
     Value::Void
 });
+
+fn format(msg: String, args: Vec<Value>) -> String {
+    let mut formatted = String::new();
+    let mut arg_iter = args.iter().map(|v| v.to_string()).peekable();
+    let mut chars = msg.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '{' && chars.peek() == Some(&'}') {
+            chars.next(); // Consume '}'
+            if let Some(arg) = arg_iter.next() {
+                formatted.push_str(&arg);
+            } else {
+                formatted.push_str("{}"); // No corresponding argument
+            }
+        } else {
+            formatted.push(c);
+        }
+    }
+
+    formatted
+}

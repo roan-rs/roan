@@ -5,10 +5,10 @@ export fn print(msg: string, ...args: string) -> void {
         throw "Invalid number of arguments";
     }
 
-    __print(msg, args);
+    __print(msg, ...args);
 }
 
 export fn println(msg: string, ...args: string) -> void {
-    print(msg, args);
+    print(msg, ...args);
     print("\n");
 }

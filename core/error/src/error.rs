@@ -49,10 +49,10 @@ pub enum PulseError {
     InvalidPropertyAccess(TextSpan),
     #[error("Found break or continue statement outside of loop.")]
     InvalidBreakOrContinue(TextSpan),
-
-    // These two are used for easier loop handling in the interpreter.
     #[error("Break was used outside loop.")]
     LoopBreak(TextSpan),
     #[error("Continue was used outside loop.")]
     LoopContinue(TextSpan),
+    #[error("Invalid spread operator usage.")]
+    InvalidSpread(TextSpan),
 }
