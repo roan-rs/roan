@@ -77,11 +77,11 @@ impl Module {
     }
 
     /// Interpret a vector expression.
-    /// 
+    ///
     /// # Arguments
     /// * `vec` - [VecExpr] to interpret.
     /// * `ctx` - The context in which to interpret the vector expression.
-    /// 
+    ///
     /// # Returns
     /// The result of the vector expression.
     pub fn interpret_vec(&mut self, vec: VecExpr, ctx: &Context) -> Result<Value> {
@@ -89,7 +89,6 @@ impl Module {
 
         let mut values = vec![];
 
-        
         for expr in vec.exprs.iter() {
             match expr {
                 Expr::Spread(s) => {
@@ -125,8 +124,22 @@ impl Module {
 
         let mut args = vec![];
         for arg in call.args.iter() {
-            self.interpret_expr(arg, ctx)?;
-            args.push(self.vm.pop().expect("Expected value on stack"));
+            match arg {
+                Expr::Spread(s) => {
+                    self.interpret_expr(&s.expr, ctx)?;
+                    let spread_val = self.vm.pop().unwrap();
+
+                    if let Value::Vec(vec) = spread_val {
+                        args.extend(vec);
+                    } else {
+                        return Err(InvalidSpread(s.expr.span()).into());
+                    }
+                }
+                _ => {
+                    self.interpret_expr(arg, ctx)?;
+                    args.push(self.vm.pop().unwrap());
+                }
+            }
         }
 
         let stored_function = self

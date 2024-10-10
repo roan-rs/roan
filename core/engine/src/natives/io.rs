@@ -18,15 +18,21 @@ native_function!(fn __print(
 });
 
 fn format(msg: String, args: Vec<Value>) -> String {
-    if args.is_empty() {
-        return msg;
-    }
+    let mut formatted = String::new();
+    let mut arg_iter = args.iter().map(|v| v.to_string()).peekable();
+    let mut chars = msg.chars().peekable();
 
-    let args_iter = args.into_iter();
-    let mut formatted = msg.to_string();
-
-    for arg in args_iter {
-        formatted = formatted.replace("{}", &arg.to_string());
+    while let Some(c) = chars.next() {
+        if c == '{' && chars.peek() == Some(&'}') {
+            chars.next(); // Consume '}'
+            if let Some(arg) = arg_iter.next() {
+                formatted.push_str(&arg);
+            } else {
+                formatted.push_str("{}"); // No corresponding argument
+            }
+        } else {
+            formatted.push(c);
+        }
     }
 
     formatted

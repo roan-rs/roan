@@ -42,9 +42,9 @@ impl NativeFunction {
         let mut params = vec![];
         for (param, val) in self.params.iter().zip(args.clone()) {
             if param.is_rest {
-                let rest = args.iter().skip(self.params.len() - 1).cloned().collect();
+                let rest: Vec<Value> = args.iter().skip(self.params.len() - 1).cloned().collect();
 
-                params.push(Value::Vec(rest));
+                params.extend(rest);
             } else {
                 params.push(val);
             }

@@ -17,13 +17,13 @@ pub mod methods {
     pub mod vec;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
     String(String),
-    Vec(std::vec::Vec<Value>),
+    Vec(Vec<Value>),
     Null,
     Void,
 }
@@ -47,19 +47,28 @@ impl Value {
     }
 }
 
-impl Debug for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Value::Int(i) => write!(f, "{}", i),
-            Value::Float(fl) => write!(f, "{}", fl),
-            Value::Bool(b) => write!(f, "{}", b),
-            Value::String(s) => write!(f, "{}", s),
-            Value::Vec(v) => write!(f, "{:?}", v),
-            Value::Null => write!(f, "Null"),
-            Value::Void => write!(f, "Void"),
-        }
-    }
-}
+// impl Debug for Value {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Value::Int(i) => write!(f, "{}", i),
+//             Value::Float(fl) => write!(f, "{}", fl),
+//             Value::Bool(b) => write!(f, "{}", b),
+//             Value::String(s) => write!(f, "{}", s),
+//             Value::Vec(v) => {
+//                 write!(f, "[")?;
+//                 for (i, val) in v.iter().enumerate() {
+//                     write!(f, "{:?}", val)?;
+//                     if i < v.len() - 1 {
+//                         write!(f, ", ")?;
+//                     }
+//                 }
+//                 write!(f, "]")
+//             }
+//             Value::Null => write!(f, "Null"),
+//             Value::Void => write!(f, "Void"),
+//         }
+//     }
+// }
 
 impl Value {
     pub fn from_literal(literal: Literal) -> Self {
