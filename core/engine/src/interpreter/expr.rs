@@ -1,11 +1,12 @@
 use log::debug;
-use roan_ast::{AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType};
+use roan_ast::{AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType, Spread};
 use roan_error::error::PulseError;
-use roan_error::error::PulseError::{PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError};
+use roan_error::error::PulseError::{InvalidSpread, PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError};
 use crate::context::Context;
 use crate::module::{Module, StoredFunction};
 use crate::value::Value;
 use anyhow::Result;
+use roan_error::print_diagnostic;
 
 impl Module {
     /// Interpret an expression.
@@ -75,6 +76,8 @@ impl Module {
                 Ok(Value::Vec(values))
             }
             Expr::Binary(b) => self.interpret_binary(b.clone(), ctx),
+            // Spread operator are only supposed to be used in vectors and function calls
+            Expr::Spread(s) => Err(InvalidSpread(s.expr.span()).into()),
 
             _ => todo!("missing expr: {:?}", expr),
         };
@@ -116,7 +119,13 @@ impl Module {
                 function,
                 defining_module,
             } => {
-                self.execute_user_defined_function(function, defining_module, args, ctx)?;
+                match self.execute_user_defined_function(function, defining_module.clone(), args, ctx) {
+                    Ok(_) => {},
+                    Err(e) => {
+                        print_diagnostic(e, Some(defining_module.lock().unwrap().source.content()));
+                        std::process::exit(1);
+                    },
+                }
             }
         }
 

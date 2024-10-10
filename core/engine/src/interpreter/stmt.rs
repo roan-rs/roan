@@ -68,9 +68,9 @@ impl Module {
     }
 
     /// Handle the result of a loop statement.
-    /// 
+    ///
     /// [PulseError::LoopBreak] and [PulseError::LoopContinue] are handled if they are inside a loop otherwise they are returned as an error.
-    /// 
+    ///
     /// # Arguments
     /// * `result` - [Result<()>] - The result to handle.
     pub fn handle_loop_result(&mut self, result: Result<()>) -> Result<()> {
