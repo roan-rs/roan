@@ -67,6 +67,26 @@ impl Module {
         Ok(())
     }
 
+    /// Handle the result of a loop statement.
+    /// 
+    /// [PulseError::LoopBreak] and [PulseError::LoopContinue] are handled if they are inside a loop otherwise they are returned as an error.
+    /// 
+    /// # Arguments
+    /// * `result` - [Result<()>] - The result to handle.
+    pub fn handle_loop_result(&mut self, result: Result<()>) -> Result<()> {
+        match result {
+            Ok(_) => {}
+            Err(e) => match e.downcast::<PulseError>() {
+                Ok(PulseError::LoopBreak(_)) => {}
+                Ok(PulseError::LoopContinue(_)) => {}
+                Ok(other) => return Err(other.into()),
+                Err(e) => return Err(e),
+            },
+        }
+
+        Ok(())
+    }
+
     /// Interpret a loop statement.
     ///
     /// # Arguments
@@ -79,18 +99,8 @@ impl Module {
             let result = self.execute_block(loop_stmt.block.clone(), ctx);
             self.exit_scope();
 
-            match result {
-                Ok(_) => {}
-                Err(e) => match e.downcast::<PulseError>() {
-                    Ok(PulseError::LoopBreak(_)) => break,
-                    Ok(PulseError::LoopContinue(_)) => continue,
-                    Ok(other) => return Err(other.into()),
-                    Err(e) => return Err(e),
-                },
-            }
+            self.handle_loop_result(result)?
         }
-
-        Ok(())
     }
 
     /// Interpret a while loop.
@@ -124,15 +134,7 @@ impl Module {
             let result = self.execute_block(while_stmt.block.clone(), ctx);
             self.exit_scope();
 
-            match result {
-                Ok(_) => {}
-                Err(e) => match e.downcast::<PulseError>() {
-                    Ok(PulseError::LoopBreak(_)) => break,
-                    Ok(PulseError::LoopContinue(_)) => continue,
-                    Ok(other) => return Err(other.into()),
-                    Err(e) => return Err(e),
-                },
-            }
+            self.handle_loop_result(result)?
         }
 
         Ok(())
