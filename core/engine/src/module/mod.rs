@@ -48,15 +48,15 @@ pub enum StoredFunction {
 
 #[derive(Clone, Debug)]
 pub struct Module {
-    source: Source,
-    path: Option<PathBuf>,
-    tokens: Vec<Token>,
-    ast: Ast,
-    functions: Vec<StoredFunction>,
-    exports: Vec<(String, ExportType)>,
-    imports: Vec<Use>,
-    scopes: Vec<HashMap<String, Value>>, // Stack of scopes
-    vm: VM,
+    pub(crate) source: Source,
+    pub(crate) path: Option<PathBuf>,
+    pub(crate) tokens: Vec<Token>,
+    pub(crate) ast: Ast,
+    pub(crate) functions: Vec<StoredFunction>,
+    pub(crate) exports: Vec<(String, ExportType)>,
+    pub(crate) imports: Vec<Use>,
+    pub(crate) scopes: Vec<HashMap<String, Value>>, // Stack of scopes
+    pub(crate) vm: VM,
 }
 
 impl Module {
@@ -94,7 +94,7 @@ impl Module {
     pub fn source(&self) -> &Source {
         &self.source
     }
-    
+
     /// Returns tokens of the module.
     pub fn tokens(&self) -> &Vec<Token> {
         &self.tokens
@@ -137,19 +137,19 @@ impl Module {
     }
 
     /// Enter a new scope by pushing a new HashMap onto the scopes stack.
-    fn enter_scope(&mut self) {
+    pub fn enter_scope(&mut self) {
         debug!("Entering new scope");
         self.scopes.push(HashMap::new());
     }
 
     /// Exit the current scope by popping the top HashMap from the scopes stack.
-    fn exit_scope(&mut self) {
+    pub fn exit_scope(&mut self) {
         debug!("Exiting current scope");
         self.scopes.pop();
     }
 
     /// Declare a new variable in the current (innermost) scope.
-    fn declare_variable(&mut self, name: String, val: Value) {
+    pub fn declare_variable(&mut self, name: String, val: Value) {
         debug!("Declaring variable '{}' in current scope", name);
         if let Some(current_scope) = self.scopes.last_mut() {
             current_scope.insert(name, val);
@@ -157,7 +157,7 @@ impl Module {
     }
 
     /// Set an existing variable's value in the nearest enclosing scope.
-    fn set_variable(&mut self, name: &str, val: Value) -> Result<()> {
+    pub fn set_variable(&mut self, name: &str, val: Value) -> Result<()> {
         for scope in self.scopes.iter_mut().rev() {
             if scope.contains_key(name) {
                 debug!("Setting variable '{}' to {:?}", name, val);
@@ -460,223 +460,7 @@ impl Module {
             }
         }
     }
-
-    pub fn interpret_expr(&mut self, expr: &Expr, ctx: &Context) -> Result<()> {
-        let val: Result<Value> = match expr {
-            Expr::Variable(v) => {
-                debug!("Interpreting variable: {}", v.ident);
-
-                let variable = self
-                    .find_variable(&v.ident)
-                    .ok_or_else(|| VariableNotFoundError(v.ident.clone(), v.token.span.clone()))?;
-
-                Ok(variable.clone())
-            }
-            Expr::Literal(l) => {
-                debug!("Interpreting literal: {:?}", l);
-
-                Ok(Value::from_literal(l.clone()))
-            }
-            Expr::Call(call) => {
-                debug!("Interpreting call: {:?}", call);
-
-                let mut args = vec![];
-                for arg in call.args.iter() {
-                    self.interpret_expr(arg, ctx)?;
-                    args.push(self.vm.pop().expect("Expected value on stack"));
-                }
-
-                let stored_function = self
-                    .find_function(&call.callee)
-                    .ok_or_else(|| {
-                        UndefinedFunctionError(call.callee.clone(), call.token.span.clone())
-                    })?
-                    .clone();
-
-                match stored_function {
-                    StoredFunction::Native(n) => {
-                        self.execute_native_function(n, args)?;
-                    }
-                    StoredFunction::Function {
-                        function,
-                        defining_module,
-                    } => {
-                        self.execute_user_defined_function(function, defining_module, args, ctx)?;
-                    }
-                }
-
-                Ok(self.vm.pop().unwrap())
-            }
-            Expr::Parenthesized(p) => {
-                debug!("Interpreting parenthesized: {:?}", p);
-
-                self.interpret_expr(&p.expr, ctx)?;
-
-                Ok(self.vm.pop().unwrap())
-            }
-            Expr::Access(access) => match access.access.clone() {
-                AccessKind::Field(field_expr) => {
-                    let base = access.base.clone();
-
-                    self.interpret_expr(&base, ctx)?;
-                    let base = self.vm.pop().unwrap();
-
-                    Ok(self.access_field(base, &field_expr, ctx)?)
-                }
-                AccessKind::Index(index_expr) => {
-                    self.interpret_expr(&index_expr, ctx)?;
-                    let index = self.vm.pop().unwrap();
-
-                    self.interpret_expr(&access.base, ctx)?;
-                    let base = self.vm.pop().unwrap();
-
-                    Ok(base.access_index(index))
-                }
-            },
-            Expr::Assign(assign) => {
-                debug!("Interpreting assign: {:?}", assign);
-                let left = assign.left.as_ref();
-                let right = assign.right.as_ref();
-                let operator = assign.op.clone();
-
-                debug!("{:?} \n\n{:?}\n\n {:?}", left, operator, right);
-
-                match left {
-                    Expr::Variable(v) => {
-                        self.interpret_expr(right, ctx)?;
-                        let val = self.vm.pop().unwrap();
-                        let ident = v.ident.clone();
-                        let final_val = val.clone();
-                        match operator {
-                            AssignOperator::Assign => self.set_variable(&ident, val.clone())?,
-                            AssignOperator::PlusEquals => {
-                                self.update_variable(&ident, val, |a, b| a + b)?
-                            }
-                            AssignOperator::MinusEquals => {
-                                self.update_variable(&ident, val, |a, b| a - b)?
-                            }
-                            AssignOperator::MultiplyEquals => {
-                                self.update_variable(&ident, val, |a, b| a * b)?
-                            }
-                            AssignOperator::DivideEquals => {
-                                self.update_variable(&ident, val, |a, b| a / b)?
-                            }
-                        }
-                        Ok(final_val)
-                    }
-                    Expr::Access(access) => match &access.access {
-                        AccessKind::Field(field) => {
-                            let base = access.base.clone();
-
-                            self.interpret_expr(right, ctx)?;
-                            let new_val = self.vm.pop().unwrap();
-                            unimplemented!("field access")
-                        }
-                        AccessKind::Index(index_expr) => {
-                            self.interpret_expr(&access.base, ctx)?;
-                            let base_val = self.vm.pop().unwrap();
-
-                            self.interpret_expr(index_expr, ctx)?;
-                            let index_val = self.vm.pop().unwrap();
-
-                            self.interpret_expr(right, ctx)?;
-                            let new_val = self.vm.pop().unwrap();
-
-                            if let (Value::Vec(mut vec), Value::Int(index)) =
-                                (base_val.clone(), index_val)
-                            {
-                                let idx = index as usize;
-                                if idx >= vec.len() {
-                                    return Err(PulseError::IndexOutOfBounds(
-                                        idx,
-                                        vec.len(),
-                                        index_expr.span(),
-                                    )
-                                        .into());
-                                }
-
-                                vec[idx] = new_val.clone();
-
-                                if let Some(var_name) = Self::extract_variable_name(&access.base) {
-                                    self.set_variable(&var_name, Value::Vec(vec))?;
-                                    Ok(new_val)
-                                } else {
-                                    Err(PulseError::InvalidAssignment(
-                                        "Unable to determine variable for assignment".into(),
-                                        access.base.span(),
-                                    )
-                                        .into())
-                                }
-                            } else {
-                                Err(PulseError::TypeMismatch(
-                                    "Left side of assignment must be a vector with integer index"
-                                        .into(),
-                                    access.base.span(),
-                                )
-                                    .into())
-                            }
-                        }
-                    },
-                    _ => todo!("missing left: {:?}", left),
-                }
-            }
-            Expr::Vec(vec) => {
-                debug!("Interpreting vec: {:?}", vec);
-
-                let mut values = vec![];
-
-                for expr in vec.exprs.iter() {
-                    self.interpret_expr(expr, ctx)?;
-                    values.push(self.vm.pop().unwrap());
-                }
-
-                Ok(Value::Vec(values))
-            }
-            Expr::Binary(b) => {
-                debug!("Interpreting binary: {:?}", b);
-
-                self.interpret_expr(&b.left, ctx)?;
-                let left = self.vm.pop().unwrap();
-                self.interpret_expr(&b.right, ctx)?;
-                let right = self.vm.pop().unwrap();
-
-                let val = match (left.clone(), b.operator, right.clone()) {
-                    (_, BinOpKind::Plus, _) => left + right,
-                    (_, BinOpKind::Minus, _) => left - right,
-                    (_, BinOpKind::Multiply, _) => left * right,
-                    (_, BinOpKind::Divide, _) => left / right,
-                    (_, BinOpKind::Modulo, _) => left % right,
-                    (_, BinOpKind::Equals, _) => Value::Bool(left == right),
-                    (_, BinOpKind::BangEquals, _) => Value::Bool(left != right),
-                    (_, BinOpKind::Power, _) => left.pow(right),
-
-                    (_, BinOpKind::GreaterThan, _) => Value::Bool(left > right),
-                    (_, BinOpKind::LessThan, _) => Value::Bool(left < right),
-                    (_, BinOpKind::GreaterThanOrEqual, _) => Value::Bool(left >= right),
-                    (_, BinOpKind::LessThanOrEqual, _) => Value::Bool(left <= right),
-
-                    (Value::Bool(a), BinOpKind::And, Value::Bool(b)) => Value::Bool(a && b),
-                    (Value::Bool(a), BinOpKind::Or, Value::Bool(b)) => Value::Bool(a || b),
-
-                    // TODO: add more bitwise operators
-                    (Value::Int(a), BinOpKind::BitwiseAnd, Value::Int(b)) => Value::Int(a & b),
-                    (Value::Int(a), BinOpKind::BitwiseOr, Value::Int(b)) => Value::Int(a | b),
-                    (Value::Int(a), BinOpKind::BitwiseXor, Value::Int(b)) => Value::Int(a ^ b),
-
-                    _ => todo!("missing binary operator: {:?}", b.operator),
-                };
-
-                Ok(val)
-            }
-
-            _ => todo!("missing expr: {:?}", expr),
-        };
-
-        self.vm.push(val?);
-
-        Ok(())
-    }
-
+    
     pub fn extract_variable_name(expr: &Expr) -> Option<String> {
         match expr {
             Expr::Variable(v) => Some(v.ident.clone()),
@@ -697,80 +481,7 @@ impl Module {
 }
 
 impl Module {
-    /// Executes a native function with the provided arguments.
-    fn execute_native_function(
-        &mut self,
-        mut native: NativeFunction,
-        args: Vec<Value>,
-    ) -> Result<()> {
-        debug!("Executing native function: {}", native.name);
-
-        let result = native.call(args)?;
-        self.vm.push(result);
-
-        Ok(())
-    }
-
-    /// Executes a user-defined function with the provided arguments.
-    fn execute_user_defined_function(
-        &mut self,
-        function: Fn,
-        defining_module: Arc<Mutex<Module>>,
-        args: Vec<Value>,
-        ctx: &Context,
-    ) -> Result<()> {
-        debug!("Executing user-defined function: {}", function.name);
-
-        self.enter_scope();
-
-        {
-            let mut defining_module_guard = defining_module.lock().unwrap();
-
-            for (param, arg) in function
-                .params
-                .iter()
-                .zip(args.iter().chain(std::iter::repeat(&Value::Null)))
-            {
-                let ident = param.ident.literal();
-                if param.is_rest {
-                    let rest = args
-                        .iter()
-                        .skip(function.params.len() - 1)
-                        .cloned()
-                        .collect();
-                    defining_module_guard.declare_variable(ident, Value::Vec(rest));
-                } else {
-                    defining_module_guard.declare_variable(ident, arg.clone());
-                }
-            }
-        }
-
-        let frame = Frame::new(
-            function.name.clone(),
-            function.fn_token.span.clone(),
-            Frame::path_or_unknown(defining_module.lock().unwrap().path()),
-        );
-        self.vm.push_frame(frame);
-
-        {
-            let mut defining_module_guard = defining_module.lock().unwrap();
-            for stmt in function.body.stmts {
-                defining_module_guard.interpret_stmt(stmt, ctx)?;
-            }
-        }
-
-        self.vm.pop_frame();
-        self.exit_scope();
-
-        let val = self.vm.pop().or(Some(Value::Void)).unwrap();
-        self.vm.push(val);
-
-        Ok(())
-    }
-}
-
-impl Module {
-    fn update_variable(
+    pub fn update_variable(
         &mut self,
         name: &str,
         val: Value,
