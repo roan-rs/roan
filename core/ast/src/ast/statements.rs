@@ -1,5 +1,6 @@
 use crate::{ast::expr::Expr, GetSpan, Token};
 use std::fmt::{Debug, Formatter};
+use std::iter::TakeWhile;
 
 /// Represents a statement in the AST.
 ///
@@ -24,7 +25,27 @@ pub enum Stmt {
     Throw(Throw),
     /// A `try` statement for handling errors.
     Try(Try),
-    // TODO: Add support for loop, continue, break statements.
+    /// A `break` statement to exit a loop.
+    Break(Token),
+    /// A `continue` statement to skip the current iteration of a loop.
+    Continue(Token),
+    /// A `loop` statement to create an infinite loop.
+    Loop(Loop),
+    /// A `while` statement to create a loop with a condition.
+    While(While),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Loop {
+    pub loop_token: Token,
+    pub block: Block,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct While {
+    pub while_token: Token,
+    pub condition: Box<Expr>,
+    pub block: Block,
 }
 
 /// Represents a `throw` statement in the AST.
@@ -83,6 +104,53 @@ impl From<Expr> for Stmt {
 }
 
 impl Stmt {
+    /// Creates a new `Loop` statement.
+    /// 
+    /// # Arguments
+    /// * `loop_token` - The token representing the `loop` keyword.
+    /// * `block` - The block of code to execute within the loop.
+    /// 
+    /// # Returns
+    /// A `Stmt::Loop` variant containing the provided components.
+    pub fn new_loop(loop_token: Token, block: Block) -> Self {
+        Stmt::Loop(Loop { loop_token, block })
+    }
+    
+    /// Creates a new `While` statement.
+    /// 
+    /// # Arguments
+    /// * `while_token` - The token representing the `while` keyword.
+    /// * `condition` - The expression to evaluate as the loop condition.
+    /// * `block` - The block of code to execute within the loop.
+    /// 
+    /// # Returns
+    /// A `Stmt::While` variant containing the provided components.
+    pub fn new_while(while_token: Token, condition: Expr, block: Block) -> Self {
+        Stmt::While(While { while_token, condition: Box::new(condition), block })
+    }
+    
+    /// Creates a new `Break` statement.
+    ///
+    /// # Arguments
+    /// * `break_token` - The token representing the `break` keyword.
+    ///
+    /// # Returns
+    /// A `Stmt::Break` variant containing the provided token.
+    pub fn new_break(break_token: Token) -> Self {
+        Stmt::Break(break_token)
+    }
+    
+    /// Creates a new `Continue` statement.
+    ///
+    /// # Arguments
+    /// * `continue_token` - The token representing the `continue` keyword.
+    /// 
+    /// # Returns
+    /// A `Stmt::Continue` variant containing the provided token.
+    pub fn new_continue(continue_token: Token) -> Self {
+        Stmt::Continue(continue_token)
+    }
+    
     /// Creates a new `Try` statement.
     ///
     /// # Arguments

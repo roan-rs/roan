@@ -205,6 +205,7 @@ impl Lexer {
                     "throw" => TokenKind::Throw,
                     "try" => TokenKind::Try,
                     "catch" => TokenKind::Catch,
+                    "loop" => TokenKind::Loop,
 
                     _ => TokenKind::Identifier,
                 }

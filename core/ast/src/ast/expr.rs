@@ -63,8 +63,6 @@ pub enum BinOpKind {
     // Relational operators
     /// Equality operator (`==`).
     Equals,
-    /// Inequality operator (`!=`).
-    NotEquals,
     /// Less-than operator (`<`).
     LessThan,
     /// Less-than-or-equal operator (`<=`).
@@ -312,7 +310,6 @@ impl BinOperator {
             | BinOpKind::GreaterThanOrEqual => 14,
             // Equality
             BinOpKind::Equals
-            | BinOpKind::NotEquals
             | BinOpKind::EqualsEquals
             | BinOpKind::BangEquals => 13,
             // Logical

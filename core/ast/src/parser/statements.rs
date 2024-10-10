@@ -24,6 +24,22 @@ impl Parser {
             TokenKind::Let => Some(self.parse_let()?),
             TokenKind::Throw => Some(self.parse_throw()?),
             TokenKind::Try => Some(self.parse_try()?),
+            TokenKind::Break => {
+                self.consume();
+                self.possible_check(TokenKind::Semicolon);
+                Some(Stmt::new_break(token))
+            }
+            TokenKind::Continue => {
+                self.consume();
+                self.possible_check(TokenKind::Semicolon);
+                Some(Stmt::new_continue(token))
+            }
+            TokenKind::Loop => {
+                self.consume();
+                let block = self.parse_block()?;
+                Some(Stmt::new_loop(token, block))
+            }
+            TokenKind::While => self.parse_while()?,
             TokenKind::LeftBrace => {
                 self.consume();
                 let block = self.parse_block()?;
@@ -41,6 +57,25 @@ impl Parser {
         Ok(stmt)
     }
 
+    /// Parses a `while` statement.
+    /// 
+    /// A `while` statement is used to execute a block of code repeatedly as long as a condition is true.
+    /// 
+    /// # Returns
+    /// - `Ok(Stmt)`: A while statement.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_while(&mut self) -> anyhow::Result<Option<Stmt>> {
+        debug!("Parsing while statement");
+        let while_token = self.consume();
+        let condition = self.parse_expr()?;
+
+        self.expect(TokenKind::LeftBrace)?;
+        let block = self.parse_block()?;
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Some(Stmt::new_while(while_token, condition, block)))
+    }
+    
     /// Parses a `throw` statement.
     ///
     /// A `throw` statement is used to raise an exception.

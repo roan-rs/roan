@@ -1,7 +1,16 @@
 use { println } from "std::io"
 
 export fn main() -> int {
-    println("{} {}", "test")
+    let x = 10;
+
+    loop {
+        x += 1;
+        println("x = {}", x);
+
+        if x == 20 {
+            break;
+        }
+    }
 
     return 0;
 }
