@@ -427,40 +427,6 @@ impl Module {
         Ok(())
     }
 
-    pub fn access_field(&mut self, value: Value, expr: &Expr, ctx: &Context) -> Result<Value> {
-        match expr {
-            Expr::Call(call) => {
-                let methods = value.builtin_methods();
-                if let Some(method) = methods.get(&call.callee) {
-                    let mut args = vec![value.clone()];
-                    for arg in call.args.iter() {
-                        self.interpret_expr(arg, ctx)?;
-                        args.push(self.vm.pop().expect("Expected value on stack"));
-                    }
-
-                    method.clone().call(args)
-                } else {
-                    Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into())
-                }
-            }
-            Expr::Literal(lit) => {
-                if let LiteralType::String(s) = &lit.value {
-                    unimplemented!("There is not future that requires this code to be implemented now. This will be implemented with objects/structs.");
-                    // self.access_field(&Expr::Literal(lit.clone()))
-                } else {
-                    Err(PropertyNotFoundError("".to_string(), expr.span()).into())
-                }
-            }
-            _ => {
-                self.interpret_expr(expr, ctx)?;
-
-                let field = self.vm.pop().expect("Expected value on stack");
-
-                Ok(field)
-            }
-        }
-    }
-    
     pub fn extract_variable_name(expr: &Expr) -> Option<String> {
         match expr {
             Expr::Variable(v) => Some(v.ident.clone()),
