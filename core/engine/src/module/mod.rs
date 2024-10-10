@@ -6,10 +6,7 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{
-    source::Source, AccessKind, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If,
-    Lexer, LiteralType, Parser, Stmt, Token, Use,
-};
+use roan_ast::{source::Source, AccessKind, AssignOperator, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If, Lexer, LiteralType, Parser, Stmt, Token, Use};
 use roan_error::{
     error::{
         PulseError,
@@ -543,10 +540,15 @@ impl Module {
                         self.interpret_expr(right, ctx)?;
                         let val = self.vm.pop().unwrap();
                         let ident = v.ident.clone();
-
-                        self.set_variable(&ident, val.clone())?;
-
-                        Ok(val)
+                        let final_val = val.clone();
+                        match operator {
+                            AssignOperator::Assign => self.set_variable(&ident, val.clone())?,
+                            AssignOperator::PlusEquals => self.update_variable(&ident, val, |a, b| a + b)?,
+                            AssignOperator::MinusEquals => self.update_variable(&ident, val, |a, b| a - b)?,
+                            AssignOperator::MultiplyEquals => self.update_variable(&ident, val, |a, b| a * b)?,
+                            AssignOperator::DivideEquals => self.update_variable(&ident, val, |a, b| a / b)?,
+                        }
+                        Ok(final_val)
                     }
                     Expr::Access(access) => match &access.access {
                         AccessKind::Field(field) => {
@@ -749,6 +751,18 @@ impl Module {
         let val = self.vm.pop().or(Some(Value::Void)).unwrap();
         self.vm.push(val);
 
+        Ok(())
+    }
+}
+
+impl Module {
+    fn update_variable(&mut self, name: &str, val: Value, func: fn(Value, Value) -> Value) -> Result<()> {
+        let variable = self
+            .find_variable(name)
+            .ok_or_else(|| VariableNotFoundError(name.to_string(), TextSpan::default()))?;
+
+        let new_val = func(variable.clone(), val);
+        self.set_variable(name, new_val)?;
         Ok(())
     }
 }

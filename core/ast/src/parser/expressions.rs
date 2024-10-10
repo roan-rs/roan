@@ -73,8 +73,6 @@ impl Parser {
             TokenKind::Or => Some(BinOpKind::Or),
             TokenKind::Increment => Some(BinOpKind::Increment),
             TokenKind::Decrement => Some(BinOpKind::Decrement),
-            TokenKind::MinusEquals => Some(BinOpKind::MinusEquals),
-            TokenKind::PlusEquals => Some(BinOpKind::PlusEquals),
             _ => None,
         };
         kind.map(|kind| BinOperator::new(kind, token.clone()))
