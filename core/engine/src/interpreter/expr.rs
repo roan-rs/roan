@@ -69,8 +69,22 @@ impl Module {
                 let mut values = vec![];
 
                 for expr in vec.exprs.iter() {
-                    self.interpret_expr(expr, ctx)?;
-                    values.push(self.vm.pop().unwrap());
+                    match expr {
+                        Expr::Spread(s) => {
+                            self.interpret_expr(&s.expr, ctx)?;
+                            let spread_val = self.vm.pop().unwrap();
+
+                            if let Value::Vec(vec) = spread_val {
+                                values.extend(vec);
+                            } else {
+                                return Err(InvalidSpread(s.expr.span()).into());
+                            }
+                        }
+                        _ => {
+                            self.interpret_expr(expr, ctx)?;
+                            values.push(self.vm.pop().unwrap());
+                        }
+                    }
                 }
 
                 Ok(Value::Vec(values))
