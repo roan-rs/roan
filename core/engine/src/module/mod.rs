@@ -28,7 +28,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub mod loader;
+pub mod loaders;
 
 #[derive(Debug, Clone)]
 pub enum ExportType {
@@ -54,8 +54,7 @@ pub struct Module {
     pub(crate) ast: Ast,
     pub(crate) functions: Vec<StoredFunction>,
     pub(crate) exports: Vec<(String, ExportType)>,
-    pub(crate) imports: Vec<Use>,
-    pub(crate) scopes: Vec<HashMap<String, Value>>, // Stack of scopes
+    pub(crate) scopes: Vec<HashMap<String, Value>>,
     pub(crate) vm: VM,
 }
 
@@ -76,8 +75,7 @@ impl Module {
             tokens: vec![],
             functions: get_stored_function(),
             exports: vec![],
-            imports: vec![],
-            scopes: vec![HashMap::new()], // Initialize with global scope
+            scopes: vec![HashMap::new()],
             vm: VM::new(),
             ast: Ast::new(),
         };
@@ -114,9 +112,7 @@ impl Module {
         let mut parser = Parser::new(self.tokens.clone());
 
         debug!("Parsing tokens into AST");
-
         let ast = parser.parse()?;
-
         self.ast = ast;
 
         Ok(())
@@ -207,9 +203,7 @@ impl Module {
             StoredFunction::Function { function, .. } => function.name == name,
         })
     }
-}
 
-impl Module {
     pub fn update_variable(
         &mut self,
         name: &str,

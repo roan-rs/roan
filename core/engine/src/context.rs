@@ -1,5 +1,4 @@
 use crate::module::{
-    loader::{BasicModuleLoader, ModuleLoader},
     Module,
 };
 use anyhow::Result;
@@ -11,6 +10,8 @@ use std::{
     rc::Rc,
     sync::{Arc, Mutex},
 };
+use crate::module::loaders::basic::BasicModuleLoader;
+use crate::module::loaders::ModuleLoader;
 
 /// Struct to interact with the runtime.
 ///
