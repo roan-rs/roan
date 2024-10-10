@@ -6,7 +6,10 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{source::Source, AccessKind, AssignOperator, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If, Lexer, LiteralType, Parser, Stmt, Token, Use};
+use roan_ast::{
+    source::Source, AccessKind, AssignOperator, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If,
+    Lexer, LiteralType, Parser, Stmt, Token, Use,
+};
 use roan_error::{
     error::{
         PulseError,
@@ -234,9 +237,9 @@ impl Module {
                 for (name, item) in imported_items {
                     match loaded_module.find_function(&name) {
                         Some(StoredFunction::Function {
-                                 function,
-                                 defining_module,
-                             }) => {
+                            function,
+                            defining_module,
+                        }) => {
                             self.functions.push(StoredFunction::Function {
                                 function: function.clone(),
                                 defining_module: Arc::clone(&defining_module),
@@ -272,7 +275,7 @@ impl Module {
                                 "While loop condition".into(),
                                 while_stmt.condition.span(),
                             )
-                                .into())
+                            .into())
                         }
                     };
 
@@ -369,7 +372,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                    .into())
+                .into())
             }
         };
 
@@ -388,7 +391,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                            .into())
+                        .into())
                     }
                 };
 
@@ -506,27 +509,25 @@ impl Module {
 
                 Ok(self.vm.pop().unwrap())
             }
-            Expr::Access(access) => {
-                match access.access.clone() {
-                    AccessKind::Field(field_expr) => {
-                        let base = access.base.clone();
+            Expr::Access(access) => match access.access.clone() {
+                AccessKind::Field(field_expr) => {
+                    let base = access.base.clone();
 
-                        self.interpret_expr(&base, ctx)?;
-                        let base = self.vm.pop().unwrap();
+                    self.interpret_expr(&base, ctx)?;
+                    let base = self.vm.pop().unwrap();
 
-                        Ok(self.access_field(base, &field_expr, ctx)?)
-                    }
-                    AccessKind::Index(index_expr) => {
-                        self.interpret_expr(&index_expr, ctx)?;
-                        let index = self.vm.pop().unwrap();
-
-                        self.interpret_expr(&access.base, ctx)?;
-                        let base = self.vm.pop().unwrap();
-
-                        Ok(base.access_index(index))
-                    }
+                    Ok(self.access_field(base, &field_expr, ctx)?)
                 }
-            }
+                AccessKind::Index(index_expr) => {
+                    self.interpret_expr(&index_expr, ctx)?;
+                    let index = self.vm.pop().unwrap();
+
+                    self.interpret_expr(&access.base, ctx)?;
+                    let base = self.vm.pop().unwrap();
+
+                    Ok(base.access_index(index))
+                }
+            },
             Expr::Assign(assign) => {
                 debug!("Interpreting assign: {:?}", assign);
                 let left = assign.left.as_ref();
@@ -543,10 +544,18 @@ impl Module {
                         let final_val = val.clone();
                         match operator {
                             AssignOperator::Assign => self.set_variable(&ident, val.clone())?,
-                            AssignOperator::PlusEquals => self.update_variable(&ident, val, |a, b| a + b)?,
-                            AssignOperator::MinusEquals => self.update_variable(&ident, val, |a, b| a - b)?,
-                            AssignOperator::MultiplyEquals => self.update_variable(&ident, val, |a, b| a * b)?,
-                            AssignOperator::DivideEquals => self.update_variable(&ident, val, |a, b| a / b)?,
+                            AssignOperator::PlusEquals => {
+                                self.update_variable(&ident, val, |a, b| a + b)?
+                            }
+                            AssignOperator::MinusEquals => {
+                                self.update_variable(&ident, val, |a, b| a - b)?
+                            }
+                            AssignOperator::MultiplyEquals => {
+                                self.update_variable(&ident, val, |a, b| a * b)?
+                            }
+                            AssignOperator::DivideEquals => {
+                                self.update_variable(&ident, val, |a, b| a / b)?
+                            }
                         }
                         Ok(final_val)
                     }
@@ -578,7 +587,7 @@ impl Module {
                                         vec.len(),
                                         index_expr.span(),
                                     )
-                                        .into());
+                                    .into());
                                 }
 
                                 vec[idx] = new_val.clone();
@@ -591,7 +600,7 @@ impl Module {
                                         "Unable to determine variable for assignment".into(),
                                         access.base.span(),
                                     )
-                                        .into())
+                                    .into())
                                 }
                             } else {
                                 Err(PulseError::TypeMismatch(
@@ -599,7 +608,7 @@ impl Module {
                                         .into(),
                                     access.base.span(),
                                 )
-                                    .into())
+                                .into())
                             }
                         }
                     },
@@ -756,7 +765,12 @@ impl Module {
 }
 
 impl Module {
-    fn update_variable(&mut self, name: &str, val: Value, func: fn(Value, Value) -> Value) -> Result<()> {
+    fn update_variable(
+        &mut self,
+        name: &str,
+        val: Value,
+        func: fn(Value, Value) -> Value,
+    ) -> Result<()> {
         let variable = self
             .find_variable(name)
             .ok_or_else(|| VariableNotFoundError(name.to_string(), TextSpan::default()))?;
