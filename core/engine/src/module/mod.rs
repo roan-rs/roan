@@ -94,6 +94,11 @@ impl Module {
     pub fn source(&self) -> &Source {
         &self.source
     }
+    
+    /// Returns tokens of the module.
+    pub fn tokens(&self) -> &Vec<Token> {
+        &self.tokens
+    }
 
     /// Parses the module.
     ///
@@ -237,9 +242,9 @@ impl Module {
                 for (name, item) in imported_items {
                     match loaded_module.find_function(&name) {
                         Some(StoredFunction::Function {
-                            function,
-                            defining_module,
-                        }) => {
+                                 function,
+                                 defining_module,
+                             }) => {
                             self.functions.push(StoredFunction::Function {
                                 function: function.clone(),
                                 defining_module: Arc::clone(&defining_module),
@@ -275,7 +280,7 @@ impl Module {
                                 "While loop condition".into(),
                                 while_stmt.condition.span(),
                             )
-                            .into())
+                                .into())
                         }
                     };
 
@@ -372,7 +377,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                .into())
+                    .into())
             }
         };
 
@@ -391,7 +396,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                        .into())
+                            .into())
                     }
                 };
 
@@ -587,7 +592,7 @@ impl Module {
                                         vec.len(),
                                         index_expr.span(),
                                     )
-                                    .into());
+                                        .into());
                                 }
 
                                 vec[idx] = new_val.clone();
@@ -600,7 +605,7 @@ impl Module {
                                         "Unable to determine variable for assignment".into(),
                                         access.base.span(),
                                     )
-                                    .into())
+                                        .into())
                                 }
                             } else {
                                 Err(PulseError::TypeMismatch(
@@ -608,7 +613,7 @@ impl Module {
                                         .into(),
                                     access.base.span(),
                                 )
-                                .into())
+                                    .into())
                             }
                         }
                     },
