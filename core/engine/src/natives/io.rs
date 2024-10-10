@@ -11,10 +11,23 @@ native_function!(fn __print(
     if args.is_empty() {
         print!("{}", msg);
     } else {
-        let mut args_iter = args.into_iter();
-
-        print!("{}", msg.replace("{}", &args_iter.next().unwrap().to_string()));
+        print!("{}", format(msg, args));
     }
 
     Value::Void
 });
+
+fn format(msg: String, args: Vec<Value>) -> String {
+    if args.is_empty() {
+        return msg;
+    }
+
+    let args_iter = args.into_iter();
+    let mut formatted = msg.to_string();
+
+    for arg in args_iter {
+        formatted = formatted.replace("{}", &arg.to_string());
+    }
+
+    formatted
+}

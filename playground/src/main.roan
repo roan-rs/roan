@@ -3,10 +3,7 @@ use { println } from "std::io";
 export fn main() -> int {
     let x = 10;
 
-    while x > 0 {
-        println("x = {}", x);
-        x -= 1;
-    }
+    println("Hello, world! x = {}", x);
 
     return 0;
 }

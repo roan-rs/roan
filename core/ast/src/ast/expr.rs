@@ -344,6 +344,15 @@ pub enum BinOpAssociativity {
     Right,
 }
 
+/// Spread operator for variadic arguments.
+/// 
+/// The spread operator is used to pass an array as separate arguments to a function.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Spread {
+    pub token: Token,
+    pub expr: Box<Expr>,
+}
+
 /// Enum representing an expression in the AST.
 /// Expressions include literals, binary operations, unary operations, and more.
 #[derive(Clone, Debug, PartialEq)]
@@ -368,6 +377,8 @@ pub enum Expr {
     Vec(VecExpr),
     /// An access expression (e.g., `struct.name`, `arr[0]`).
     Access(AccessExpr),
+    /// A spread operator for variadic arguments. (e.g., `...args`)
+    Spread(Spread),
 }
 
 /// Enum representing the kind of access in an access expression.
@@ -430,6 +441,7 @@ impl GetSpan for Expr {
                 TextSpan::combine(spans)
             }
             Expr::Access(a) => a.span(),
+            Expr::Spread(s) => TextSpan::combine(vec![s.token.span.clone(), s.expr.span()]),
         }
     }
 }
@@ -476,6 +488,21 @@ impl Expr {
             base: Box::new(base),
             access: AccessKind::Field(Box::new(field)),
             token,
+        })
+    }
+
+    /// Create a new spread expression.
+    ///
+    /// # Arguments
+    /// * `token` - The token representing the spread operator.
+    /// * `expr` - The expression to spread.
+    ///
+    /// # Returns
+    /// A new `Expr::Spread` variant.
+    pub fn new_spread(token: Token, expr: Expr) -> Self {
+        Expr::Spread(Spread {
+            token,
+            expr: Box::new(expr),
         })
     }
 
