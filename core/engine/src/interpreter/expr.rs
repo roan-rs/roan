@@ -1,5 +1,5 @@
 use log::debug;
-use roan_ast::{AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType, Spread};
+use roan_ast::{AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType, Spread, VecExpr};
 use roan_error::error::PulseError;
 use roan_error::error::PulseError::{InvalidSpread, PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError};
 use crate::context::Context;
@@ -63,32 +63,7 @@ impl Module {
                 }
             },
             Expr::Assign(assign) => self.interpret_assignment(assign.clone(), ctx),
-            Expr::Vec(vec) => {
-                debug!("Interpreting vec: {:?}", vec);
-
-                let mut values = vec![];
-
-                for expr in vec.exprs.iter() {
-                    match expr {
-                        Expr::Spread(s) => {
-                            self.interpret_expr(&s.expr, ctx)?;
-                            let spread_val = self.vm.pop().unwrap();
-
-                            if let Value::Vec(vec) = spread_val {
-                                values.extend(vec);
-                            } else {
-                                return Err(InvalidSpread(s.expr.span()).into());
-                            }
-                        }
-                        _ => {
-                            self.interpret_expr(expr, ctx)?;
-                            values.push(self.vm.pop().unwrap());
-                        }
-                    }
-                }
-
-                Ok(Value::Vec(values))
-            }
+            Expr::Vec(vec) => self.interpret_vec(vec.clone(), ctx),
             Expr::Binary(b) => self.interpret_binary(b.clone(), ctx),
             // Spread operator are only supposed to be used in vectors and function calls
             Expr::Spread(s) => Err(InvalidSpread(s.expr.span()).into()),
@@ -99,6 +74,42 @@ impl Module {
         self.vm.push(val?);
 
         Ok(())
+    }
+
+    /// Interpret a vector expression.
+    /// 
+    /// # Arguments
+    /// * `vec` - [VecExpr] to interpret.
+    /// * `ctx` - The context in which to interpret the vector expression.
+    /// 
+    /// # Returns
+    /// The result of the vector expression.
+    pub fn interpret_vec(&mut self, vec: VecExpr, ctx: &Context) -> Result<Value> {
+        debug!("Interpreting vec: {:?}", vec);
+
+        let mut values = vec![];
+
+        
+        for expr in vec.exprs.iter() {
+            match expr {
+                Expr::Spread(s) => {
+                    self.interpret_expr(&s.expr, ctx)?;
+                    let spread_val = self.vm.pop().unwrap();
+
+                    if let Value::Vec(vec) = spread_val {
+                        values.extend(vec);
+                    } else {
+                        return Err(InvalidSpread(s.expr.span()).into());
+                    }
+                }
+                _ => {
+                    self.interpret_expr(expr, ctx)?;
+                    values.push(self.vm.pop().unwrap());
+                }
+            }
+        }
+
+        Ok(Value::Vec(values))
     }
 
     /// Interpret a call expression.
@@ -134,11 +145,11 @@ impl Module {
                 defining_module,
             } => {
                 match self.execute_user_defined_function(function, defining_module.clone(), args, ctx) {
-                    Ok(_) => {},
+                    Ok(_) => {}
                     Err(e) => {
                         print_diagnostic(e, Some(defining_module.lock().unwrap().source.content()));
                         std::process::exit(1);
-                    },
+                    }
                 }
             }
         }
