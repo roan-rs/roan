@@ -12,6 +12,7 @@ use std::{
 };
 use crate::module::loaders::basic::BasicModuleLoader;
 use crate::module::loaders::ModuleLoader;
+use crate::vm::VM;
 
 /// Struct to interact with the runtime.
 ///
@@ -84,14 +85,14 @@ impl Context {
     /// # Returns
     ///
     /// The result of the evaluation.
-    pub fn eval(&self, module: Arc<Mutex<Module>>) -> Result<()> {
+    pub fn eval(&self, module: Arc<Mutex<Module>>, vm: &mut VM) -> Result<()> {
         debug!("Evaluating module: {:?}", module);
         {
             let mut main_module_guard = module.lock().unwrap();
 
             match {
                 main_module_guard.parse()?;
-                main_module_guard.interpret(&self)?;
+                main_module_guard.interpret(&self, vm)?;
                 Ok(())
             } {
                 Ok(_) => {}

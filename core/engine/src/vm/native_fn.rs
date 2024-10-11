@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex};
 use roan_error::frame::Frame;
 use crate::context::Context;
 use crate::module::Module;
+use anyhow::Result;
+use crate::vm::VM;
 
 #[derive(Debug, Clone)]
 pub struct NativeFunctionParam {
@@ -36,7 +38,7 @@ impl NativeFunction {
         }
     }
 
-    pub fn call(&mut self, args: Vec<Value>) -> anyhow::Result<Value> {
+    pub fn call(&mut self, args: Vec<Value>) -> Result<Value> {
         debug!("Executing native function: {}", self.name);
 
         let mut params = vec![];
@@ -66,11 +68,10 @@ impl Module {
         &mut self,
         mut native: NativeFunction,
         args: Vec<Value>,
-    ) -> anyhow::Result<()> {
-        debug!("Executing native function: {}", native.name);
-
+        vm: &mut VM,
+    ) -> Result<()> {
         let result = native.call(args)?;
-        self.vm.push(result);
+        vm.push(result);
 
         Ok(())
     }
@@ -82,7 +83,8 @@ impl Module {
         defining_module: Arc<Mutex<Module>>,
         args: Vec<Value>,
         ctx: &Context,
-    ) -> anyhow::Result<()> {
+        vm: &mut VM,
+    ) -> Result<()> {
         debug!("Executing user-defined function: {}", function.name);
 
         self.enter_scope();
@@ -114,20 +116,17 @@ impl Module {
             function.fn_token.span.clone(),
             Frame::path_or_unknown(defining_module.lock().unwrap().path()),
         );
-        self.vm.push_frame(frame);
+        vm.push_frame(frame);
 
         {
             let mut defining_module_guard = defining_module.lock().unwrap();
             for stmt in function.body.stmts {
-                defining_module_guard.interpret_stmt(stmt, ctx)?;
+                defining_module_guard.interpret_stmt(stmt, ctx, vm)?;
             }
         }
 
-        self.vm.pop_frame();
+        vm.pop_frame();
         self.exit_scope();
-
-        let val = self.vm.pop().or(Some(Value::Void)).unwrap();
-        self.vm.push(val);
 
         Ok(())
     }
