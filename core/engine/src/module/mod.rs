@@ -55,7 +55,6 @@ pub struct Module {
     pub(crate) functions: Vec<StoredFunction>,
     pub(crate) exports: Vec<(String, ExportType)>,
     pub(crate) scopes: Vec<HashMap<String, Value>>,
-    pub(crate) vm: VM,
 }
 
 impl Module {
@@ -76,7 +75,6 @@ impl Module {
             functions: get_stored_function(),
             exports: vec![],
             scopes: vec![HashMap::new()],
-            vm: VM::new(),
             ast: Ast::new(),
         };
 
@@ -118,9 +116,9 @@ impl Module {
         Ok(())
     }
 
-    pub fn interpret(&mut self, ctx: &Context) -> Result<()> {
+    pub fn interpret(&mut self, ctx: &Context, vm: &mut VM) -> Result<()> {
         for stmt in self.ast.stmts.clone() {
-            match self.interpret_stmt(stmt, ctx) {
+            match self.interpret_stmt(stmt, ctx, vm) {
                 Ok(_) => {}
                 Err(e) => {
                     print_diagnostic(e, Some(self.source.content()));

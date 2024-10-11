@@ -2,6 +2,8 @@ use crate::std::ensure_lib_dir;
 use anyhow::Result;
 use roan_engine::{context::Context, module::Module, print_diagnostic, source::Source};
 use std::{fs::read_to_string, path::PathBuf};
+use std::sync::Arc;
+use roan_engine::vm::VM;
 
 pub fn run_command(file: String) -> Result<()> {
     let (lib_dir, modules) = ensure_lib_dir()?;
@@ -11,6 +13,7 @@ pub fn run_command(file: String) -> Result<()> {
 
     let ctx = Context::default();
     let source = Source::from_string(content.clone()).with_path(path);
+    let vm =  &mut VM::new();
     let module = Module::new(source);
 
     for mod_name in modules {
@@ -24,7 +27,7 @@ pub fn run_command(file: String) -> Result<()> {
         ctx.module_loader.insert(module_name, module);
     }
 
-    match ctx.eval(module) {
+    match ctx.eval(module, vm) {
         Ok(_) => Ok(()),
         Err(e) => {
             print_diagnostic(e, Some(content));

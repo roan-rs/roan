@@ -17,6 +17,13 @@ native_function!(fn __print(
     Value::Void
 });
 
+native_function!(fn __format(
+    msg: String,
+    ...args: Vec
+) {
+  Value::String(format(msg, args))
+});
+
 fn format(msg: String, args: Vec<Value>) -> String {
     let mut formatted = String::new();
     let mut arg_iter = args.iter().map(|v| v.to_string()).peekable();

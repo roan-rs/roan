@@ -8,6 +8,7 @@ use crate::context::Context;
 use crate::module::{ExportType, Module, StoredFunction};
 use crate::value::Value;
 use anyhow::Result;
+use crate::vm::VM;
 
 impl Module {
     /// Interpret statement from the module.
@@ -15,14 +16,14 @@ impl Module {
     /// # Arguments
     /// * `stmt` - [`Stmt`] - The statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &Context) -> Result<()> {
+    pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &Context, vm: &mut VM) -> Result<()> {
         match stmt {
             Stmt::Fn(f) => self.interpret_function(f)?,
-            Stmt::Use(u) => self.interpret_use(u, ctx)?,
-            Stmt::While(while_stmt) => self.interpret_while(while_stmt, ctx)?,
-            Stmt::Loop(loop_stmt) => self.interpret_loop(loop_stmt, ctx)?,
-            Stmt::Block(block) => self.execute_block(block, ctx)?,
-            Stmt::If(if_stmt) => self.interpret_if(if_stmt, ctx)?,
+            Stmt::Use(u) => self.interpret_use(u, ctx, vm)?,
+            Stmt::While(while_stmt) => self.interpret_while(while_stmt, ctx, vm)?,
+            Stmt::Loop(loop_stmt) => self.interpret_loop(loop_stmt, ctx, vm)?,
+            Stmt::Block(block) => self.execute_block(block, ctx, vm)?,
+            Stmt::If(if_stmt) => self.interpret_if(if_stmt, ctx, vm)?,
             Stmt::Break(token) => {
                 debug!("Interpreting break statement");
                 return Err(PulseError::LoopBreak(token.span).into());
@@ -34,32 +35,34 @@ impl Module {
             Stmt::Throw(throw) => {
                 debug!("Interpreting throw: {:?}", throw);
 
-                self.interpret_expr(&throw.value, ctx)?;
-                let val = self.vm.pop().unwrap();
+                self.interpret_expr(&throw.value, ctx, vm)?;
+                let val = vm.pop().unwrap();
 
-                return Err(PulseError::Throw(val.to_string(), Vec::from(self.vm.frames())).into());
+                return Err(PulseError::Throw(val.to_string(), Vec::from(vm.frames())).into());
             }
             Stmt::Try(try_stmt) => {
                 debug!("Interpreting try: {:?}", try_stmt);
             }
             Stmt::Let(l) => {
                 debug!("Interpreting let: {:?}", l.ident);
-                self.interpret_expr(l.initializer.as_ref(), ctx)?;
+                self.interpret_expr(l.initializer.as_ref(), ctx, vm)?;
 
-                let val = self.vm.pop().unwrap();
+                let val = vm.pop().unwrap();
                 let ident = l.ident.literal();
                 self.declare_variable(ident.clone(), val);
             }
             Stmt::Expr(expr) => {
                 debug!("Interpreting expression: {:?}", expr);
 
-                self.interpret_expr(expr.as_ref(), ctx)?;
+                self.interpret_expr(expr.as_ref(), ctx, vm)?;
             }
             Stmt::Return(r) => {
                 debug!("Interpreting return: {:?}", r);
 
                 if let Some(expr) = r.expr {
-                    self.interpret_expr(expr.as_ref(), ctx)?;
+                    self.interpret_expr(expr.as_ref(), ctx, vm)?;
+                } else {
+                    vm.push(Value::Void);
                 }
             }
         }
@@ -92,11 +95,11 @@ impl Module {
     /// # Arguments
     /// * `loop_stmt` - [`Loop`] - The loop to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the loop.
-    pub fn interpret_loop(&mut self, loop_stmt: Loop, ctx: &Context) -> Result<()> {
+    pub fn interpret_loop(&mut self, loop_stmt: Loop, ctx: &Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting infinite loop");
         loop {
             self.enter_scope();
-            let result = self.execute_block(loop_stmt.block.clone(), ctx);
+            let result = self.execute_block(loop_stmt.block.clone(), ctx, vm);
             self.exit_scope();
 
             self.handle_loop_result(result)?
@@ -108,12 +111,12 @@ impl Module {
     /// # Arguments
     /// * `while_stmt` - [`While`] - The while loop to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the while loop.
-    pub fn interpret_while(&mut self, while_stmt: While, ctx: &Context) -> Result<()> {
+    pub fn interpret_while(&mut self, while_stmt: While, ctx: &Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting while loop");
 
         loop {
-            self.interpret_expr(&while_stmt.condition, ctx)?;
-            let condition_value = self.vm.pop().expect("Expected value on stack");
+            self.interpret_expr(&while_stmt.condition, ctx, vm)?;
+            let condition_value = vm.pop().expect("Expected value on stack");
 
             let condition = match condition_value {
                 Value::Bool(b) => b,
@@ -131,7 +134,7 @@ impl Module {
             }
 
             self.enter_scope();
-            let result = self.execute_block(while_stmt.block.clone(), ctx);
+            let result = self.execute_block(while_stmt.block.clone(), ctx, vm);
             self.exit_scope();
 
             self.handle_loop_result(result)?
@@ -165,7 +168,7 @@ impl Module {
     /// # Arguments
     /// * `use_stmt` - [`Use`] - The use statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_use(&mut self, u: Use, ctx: &Context) -> Result<()> {
+    pub fn interpret_use(&mut self, u: Use, ctx: &Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting use: {}", u.from.literal());
 
         // Load the module as an Arc<Mutex<Module>>
@@ -187,7 +190,7 @@ impl Module {
             }
         }
 
-        match loaded_module.interpret(ctx) {
+        match loaded_module.interpret(ctx, vm) {
             Ok(_) => {}
             Err(e) => {
                 print_diagnostic(e, Some(loaded_module.source().content()));
@@ -227,11 +230,11 @@ impl Module {
     /// # Arguments
     /// * `if_stmt` - [`If`] - The if statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_if(&mut self, if_stmt: If, ctx: &Context) -> Result<()> {
+    pub fn interpret_if(&mut self, if_stmt: If, ctx: &Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting if statement");
 
-        self.interpret_expr(&if_stmt.condition, ctx)?;
-        let condition_value = self.vm.pop().expect("Expected value on stack");
+        self.interpret_expr(&if_stmt.condition, ctx, vm)?;
+        let condition_value = vm.pop().expect("Expected value on stack");
 
         let condition = match condition_value {
             Value::Bool(b) => b,
@@ -245,12 +248,12 @@ impl Module {
         };
 
         if condition {
-            self.execute_block(if_stmt.then_block, ctx)?;
+            self.execute_block(if_stmt.then_block, ctx, vm)?;
         } else {
             let mut executed = false;
             for else_if in if_stmt.else_ifs {
-                self.interpret_expr(&else_if.condition, ctx)?;
-                let else_if_condition = self.vm.pop().expect("Expected value on stack");
+                self.interpret_expr(&else_if.condition, ctx, vm)?;
+                let else_if_condition = vm.pop().expect("Expected value on stack");
 
                 let else_if_result = match else_if_condition {
                     Value::Bool(b) => b,
@@ -264,7 +267,7 @@ impl Module {
                 };
 
                 if else_if_result {
-                    self.execute_block(else_if.block, ctx)?;
+                    self.execute_block(else_if.block, ctx, vm)?;
                     executed = true;
                     break;
                 }
@@ -272,7 +275,7 @@ impl Module {
 
             if !executed {
                 if let Some(else_block) = if_stmt.else_block {
-                    self.execute_block(else_block.block, ctx)?;
+                    self.execute_block(else_block.block, ctx, vm)?;
                 }
             }
         }
@@ -284,12 +287,12 @@ impl Module {
     ///
     /// # Arguments
     /// * `block` - [`Block`] - The block of statements to execute.
-    pub fn execute_block(&mut self, block: Block, ctx: &Context) -> Result<()> {
+    pub fn execute_block(&mut self, block: Block, ctx: &Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting block statement");
 
         self.enter_scope();
         for stmt in block.stmts {
-            self.interpret_stmt(stmt, ctx)?;
+            self.interpret_stmt(stmt, ctx, vm)?;
         }
         self.exit_scope();
         Ok(())

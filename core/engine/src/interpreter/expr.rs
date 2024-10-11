@@ -7,6 +7,7 @@ use crate::module::{Module, StoredFunction};
 use crate::value::Value;
 use anyhow::Result;
 use roan_error::print_diagnostic;
+use crate::vm::VM;
 
 impl Module {
     /// Interpret an expression.
@@ -19,7 +20,7 @@ impl Module {
     ///
     /// # Returns
     /// The result of the expression.
-    pub fn interpret_expr(&mut self, expr: &Expr, ctx: &Context) -> Result<()> {
+    pub fn interpret_expr(&mut self, expr: &Expr, ctx: &Context, vm: &mut VM) -> Result<()> {
         let val: Result<Value> = match expr {
             Expr::Variable(v) => {
                 debug!("Interpreting variable: {}", v.ident);
@@ -35,43 +36,43 @@ impl Module {
 
                 Ok(Value::from_literal(l.clone()))
             }
-            Expr::Call(call) => self.interpret_call(call, ctx),
+            Expr::Call(call) => self.interpret_call(call, ctx, vm),
             Expr::Parenthesized(p) => {
                 debug!("Interpreting parenthesized: {:?}", p);
 
-                self.interpret_expr(&p.expr, ctx)?;
+                self.interpret_expr(&p.expr, ctx, vm)?;
 
-                Ok(self.vm.pop().unwrap())
+                Ok(vm.pop().unwrap())
             }
             Expr::Access(access) => match access.access.clone() {
                 AccessKind::Field(field_expr) => {
                     let base = access.base.clone();
 
-                    self.interpret_expr(&base, ctx)?;
-                    let base = self.vm.pop().unwrap();
+                    self.interpret_expr(&base, ctx, vm)?;
+                    let base = vm.pop().unwrap();
 
-                    Ok(self.access_field(base, &field_expr, ctx)?)
+                    Ok(self.access_field(base, &field_expr, ctx, vm)?)
                 }
                 AccessKind::Index(index_expr) => {
-                    self.interpret_expr(&index_expr, ctx)?;
-                    let index = self.vm.pop().unwrap();
+                    self.interpret_expr(&index_expr, ctx, vm)?;
+                    let index = vm.pop().unwrap();
 
-                    self.interpret_expr(&access.base, ctx)?;
-                    let base = self.vm.pop().unwrap();
+                    self.interpret_expr(&access.base, ctx, vm)?;
+                    let base = vm.pop().unwrap();
 
                     Ok(base.access_index(index))
                 }
             },
-            Expr::Assign(assign) => self.interpret_assignment(assign.clone(), ctx),
-            Expr::Vec(vec) => self.interpret_vec(vec.clone(), ctx),
-            Expr::Binary(b) => self.interpret_binary(b.clone(), ctx),
+            Expr::Assign(assign) => self.interpret_assignment(assign.clone(), ctx, vm),
+            Expr::Vec(vec) => self.interpret_vec(vec.clone(), ctx, vm),
+            Expr::Binary(b) => self.interpret_binary(b.clone(), ctx, vm),
             // Spread operator are only supposed to be used in vectors and function calls
             Expr::Spread(s) => Err(InvalidSpread(s.expr.span()).into()),
 
             _ => todo!("missing expr: {:?}", expr),
         };
 
-        self.vm.push(val?);
+        vm.push(val?);
 
         Ok(())
     }
@@ -84,7 +85,7 @@ impl Module {
     ///
     /// # Returns
     /// The result of the vector expression.
-    pub fn interpret_vec(&mut self, vec: VecExpr, ctx: &Context) -> Result<Value> {
+    pub fn interpret_vec(&mut self, vec: VecExpr, ctx: &Context, vm: &mut VM) -> Result<Value> {
         debug!("Interpreting vec: {:?}", vec);
 
         let mut values = vec![];
@@ -92,8 +93,8 @@ impl Module {
         for expr in vec.exprs.iter() {
             match expr {
                 Expr::Spread(s) => {
-                    self.interpret_expr(&s.expr, ctx)?;
-                    let spread_val = self.vm.pop().unwrap();
+                    self.interpret_expr(&s.expr, ctx, vm)?;
+                    let spread_val = vm.pop().unwrap();
 
                     if let Value::Vec(vec) = spread_val {
                         values.extend(vec);
@@ -102,8 +103,8 @@ impl Module {
                     }
                 }
                 _ => {
-                    self.interpret_expr(expr, ctx)?;
-                    values.push(self.vm.pop().unwrap());
+                    self.interpret_expr(expr, ctx, vm)?;
+                    values.push(vm.pop().unwrap());
                 }
             }
         }
@@ -119,15 +120,15 @@ impl Module {
     ///
     /// # Returns
     /// The result of the call.
-    pub fn interpret_call(&mut self, call: &CallExpr, ctx: &Context) -> Result<Value> {
+    pub fn interpret_call(&mut self, call: &CallExpr, ctx: &Context, vm: &mut VM) -> Result<Value> {
         debug!("Interpreting call: {:?}", call);
 
         let mut args = vec![];
         for arg in call.args.iter() {
             match arg {
                 Expr::Spread(s) => {
-                    self.interpret_expr(&s.expr, ctx)?;
-                    let spread_val = self.vm.pop().unwrap();
+                    self.interpret_expr(&s.expr, ctx, vm)?;
+                    let spread_val = vm.pop().unwrap();
 
                     if let Value::Vec(vec) = spread_val {
                         args.extend(vec);
@@ -136,8 +137,8 @@ impl Module {
                     }
                 }
                 _ => {
-                    self.interpret_expr(arg, ctx)?;
-                    args.push(self.vm.pop().unwrap());
+                    self.interpret_expr(arg, ctx, vm)?;
+                    args.push(vm.pop().unwrap());
                 }
             }
         }
@@ -151,14 +152,18 @@ impl Module {
 
         match stored_function {
             StoredFunction::Native(n) => {
-                self.execute_native_function(n, args)?;
+                self.execute_native_function(n, args, vm)?;
+
+                Ok(vm.pop().unwrap())
             }
             StoredFunction::Function {
                 function,
                 defining_module,
             } => {
-                match self.execute_user_defined_function(function, defining_module.clone(), args, ctx) {
-                    Ok(_) => {}
+                match self.execute_user_defined_function(function, defining_module.clone(), args, ctx, vm) {
+                    Ok(_) => {
+                        Ok(vm.pop().unwrap_or(Value::Void))
+                    }
                     Err(e) => {
                         print_diagnostic(e, Some(defining_module.lock().unwrap().source.content()));
                         std::process::exit(1);
@@ -166,8 +171,6 @@ impl Module {
                 }
             }
         }
-
-        Ok(self.vm.pop().unwrap())
     }
 
     /// Interpret a binary expression.
@@ -178,13 +181,13 @@ impl Module {
     ///
     /// # Returns
     /// The result of the binary expression.
-    pub fn interpret_binary(&mut self, binary_expr: Binary, ctx: &Context) -> Result<Value> {
+    pub fn interpret_binary(&mut self, binary_expr: Binary, ctx: &Context, vm: &mut VM) -> Result<Value> {
         debug!("Interpreting binary: {:?}", binary_expr);
 
-        self.interpret_expr(&binary_expr.left, ctx)?;
-        let left = self.vm.pop().unwrap();
-        self.interpret_expr(&binary_expr.right, ctx)?;
-        let right = self.vm.pop().unwrap();
+        self.interpret_expr(&binary_expr.left, ctx, vm)?;
+        let left = vm.pop().unwrap();
+        self.interpret_expr(&binary_expr.right, ctx, vm)?;
+        let right = vm.pop().unwrap();
 
         let val = match (left.clone(), binary_expr.operator, right.clone()) {
             (_, BinOpKind::Plus, _) => left + right,
@@ -227,6 +230,7 @@ impl Module {
         &mut self,
         assign: Assign,
         ctx: &Context,
+        vm: &mut VM,
     ) -> Result<Value> {
         debug!("Interpreting assign: {:?}", assign);
         let left = assign.left.as_ref();
@@ -237,8 +241,8 @@ impl Module {
 
         match left {
             Expr::Variable(v) => {
-                self.interpret_expr(right, ctx)?;
-                let val = self.vm.pop().unwrap();
+                self.interpret_expr(right, ctx, vm)?;
+                let val = vm.pop().unwrap();
                 let ident = v.ident.clone();
                 let final_val = val.clone();
                 match operator {
@@ -262,19 +266,19 @@ impl Module {
                 AccessKind::Field(field) => {
                     let base = access.base.clone();
 
-                    self.interpret_expr(right, ctx)?;
-                    let new_val = self.vm.pop().unwrap();
+                    self.interpret_expr(right, ctx, vm)?;
+                    let new_val = vm.pop().unwrap();
                     unimplemented!("field access")
                 }
                 AccessKind::Index(index_expr) => {
-                    self.interpret_expr(&access.base, ctx)?;
-                    let base_val = self.vm.pop().unwrap();
+                    self.interpret_expr(&access.base, ctx, vm)?;
+                    let base_val = vm.pop().unwrap();
 
-                    self.interpret_expr(index_expr, ctx)?;
-                    let index_val = self.vm.pop().unwrap();
+                    self.interpret_expr(index_expr, ctx, vm)?;
+                    let index_val = vm.pop().unwrap();
 
-                    self.interpret_expr(right, ctx)?;
-                    let new_val = self.vm.pop().unwrap();
+                    self.interpret_expr(right, ctx, vm)?;
+                    let new_val = vm.pop().unwrap();
 
                     if let (Value::Vec(mut vec), Value::Int(index)) =
                         (base_val.clone(), index_val)
@@ -324,15 +328,15 @@ impl Module {
     ///
     /// # Returns
     /// The value of the field.
-    pub fn access_field(&mut self, value: Value, expr: &Expr, ctx: &Context) -> Result<Value> {
+    pub fn access_field(&mut self, value: Value, expr: &Expr, ctx: &Context, vm: &mut VM) -> Result<Value> {
         match expr {
             Expr::Call(call) => {
                 let methods = value.builtin_methods();
                 if let Some(method) = methods.get(&call.callee) {
                     let mut args = vec![value.clone()];
                     for arg in call.args.iter() {
-                        self.interpret_expr(arg, ctx)?;
-                        args.push(self.vm.pop().expect("Expected value on stack"));
+                        self.interpret_expr(arg, ctx, vm)?;
+                        args.push(vm.pop().expect("Expected value on stack"));
                     }
 
                     method.clone().call(args)
@@ -349,9 +353,9 @@ impl Module {
                 }
             }
             _ => {
-                self.interpret_expr(expr, ctx)?;
+                self.interpret_expr(expr, ctx, vm)?;
 
-                let field = self.vm.pop().expect("Expected value on stack");
+                let field = vm.pop().expect("Expected value on stack");
 
                 Ok(field)
             }

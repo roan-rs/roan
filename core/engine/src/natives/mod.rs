@@ -1,4 +1,5 @@
 use crate::{module::StoredFunction, natives::io::__print};
+use crate::natives::io::__format;
 
 pub mod io;
 
@@ -11,9 +12,10 @@ macro_rules! native_function {
                 func: |args| {
                     let mut args_iter = args.into_iter();
                     $(
-                        let $arg = match args_iter.next() {
+                        let next = args_iter.next();
+                        let $arg = match next {
                             Some(Value::$arg_type(value)) => value,
-                            _ => panic!("Expected argument of type {} but got {:?}", stringify!($arg_type), args_iter.next().unwrap()),
+                            _ => panic!("Expected argument of type {}, but got {:?}", stringify!($arg_type), next),
                         };
                     )*
 
@@ -45,5 +47,5 @@ macro_rules! native_function {
 }
 
 pub fn get_stored_function() -> Vec<StoredFunction> {
-    vec![StoredFunction::Native(__print())]
+    vec![StoredFunction::Native(__print()), StoredFunction::Native(__format())]
 }

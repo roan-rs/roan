@@ -412,7 +412,7 @@ impl FunctionType {
 /// Represents a function declaration in the AST.
 ///
 /// A function includes its name, parameters, body, export status, and an optional return type.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Fn {
     /// The token representing the `fn` keyword.
     pub fn_token: Token,
@@ -426,21 +426,6 @@ pub struct Fn {
     pub exported: bool,
     /// An optional return type annotation.
     pub return_type: Option<FunctionType>,
-}
-
-impl Debug for Fn {
-    /// Custom implementation of the `Debug` trait for the `Fn` struct.
-    ///
-    /// This provides a formatted debug representation of the function.
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Fn")
-            .field("name", &self.name)
-            .field("params", &self.params)
-            .field("body", &self.body)
-            .field("exported", &self.exported)
-            .field("return_type", &self.return_type)
-            .finish()
-    }
 }
 
 /// Represents an `if` statement in the AST.
@@ -509,21 +494,10 @@ impl Debug for Block {
 /// Represents a `return` statement in the AST.
 ///
 /// A `return` statement exits a function, optionally returning an expression.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Return {
     /// The token representing the `return` keyword.
     pub return_token: Token,
     /// An optional expression to return from the function.
     pub expr: Option<Box<Expr>>,
-}
-
-impl Debug for Return {
-    /// Custom implementation of the `Debug` trait for the `Return` struct.
-    ///
-    /// This provides a formatted debug representation, displaying the returned expression's literal value if present.
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Return")
-            .field("expr", &self.expr.clone().map(|e| e.span().literal))
-            .finish()
-    }
 }
