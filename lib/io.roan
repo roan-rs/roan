@@ -38,3 +38,18 @@ export fn println(msg: string, ...args: string) -> void {
     print(msg, ...args);
     print("\n");
 }
+
+export fn eprint(msg: string, ...args: string) -> void {
+    if args.len() == 0 {
+        __eprint(msg);
+    } else {
+        __eprint(format(msg, ...args));
+    }
+
+    return;
+}
+
+export fn eprintln(msg: string, ...args: string) -> void {
+    eprint(msg, ...args);
+    eprint("\n");
+}

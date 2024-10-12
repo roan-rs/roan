@@ -10,6 +10,15 @@ native_function!(fn __print(
     Value::Void
 });
 
+native_function!(fn __eprint(
+    msg
+) {
+    let msg = as_cast!(msg, String);
+    eprint!("{}", msg);
+
+    Value::Void
+});
+
 native_function!(fn __format(
     msg
 ) {
