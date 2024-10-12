@@ -1,12 +1,18 @@
+export fn format(msg: string, ...args: string) -> string {
+    return __format(msg, ...args);
+}
+
 export fn print(msg: string, ...args: string) -> void {
-    __print(msg, ...args);
+    if args.len() == 0 {
+        __print(msg);
+    } else {
+        __print(format(msg, ...args));
+    }
+
+    return;
 }
 
 export fn println(msg: string, ...args: string) -> void {
     print(msg, ...args);
     print("\n");
-}
-
-export fn format(msg: string, ...args: string) -> string {
-    return __format(msg, ...args);
 }

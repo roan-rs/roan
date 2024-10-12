@@ -5,14 +5,9 @@ use crate::{
 };
 
 native_function!(fn __print(
-    msg: String,
-    ...args: Vec
+    msg: String
 ) {
-    if args.is_empty() {
-        print!("{}", msg);
-    } else {
-        print!("{}", format(msg, args));
-    }
+    print!("{}", msg);
 
     Value::Void
 });
