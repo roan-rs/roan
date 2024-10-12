@@ -1,5 +1,37 @@
+export fn format(msg: string, ...args: string) -> string {
+    let str = "";
+    let chars = msg.chars();
+    let last = 0;
+
+    let i = 0;
+    while i < chars.len() {
+        if chars[i] == "{" && chars[i + 1] == "}" {
+            chars = chars.next();
+
+            if args[last] == null {
+                str += "{}";
+            } else {
+                str += __format(args[last]);
+                last += 1;
+            }
+        } else {
+            str += chars[i];
+        }
+
+        i += 1;
+    }
+
+    return str;
+}
+
 export fn print(msg: string, ...args: string) -> void {
-    __print(msg, ...args);
+    if args.len() == 0 {
+        __print(msg);
+    } else {
+        __print(format(msg, ...args));
+    }
+
+    return;
 }
 
 export fn println(msg: string, ...args: string) -> void {
@@ -7,6 +39,17 @@ export fn println(msg: string, ...args: string) -> void {
     print("\n");
 }
 
-export fn format(msg: string, ...args: string) -> string {
-    return __format(msg, ...args);
+export fn eprint(msg: string, ...args: string) -> void {
+    if args.len() == 0 {
+        __eprint(msg);
+    } else {
+        __eprint(format(msg, ...args));
+    }
+
+    return;
+}
+
+export fn eprintln(msg: string, ...args: string) -> void {
+    eprint(msg, ...args);
+    eprint("\n");
 }

@@ -379,6 +379,8 @@ pub enum Expr {
     Access(AccessExpr),
     /// A spread operator for variadic arguments. (e.g., `...args`)
     Spread(Spread),
+    /// Null literal.
+    Null(Token)
 }
 
 /// Enum representing the kind of access in an access expression.
@@ -442,6 +444,7 @@ impl GetSpan for Expr {
             }
             Expr::Access(a) => a.span(),
             Expr::Spread(s) => TextSpan::combine(vec![s.token.span.clone(), s.expr.span()]),
+            Expr::Null(t) => t.span.clone(),
         }
     }
 }
@@ -470,6 +473,11 @@ impl Expr {
             Expr::Variable(v) => v,
             _ => panic!("Expected variable"),
         }
+    }
+    
+    /// Creates a new null literal expression.
+    pub fn new_null(token: Token) -> Self {
+        Expr::Null(token)
     }
 
     /// Creates a new field access expression.

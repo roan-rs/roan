@@ -11,6 +11,8 @@ use std::{
     fmt::{Debug, Display},
     ops,
 };
+use crate::value::methods::string::__string_chars;
+use crate::value::methods::vec::__vec_next;
 
 pub mod methods {
     pub mod string;
@@ -34,41 +36,20 @@ impl Value {
             Value::Vec(_) => {
                 let mut map = HashMap::new();
                 map.insert("len".to_string(), __vec_len());
+                map.insert("next".to_string(), __vec_next());
                 map
             }
             Value::String(_) => {
                 let mut map = HashMap::new();
                 map.insert("len".to_string(), __string_len());
                 map.insert("split".to_string(), __string_split());
+                map.insert("chars".to_string(), __string_chars());
                 map
             }
             _ => HashMap::new(),
         }
     }
 }
-
-// impl Debug for Value {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Value::Int(i) => write!(f, "{}", i),
-//             Value::Float(fl) => write!(f, "{}", fl),
-//             Value::Bool(b) => write!(f, "{}", b),
-//             Value::String(s) => write!(f, "{}", s),
-//             Value::Vec(v) => {
-//                 write!(f, "[")?;
-//                 for (i, val) in v.iter().enumerate() {
-//                     write!(f, "{:?}", val)?;
-//                     if i < v.len() - 1 {
-//                         write!(f, ", ")?;
-//                     }
-//                 }
-//                 write!(f, "]")
-//             }
-//             Value::Null => write!(f, "Null"),
-//             Value::Void => write!(f, "Void"),
-//         }
-//     }
-// }
 
 impl Value {
     pub fn from_literal(literal: Literal) -> Self {

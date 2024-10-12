@@ -199,6 +199,7 @@ impl Parser {
         match &token.kind.clone() {
             TokenKind::Integer(int) => Ok(Expr::new_integer(token, *int)),
             TokenKind::Float(float) => Ok(Expr::new_float(token, *float)),
+            TokenKind::Null => Ok(Expr::new_null(token)),
             TokenKind::True | TokenKind::False => {
                 Ok(Expr::new_bool(token.clone(), token.as_bool().unwrap()))
             }

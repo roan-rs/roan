@@ -1,3 +1,5 @@
+#[allow(unused_mut)]
+
 extern crate core;
 
 pub mod context;

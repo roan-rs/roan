@@ -39,7 +39,7 @@ impl NativeFunction {
     }
 
     pub fn call(&mut self, args: Vec<Value>) -> Result<Value> {
-        debug!("Executing native function: {}", self.name);
+        debug!("Executing native function: {} with args {:?}", self.name, args);
 
         let mut params = vec![];
         for (param, val) in self.params.iter().zip(args.clone()) {
