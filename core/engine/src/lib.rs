@@ -8,6 +8,7 @@ pub mod natives;
 pub mod value;
 pub mod vm;
 pub mod interpreter;
+mod macros;
 
 pub use roan_ast::*;
 pub use roan_error::{diagnostic::*, error::PulseError::*, span::*};
