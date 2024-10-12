@@ -1,6 +1,7 @@
-use crate::{module::StoredFunction, natives::io::__print};
-use crate::module::Module;
-use crate::natives::io::{__eprint, __format};
+use crate::{
+    module::StoredFunction,
+    natives::io::{__eprint, __format, __print},
+};
 
 pub mod io;
 
@@ -58,5 +59,8 @@ macro_rules! as_cast {
 }
 
 pub fn get_stored_function() -> Vec<StoredFunction> {
-    vec![__print(), __format(), __eprint()].into_iter().map(|f| StoredFunction::Native(f)).collect()
+    vec![__print(), __format(), __eprint()]
+        .into_iter()
+        .map(|f| StoredFunction::Native(f))
+        .collect()
 }

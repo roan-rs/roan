@@ -148,7 +148,7 @@ impl Lexer {
                                 next.to_string(),
                                 TextSpan::new(self.position, self.position, next.to_string()),
                             )
-                                .into())
+                            .into())
                         }
                     }
                     self.consume();
@@ -303,7 +303,7 @@ impl Lexer {
                             c.to_string(),
                             TextSpan::new(start_pos, self.position, c.to_string()),
                         )
-                            .into());
+                        .into());
                     }
                 };
 

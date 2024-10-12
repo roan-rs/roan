@@ -1,5 +1,9 @@
-use crate::{as_cast, native_function, value::Value, vm::native_fn::{NativeFunction, NativeFunctionParam}};
-use crate::module::Module;
+use crate::{
+    as_cast,
+    native_function,
+    value::Value,
+    vm::native_fn::{NativeFunction, NativeFunctionParam},
+};
 
 native_function!(
     fn __string_len(s) {
@@ -13,7 +17,7 @@ native_function!(
     fn __string_split(s, sep) {
         let s = as_cast!(s, String);
         let sep = as_cast!(sep, String);
-        
+
         Value::Vec(
             s.split(&sep)
                 .map(|s| Value::String(s.to_string()))
@@ -25,7 +29,7 @@ native_function!(
 native_function!(
     fn __string_chars(s) {
         let s = as_cast!(s, String);
-        
+
         Value::Vec(
             s.chars().map(|c| Value::String(c.to_string())).collect(),
         )
@@ -199,7 +203,7 @@ native_function!(
     }
 );
 
-// TODO: Move these to std
+// TODO: Implement static methods
 
 native_function!(
     fn __string_to_int(s) {

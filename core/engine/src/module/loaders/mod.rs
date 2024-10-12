@@ -1,16 +1,22 @@
-use std::fmt::Debug;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use crate::{context::Context, module::Module};
 use log::debug;
-use crate::context::Context;
-use crate::module::Module;
+use std::{
+    fmt::Debug,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 pub mod basic;
 
 /// Trait that defines the interface for a module loader.
 pub trait ModuleLoader: Debug {
     /// Load a module from a given source.
-    fn load(&self, referrer: &Module, spec: &str, ctx: &Context) -> anyhow::Result<Arc<Mutex<Module>>>;
+    fn load(
+        &self,
+        referrer: &Module,
+        spec: &str,
+        ctx: &Context,
+    ) -> anyhow::Result<Arc<Mutex<Module>>>;
 
     /// Insert a module into the loader's cache if loader handles caching.
     ///

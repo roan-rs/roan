@@ -1,15 +1,24 @@
-use crate::{entries, value::methods::{
-    string::{__string_len, __string_split},
-    vec::__vec_len,
-}, vm::native_fn::NativeFunction};
+use crate::{
+    entries,
+    value::methods::{
+        string::{
+            __string_char_at, __string_char_code_at, __string_chars, __string_contains,
+            __string_ends_with, __string_index_of, __string_last_index_of, __string_len,
+            __string_replace, __string_reverse, __string_slice, __string_split,
+            __string_starts_with,
+            __string_to_lowercase, __string_to_uppercase, __string_trim, __string_trim_end,
+            __string_trim_start,
+        },
+        vec::{__vec_len, __vec_next},
+    },
+    vm::native_fn::NativeFunction,
+};
 use roan_ast::{Literal, LiteralType};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
     ops,
 };
-use crate::value::methods::string::{__string_char_at, __string_char_code_at, __string_chars, __string_contains, __string_ends_with, __string_from_bool, __string_from_code, __string_from_float, __string_from_int, __string_index_of, __string_last_index_of, __string_replace, __string_reverse, __string_slice, __string_starts_with, __string_to_bool, __string_to_float, __string_to_int, __string_to_lowercase, __string_to_uppercase, __string_trim, __string_trim_end, __string_trim_start};
-use crate::value::methods::vec::__vec_next;
 
 pub mod methods {
     pub mod string;
@@ -26,7 +35,6 @@ pub enum Value {
     Null,
     Void,
 }
-
 
 impl Value {
     pub fn builtin_methods(&self) -> HashMap<String, NativeFunction> {
@@ -58,7 +66,7 @@ impl Value {
                     "index_of" => __string_index_of(),
                     "last_index_of" => __string_last_index_of()
 
-                    // TODO: Move these to std
+                    // TODO: Implement static methods
                     // "to_int" => __string_to_int(),
                     // "to_float" => __string_to_float(),
                     // "to_bool" => __string_to_bool(),

@@ -1,14 +1,23 @@
-use log::debug;
-use roan_ast::{AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType, Spread, VecExpr};
-use roan_error::error::PulseError;
-use roan_error::error::PulseError::{InvalidSpread, PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError};
-use crate::context::Context;
-use crate::module::{Module, StoredFunction};
-use crate::value::Value;
+use crate::{
+    context::Context,
+    module::{Module, StoredFunction},
+    value::Value,
+    vm::VM,
+};
 use anyhow::Result;
-use roan_error::print_diagnostic;
-use crate::vm::native_fn::NativeFunction;
-use crate::vm::VM;
+use log::debug;
+use roan_ast::{
+    AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType, VecExpr,
+};
+use roan_error::{
+    error::{
+        PulseError,
+        PulseError::{
+            InvalidSpread, PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError,
+        },
+    },
+    print_diagnostic,
+};
 
 impl Module {
     /// Interpret an expression.
@@ -146,9 +155,7 @@ impl Module {
 
         let stored_function = self
             .find_function(&call.callee)
-            .ok_or_else(|| {
-                UndefinedFunctionError(call.callee.clone(), call.token.span.clone())
-            })?
+            .ok_or_else(|| UndefinedFunctionError(call.callee.clone(), call.token.span.clone()))?
             .clone();
 
         match stored_function {
@@ -161,10 +168,14 @@ impl Module {
                 function,
                 defining_module,
             } => {
-                match self.execute_user_defined_function(function, defining_module.clone(), args, ctx, vm) {
-                    Ok(_) => {
-                        Ok(vm.pop().unwrap_or(Value::Void))
-                    }
+                match self.execute_user_defined_function(
+                    function,
+                    defining_module.clone(),
+                    args,
+                    ctx,
+                    vm,
+                ) {
+                    Ok(_) => Ok(vm.pop().unwrap_or(Value::Void)),
                     Err(e) => {
                         print_diagnostic(e, Some(defining_module.lock().unwrap().source.content()));
                         std::process::exit(1);
@@ -182,7 +193,12 @@ impl Module {
     ///
     /// # Returns
     /// The result of the binary expression.
-    pub fn interpret_binary(&mut self, binary_expr: Binary, ctx: &Context, vm: &mut VM) -> Result<Value> {
+    pub fn interpret_binary(
+        &mut self,
+        binary_expr: Binary,
+        ctx: &Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
         debug!("Interpreting binary: {:?}", binary_expr);
 
         self.interpret_expr(&binary_expr.left, ctx, vm)?;
@@ -281,8 +297,7 @@ impl Module {
                     self.interpret_expr(right, ctx, vm)?;
                     let new_val = vm.pop().unwrap();
 
-                    if let (Value::Vec(mut vec), Value::Int(index)) =
-                        (base_val.clone(), index_val)
+                    if let (Value::Vec(mut vec), Value::Int(index)) = (base_val.clone(), index_val)
                     {
                         let idx = index as usize;
                         if idx >= vec.len() {
@@ -291,7 +306,7 @@ impl Module {
                                 vec.len(),
                                 index_expr.span(),
                             )
-                                .into());
+                            .into());
                         }
 
                         vec[idx] = new_val.clone();
@@ -304,15 +319,14 @@ impl Module {
                                 "Unable to determine variable for assignment".into(),
                                 access.base.span(),
                             )
-                                .into())
+                            .into())
                         }
                     } else {
                         Err(PulseError::TypeMismatch(
-                            "Left side of assignment must be a vector with integer index"
-                                .into(),
+                            "Left side of assignment must be a vector with integer index".into(),
                             access.base.span(),
                         )
-                            .into())
+                        .into())
                     }
                 }
             },
@@ -329,7 +343,13 @@ impl Module {
     ///
     /// # Returns
     /// The value of the field.
-    pub fn access_field(&mut self, value: Value, expr: &Expr, ctx: &Context, vm: &mut VM) -> Result<Value> {
+    pub fn access_field(
+        &mut self,
+        value: Value,
+        expr: &Expr,
+        ctx: &Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
         match expr {
             Expr::Call(call) => {
                 let methods = value.builtin_methods();

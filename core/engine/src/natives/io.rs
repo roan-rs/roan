@@ -1,5 +1,9 @@
-use crate::{as_cast, native_function, value::Value, vm::native_fn::{NativeFunction, NativeFunctionParam}};
-use crate::module::Module;
+use crate::{
+    as_cast,
+    native_function,
+    value::Value,
+    vm::native_fn::{NativeFunction, NativeFunctionParam},
+};
 
 native_function!(fn __print(
     msg

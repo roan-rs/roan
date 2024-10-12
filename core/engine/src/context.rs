@@ -1,5 +1,9 @@
-use crate::module::{
-    Module,
+use crate::{
+    module::{
+        loaders::{basic::BasicModuleLoader, ModuleLoader},
+        Module,
+    },
+    vm::VM,
 };
 use anyhow::Result;
 use bon::bon;
@@ -10,9 +14,6 @@ use std::{
     rc::Rc,
     sync::{Arc, Mutex},
 };
-use crate::module::loaders::basic::BasicModuleLoader;
-use crate::module::loaders::ModuleLoader;
-use crate::vm::VM;
 
 /// Struct to interact with the runtime.
 ///

@@ -109,7 +109,7 @@ impl Parser {
 
                 if next_precedence > operator_precedence
                     || (next_precedence == operator_precedence
-                    && next_operator.associativity() == BinOpAssociativity::Right)
+                        && next_operator.associativity() == BinOpAssociativity::Right)
                 {
                     right = self.parse_binary_expression_recurse(right, next_precedence)?;
                 } else {
@@ -203,9 +203,7 @@ impl Parser {
             TokenKind::True | TokenKind::False => {
                 Ok(Expr::new_bool(token.clone(), token.as_bool().unwrap()))
             }
-            TokenKind::TripleDot => {
-                Ok(Expr::new_spread(token.clone(), self.parse_expr()?))
-            }
+            TokenKind::TripleDot => Ok(Expr::new_spread(token.clone(), self.parse_expr()?)),
             TokenKind::LeftBracket => self.parse_vector(),
             TokenKind::Identifier => {
                 log::debug!("Parsing identifier: {}", token.literal());

@@ -1,6 +1,5 @@
 pub mod native_fn;
 
-use std::ops::{Deref, DerefMut};
 use crate::value::Value;
 use roan_error::frame::Frame;
 
