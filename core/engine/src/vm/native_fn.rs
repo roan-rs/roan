@@ -1,15 +1,12 @@
-use crate::value::Value;
+use crate::{context::Context, module::Module, value::Value, vm::VM};
+use anyhow::Result;
 use log::debug;
+use roan_error::frame::Frame;
 use std::{
     fmt,
     fmt::{Display, Formatter},
+    sync::{Arc, Mutex},
 };
-use std::sync::{Arc, Mutex};
-use roan_error::frame::Frame;
-use crate::context::Context;
-use crate::module::Module;
-use anyhow::Result;
-use crate::vm::VM;
 
 #[derive(Debug, Clone)]
 pub struct NativeFunctionParam {
@@ -39,7 +36,10 @@ impl NativeFunction {
     }
 
     pub fn call(&mut self, args: Vec<Value>) -> Result<Value> {
-        debug!("Executing native function: {} with args {:?}", self.name, args);
+        debug!(
+            "Executing native function: {} with args {:?}",
+            self.name, args
+        );
 
         let mut params = vec![];
         for (param, val) in self.params.iter().zip(args.clone()) {

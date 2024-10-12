@@ -1,7 +1,15 @@
 use crate::{
+    entries,
     value::methods::{
-        string::{__string_len, __string_split},
-        vec::__vec_len,
+        string::{
+            __string_char_at, __string_char_code_at, __string_chars, __string_contains,
+            __string_ends_with, __string_index_of, __string_last_index_of, __string_len,
+            __string_replace, __string_reverse, __string_slice, __string_split,
+            __string_starts_with,
+            __string_to_lowercase, __string_to_uppercase, __string_trim, __string_trim_end,
+            __string_trim_start,
+        },
+        vec::{__vec_len, __vec_next},
     },
     vm::native_fn::NativeFunction,
 };
@@ -11,8 +19,6 @@ use std::{
     fmt::{Debug, Display},
     ops,
 };
-use crate::value::methods::string::__string_chars;
-use crate::value::methods::vec::__vec_next;
 
 pub mod methods {
     pub mod string;
@@ -34,17 +40,41 @@ impl Value {
     pub fn builtin_methods(&self) -> HashMap<String, NativeFunction> {
         match self {
             Value::Vec(_) => {
-                let mut map = HashMap::new();
-                map.insert("len".to_string(), __vec_len());
-                map.insert("next".to_string(), __vec_next());
-                map
+                entries!(
+                    "len" => __vec_len(),
+                    "next" => __vec_next()
+                )
             }
             Value::String(_) => {
-                let mut map = HashMap::new();
-                map.insert("len".to_string(), __string_len());
-                map.insert("split".to_string(), __string_split());
-                map.insert("chars".to_string(), __string_chars());
-                map
+                entries!(
+                    "len" => __string_len(),
+                    "split" => __string_split(),
+                    "chars" => __string_chars(),
+                    "contains" => __string_contains(),
+                    "starts_with" => __string_starts_with(),
+                    "ends_with" => __string_ends_with(),
+                    "replace" => __string_replace(),
+                    "trim" => __string_trim(),
+                    "trim_start" => __string_trim_start(),
+                    "trim_end" => __string_trim_end(),
+                    "to_uppercase" => __string_to_uppercase(),
+                    "to_lowercase" => __string_to_lowercase(),
+                    "reverse" => __string_reverse(),
+                    "char_at" => __string_char_at(),
+                    "char_code_at" => __string_char_code_at(),
+                    "slice" => __string_slice(),
+                    "index_of" => __string_index_of(),
+                    "last_index_of" => __string_last_index_of()
+
+                    // TODO: Implement static methods
+                    // "to_int" => __string_to_int(),
+                    // "to_float" => __string_to_float(),
+                    // "to_bool" => __string_to_bool(),
+                    // "from_int" => __string_from_int(),
+                    // "from_float" => __string_from_float(),
+                    // "from_bool" => __string_from_bool(),
+                    // "from_code" => __string_from_code()
+                )
             }
             _ => HashMap::new(),
         }

@@ -1,8 +1,5 @@
-use crate::{ast::expr::Expr, GetSpan, Token};
-use std::{
-    fmt::{Debug, Formatter},
-    iter::TakeWhile,
-};
+use crate::{ast::expr::Expr, Token};
+use std::fmt::{Debug, Formatter};
 
 /// Represents a statement in the AST.
 ///

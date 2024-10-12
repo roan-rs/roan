@@ -1,10 +1,16 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use crate::{
+    context::Context,
+    module::{
+        loaders::{remove_surrounding_quotes, ModuleLoader},
+        Module,
+    },
+};
 use log::debug;
 use roan_ast::source::Source;
-use crate::context::Context;
-use crate::module::loaders::{remove_surrounding_quotes, ModuleLoader};
-use crate::module::Module;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 /// A basic implementation of the `ModuleLoader` trait that caches modules in memory.
 #[derive(Debug)]
@@ -38,7 +44,12 @@ impl ModuleLoader for BasicModuleLoader {
     ///
     /// If the module is already in the cache, it returns the cached module.
     /// Otherwise, it resolves the path, loads the module, caches it, and returns it.
-    fn load(&self, referrer: &Module, spec: &str, ctx: &Context) -> anyhow::Result<Arc<Mutex<Module>>> {
+    fn load(
+        &self,
+        referrer: &Module,
+        spec: &str,
+        ctx: &Context,
+    ) -> anyhow::Result<Arc<Mutex<Module>>> {
         debug!("Loading module: {}", spec);
 
         {

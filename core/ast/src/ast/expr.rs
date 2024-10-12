@@ -345,7 +345,7 @@ pub enum BinOpAssociativity {
 }
 
 /// Spread operator for variadic arguments.
-/// 
+///
 /// The spread operator is used to pass an array as separate arguments to a function.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Spread {
@@ -380,7 +380,7 @@ pub enum Expr {
     /// A spread operator for variadic arguments. (e.g., `...args`)
     Spread(Spread),
     /// Null literal.
-    Null(Token)
+    Null(Token),
 }
 
 /// Enum representing the kind of access in an access expression.
@@ -474,7 +474,7 @@ impl Expr {
             _ => panic!("Expected variable"),
         }
     }
-    
+
     /// Creates a new null literal expression.
     pub fn new_null(token: Token) -> Self {
         Expr::Null(token)

@@ -1,14 +1,20 @@
-use std::sync::{Arc, Mutex};
-use log::debug;
-use roan_ast::{Block, GetSpan, If, Stmt, Token, Fn, Use, While, Loop};
-use roan_error::error::PulseError;
-use roan_error::error::PulseError::{ImportError, ModuleNotFoundError, NonBooleanCondition};
-use roan_error::{print_diagnostic, TextSpan};
-use crate::context::Context;
-use crate::module::{ExportType, Module, StoredFunction};
-use crate::value::Value;
+use crate::{
+    context::Context,
+    module::{ExportType, Module, StoredFunction},
+    value::Value,
+    vm::VM,
+};
 use anyhow::Result;
-use crate::vm::VM;
+use log::debug;
+use roan_ast::{Block, Fn, GetSpan, If, Loop, Stmt, Token, Use, While};
+use roan_error::{
+    error::{
+        PulseError,
+        PulseError::{ImportError, ModuleNotFoundError, NonBooleanCondition},
+    },
+    print_diagnostic, TextSpan,
+};
+use std::sync::{Arc, Mutex};
 
 impl Module {
     /// Interpret statement from the module.
@@ -125,7 +131,7 @@ impl Module {
                         "While loop condition".into(),
                         while_stmt.condition.span(),
                     )
-                        .into())
+                    .into())
                 }
             };
 
@@ -156,8 +162,10 @@ impl Module {
         });
 
         if function.exported {
-            self.exports
-                .push((function.name.clone(), ExportType::Function(function.clone())));
+            self.exports.push((
+                function.name.clone(),
+                ExportType::Function(function.clone()),
+            ));
         }
 
         Ok(())
@@ -175,9 +183,7 @@ impl Module {
         let module = ctx
             .module_loader
             .load(&self.clone(), &u.from.literal(), ctx)
-            .map_err(|_| {
-                ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone())
-            })?;
+            .map_err(|_| ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone()))?;
 
         // Lock the loaded module for parsing and interpretation
         let mut loaded_module = module.lock().expect("Failed to lock loaded module");
@@ -205,9 +211,9 @@ impl Module {
         for (name, item) in imported_items {
             match loaded_module.find_function(&name) {
                 Some(StoredFunction::Function {
-                         function,
-                         defining_module,
-                     }) => {
+                    function,
+                    defining_module,
+                }) => {
                     self.functions.push(StoredFunction::Function {
                         function: function.clone(),
                         defining_module: Arc::clone(&defining_module),
@@ -243,7 +249,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                    .into())
+                .into())
             }
         };
 
@@ -262,7 +268,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                            .into())
+                        .into())
                     }
                 };
 

@@ -7,18 +7,11 @@ use crate::{
 use anyhow::Result;
 use log::debug;
 use roan_ast::{
-    source::Source, AccessKind, AssignOperator, Ast, BinOpKind, Block, Expr, Fn, GetSpan, If,
-    Lexer, LiteralType, Parser, Stmt, Token, Use,
+    source::Source, Ast, Expr, Fn,
+    Lexer, Parser, Token,
 };
 use roan_error::{
-    error::{
-        PulseError,
-        PulseError::{
-            ImportError, InvalidPropertyAccess, ModuleNotFoundError, NonBooleanCondition,
-            PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError,
-        },
-    },
-    frame::Frame,
+    error::PulseError::VariableNotFoundError,
     print_diagnostic, TextSpan,
 };
 use std::{
