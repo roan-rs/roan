@@ -7,6 +7,7 @@ use crate::module::{Module, StoredFunction};
 use crate::value::Value;
 use anyhow::Result;
 use roan_error::print_diagnostic;
+use crate::vm::native_fn::NativeFunction;
 use crate::vm::VM;
 
 impl Module {
@@ -68,7 +69,7 @@ impl Module {
             Expr::Binary(b) => self.interpret_binary(b.clone(), ctx, vm),
             // Spread operator are only supposed to be used in vectors and function calls
             Expr::Spread(s) => Err(InvalidSpread(s.expr.span()).into()),
-
+            Expr::Null(_) => Ok(Value::Null),
             _ => todo!("missing expr: {:?}", expr),
         };
 
@@ -339,7 +340,9 @@ impl Module {
                         args.push(vm.pop().expect("Expected value on stack"));
                     }
 
-                    method.clone().call(args)
+                    self.execute_native_function(method.clone(), args, vm)?;
+
+                    Ok(vm.pop().expect("Expected value on stack"))
                 } else {
                     Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into())
                 }

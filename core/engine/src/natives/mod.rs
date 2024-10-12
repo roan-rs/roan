@@ -1,21 +1,21 @@
 use crate::{module::StoredFunction, natives::io::__print};
+use crate::module::Module;
 use crate::natives::io::__format;
 
 pub mod io;
 
 #[macro_export]
 macro_rules! native_function {
-    (fn $name:ident($($arg:ident: $arg_type:ident),* $(, ...$rest:ident: Vec)?) {$($body:tt)*}) => {
+    (fn $name:ident($($arg:ident),* $(, ...$rest:ident)?) {$($body:tt)*}) => {
         pub fn $name() -> NativeFunction {
             NativeFunction {
                 name: stringify!($name).to_string(),
                 func: |args| {
                     let mut args_iter = args.into_iter();
                     $(
-                        let next = args_iter.next();
-                        let $arg = match next {
-                            Some(Value::$arg_type(value)) => value,
-                            _ => panic!("Expected argument of type {}, but got {:?}", stringify!($arg_type), next),
+                        let $arg = match args_iter.next() {
+                            Some(value) => value,
+                            None => panic!("Expected argument but got None"),
                         };
                     )*
 
@@ -29,7 +29,7 @@ macro_rules! native_function {
                     $(
                         NativeFunctionParam {
                             name: stringify!($arg).to_string(),
-                            ty: stringify!(Value::$arg_type).to_string(),
+                            ty: "Value".to_string(),
                             is_rest: false,
                         },
                     )*
@@ -42,6 +42,17 @@ macro_rules! native_function {
                     )?
                 ],
             }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! as_cast {
+    ($val:expr, $ty:ident) => {
+        match $val {
+            Value::$ty(val) => val,
+            // TODO: Replace with throw! macro
+            _ => panic!("Expected {} but got {:?}", stringify!($ty), $val),
         }
     };
 }
