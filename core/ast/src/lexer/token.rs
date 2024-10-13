@@ -41,29 +41,31 @@ impl Token {
 impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            // Separators
             TokenKind::LeftParen => write!(f, "("),
             TokenKind::RightParen => write!(f, ")"),
             TokenKind::LeftBrace => write!(f, "{{"),
             TokenKind::RightBrace => write!(f, "}}"),
             TokenKind::LeftBracket => write!(f, "["),
             TokenKind::RightBracket => write!(f, "]"),
-            TokenKind::TripleDot => write!(f, "..."),
-            TokenKind::DoubleDot => write!(f, ".."),
             TokenKind::Comma => write!(f, ","),
             TokenKind::Dot => write!(f, "."),
             TokenKind::Colon => write!(f, ":"),
             TokenKind::Semicolon => write!(f, ";"),
             TokenKind::Arrow => write!(f, "->"),
+            TokenKind::DoubleDot => write!(f, ".."),
+            TokenKind::TripleDot => write!(f, "..."),
+
+            // Literals
             TokenKind::Identifier => write!(f, "Identifier"),
             TokenKind::String(s) => write!(f, "{}", s),
             TokenKind::Float(r) => write!(f, "{}", r),
             TokenKind::Integer(i) => write!(f, "{}", i),
+
+            // Keywords
             TokenKind::Fn => write!(f, "fn"),
             TokenKind::Let => write!(f, "let"),
             TokenKind::If => write!(f, "if"),
-            TokenKind::Throw => write!(f, "throw"),
-            TokenKind::Try => write!(f, "try"),
-            TokenKind::Catch => write!(f, "catch"),
             TokenKind::Else => write!(f, "else"),
             TokenKind::While => write!(f, "while"),
             TokenKind::For => write!(f, "for"),
@@ -71,13 +73,21 @@ impl Display for TokenKind {
             TokenKind::Return => write!(f, "return"),
             TokenKind::Break => write!(f, "break"),
             TokenKind::Continue => write!(f, "continue"),
-            TokenKind::Loop => write!(f, "loop"),
             TokenKind::Use => write!(f, "use"),
-            TokenKind::From => write!(f, "from"),
             TokenKind::Export => write!(f, "export"),
+            TokenKind::From => write!(f, "from"),
+            TokenKind::Throw => write!(f, "throw"),
+            TokenKind::Try => write!(f, "try"),
+            TokenKind::Catch => write!(f, "catch"),
+            TokenKind::Loop => write!(f, "loop"),
             TokenKind::True => write!(f, "true"),
             TokenKind::False => write!(f, "false"),
             TokenKind::Null => write!(f, "null"),
+            TokenKind::Impl => write!(f, "impl"),
+            TokenKind::Struct => write!(f, "struct"),
+            TokenKind::Trait => write!(f, "trait"),
+
+            // Operators
             TokenKind::Plus => write!(f, "+"),
             TokenKind::Minus => write!(f, "-"),
             TokenKind::Asterisk => write!(f, "*"),
@@ -104,6 +114,8 @@ impl Display for TokenKind {
             TokenKind::PlusEquals => write!(f, "+="),
             TokenKind::MultiplyEquals => write!(f, "*="),
             TokenKind::DivideEquals => write!(f, "/="),
+
+            // Others
             TokenKind::EOF => write!(f, "EOF"),
             TokenKind::Whitespace => write!(f, "Whitespace"),
             TokenKind::Bad => write!(f, "Bad"),
@@ -111,6 +123,7 @@ impl Display for TokenKind {
         }
     }
 }
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
@@ -153,10 +166,12 @@ pub enum TokenKind {
     Try,
     Catch,
     Loop,
-
     True,
     False,
     Null,
+    Impl,
+    Struct,
+    Trait,
 
     // Operators
     Plus,              // +
