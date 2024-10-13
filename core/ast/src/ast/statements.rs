@@ -379,8 +379,20 @@ impl Stmt {
     ///
     /// # Returns
     /// A `Stmt::Struct` variant containing the provided struct details.
-    pub fn new_struct(struct_token: Token, name: Token, fields: Vec<StructField>, public: bool) -> Self {
-        Stmt::Struct(Struct { struct_token, name, fields, public, impls: vec![], trait_impls: vec![] })
+    pub fn new_struct(
+        struct_token: Token,
+        name: Token,
+        fields: Vec<StructField>,
+        public: bool,
+    ) -> Self {
+        Stmt::Struct(Struct {
+            struct_token,
+            name,
+            fields,
+            public,
+            impls: vec![],
+            trait_impls: vec![],
+        })
     }
 
     /// Creates a new `TraitDef` statement.
@@ -390,35 +402,55 @@ impl Stmt {
     /// * `name` - The name of the trait.
     /// * `methods` - A vector of function declarations representing the trait methods.
     pub fn new_trait_def(trait_token: Token, name: Token, methods: Vec<Fn>) -> Self {
-        Stmt::TraitDef(TraitDef { trait_token, name, methods })
+        Stmt::TraitDef(TraitDef {
+            trait_token,
+            name,
+            methods,
+        })
     }
-    
+
     /// Creates a new `StructImpl` statement.
-    /// 
+    ///
     /// # Arguments
     /// * `impl_token` - The token representing the `impl` keyword.
     /// * `struct_name` - The name of the struct being implemented.
     /// * `methods` - A vector of function declarations representing the struct methods.
-    /// 
+    ///
     /// # Returns
     /// A `Stmt::StructImpl` variant containing the provided struct implementation details.
     pub fn new_struct_impl(impl_token: Token, struct_name: Token, methods: Vec<Fn>) -> Self {
-        Stmt::StructImpl(StructImpl { impl_token, struct_name, methods })
+        Stmt::StructImpl(StructImpl {
+            impl_token,
+            struct_name,
+            methods,
+        })
     }
-    
+
     /// Creates a new `TraitImpl` statement.
-    /// 
+    ///
     /// # Arguments
     /// * `impl_token` - The token representing the `impl` keyword.
     /// * `trait_name` - The name of the trait being implemented.
     /// * `for_token` - The token representing the `for` keyword.
     /// * `struct_name` - The name of the struct implementing the trait.
     /// * `methods` - A vector of function declarations representing the trait methods.
-    /// 
+    ///
     /// # Returns
     /// A `Stmt::TraitImpl` variant containing the provided trait implementation details.
-    pub fn new_trait_impl(impl_token: Token, trait_name: Token, for_token: Token, struct_name: Token, methods: Vec<Fn>) -> Self {
-        Stmt::TraitImpl(TraitImpl { impl_token, trait_name, for_token, struct_name, methods })
+    pub fn new_trait_impl(
+        impl_token: Token,
+        trait_name: Token,
+        for_token: Token,
+        struct_name: Token,
+        methods: Vec<Fn>,
+    ) -> Self {
+        Stmt::TraitImpl(TraitImpl {
+            impl_token,
+            trait_name,
+            for_token,
+            struct_name,
+            methods,
+        })
     }
 }
 

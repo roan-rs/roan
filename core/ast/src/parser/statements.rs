@@ -1,7 +1,13 @@
-use crate::{Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, StructField, Token, TokenKind, TypeAnnotation};
-use log::debug;
-use roan_error::error::PulseError::{ExpectedToken, MultipleRestParameters, MultipleSelfParameters, RestParameterNotLastPosition, SelfParameterCannotBeRest, SelfParameterNotFirst};
+use crate::{
+    Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, StructField, Token, TokenKind,
+    TypeAnnotation,
+};
 use anyhow::Result;
+use log::debug;
+use roan_error::error::PulseError::{
+    ExpectedToken, MultipleRestParameters, MultipleSelfParameters, RestParameterNotLastPosition,
+    SelfParameterCannotBeRest, SelfParameterNotFirst,
+};
 
 impl Parser {
     /// Parses a statement from the tokens.
@@ -102,20 +108,20 @@ impl Parser {
         }
 
         self.expect(TokenKind::RightBrace)?;
-        
+
         Ok(Stmt::new_struct_impl(impl_keyword, ident, methods))
     }
-    
+
     /// Parses an `impl` block for implementing a trait.
-    /// 
+    ///
     /// An `impl` block is used to implement methods for a trait.
-    /// 
+    ///
     /// # Returns
     /// - `Ok(Stmt)`: An impl block.
     /// - `Err`: If there is a parsing error.
     pub fn parse_trait_impl(&mut self, impl_keyword: Token, ident: Token) -> Result<Stmt> {
         debug!("Parsing impl block");
-        let for_token  = self.expect(TokenKind::For)?;
+        let for_token = self.expect(TokenKind::For)?;
 
         let trait_name = self.expect(TokenKind::Identifier)?;
 
@@ -131,7 +137,13 @@ impl Parser {
 
         self.expect(TokenKind::RightBrace)?;
 
-        Ok(Stmt::new_trait_impl(impl_keyword, ident, for_token, trait_name, methods))
+        Ok(Stmt::new_trait_impl(
+            impl_keyword,
+            ident,
+            for_token,
+            trait_name,
+            methods,
+        ))
     }
 
     /// Parses a `trait` declaration.
@@ -192,7 +204,10 @@ impl Parser {
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let ident = self.expect(TokenKind::Identifier)?;
             let type_annotation = self.parse_type_annotation()?;
-            fields.push(StructField { ident, type_annotation });
+            fields.push(StructField {
+                ident,
+                type_annotation,
+            });
 
             if self.peek().kind != TokenKind::RightBrace {
                 self.expect(TokenKind::Comma)?;
@@ -408,7 +423,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-                .into());
+            .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -445,7 +460,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-                .into())
+            .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -500,7 +515,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                    .into());
+                .into());
             }
         } else {
             self.consume()

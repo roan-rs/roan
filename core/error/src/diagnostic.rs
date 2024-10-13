@@ -57,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-            .expect("Error writing level");
+        .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -158,7 +158,10 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             },
             PulseError::RestParameterNotLast(span)
             | PulseError::RestParameterNotLastPosition(span)
-            | PulseError::MultipleRestParameters(span) | PulseError::SelfParameterCannotBeRest(span) | PulseError::SelfParameterNotFirst(span) | PulseError::MultipleSelfParameters(span) => Diagnostic {
+            | PulseError::MultipleRestParameters(span)
+            | PulseError::SelfParameterCannotBeRest(span)
+            | PulseError::SelfParameterNotFirst(span)
+            | PulseError::MultipleSelfParameters(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,

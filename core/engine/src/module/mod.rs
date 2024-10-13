@@ -6,14 +6,8 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{
-    source::Source, Ast, Expr, Fn,
-    Lexer, Parser, Token,
-};
-use roan_error::{
-    error::PulseError::VariableNotFoundError,
-    print_diagnostic, TextSpan,
-};
+use roan_ast::{source::Source, Ast, Expr, Fn, Lexer, Parser, Token};
+use roan_error::{error::PulseError::VariableNotFoundError, print_diagnostic, TextSpan};
 use std::{
     collections::HashMap,
     fmt::Debug,

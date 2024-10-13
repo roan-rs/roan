@@ -124,7 +124,6 @@ impl Display for TokenKind {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     // Separators
