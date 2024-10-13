@@ -1,11 +1,11 @@
 use {eprintln,format} from "std::io";
 
-export fn main() -> int {
-    let name = "Roan";
-    let code = name.char_code_at(0);
+pub struct Person {
+    name: string,
+    age: int,
+}
 
-    eprintln("Hello, {}{}!", );
-
+pub fn main() -> int {
     return 0;
 }
 

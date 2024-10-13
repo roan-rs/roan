@@ -47,6 +47,7 @@ pub struct Struct {
     pub struct_token: Token,
     pub name: Token,
     pub fields: Vec<StructField>,
+    pub public: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -255,7 +256,7 @@ impl Stmt {
     /// * `name` - The name of the function.
     /// * `params` - A vector of function parameters.
     /// * `body` - The block of code representing the function body.
-    /// * `exported` - A boolean indicating if the function is exported.
+    /// * `public` - A boolean indicating if the function is public.
     /// * `return_type` - An optional return type annotation.
     ///
     /// # Returns
@@ -266,7 +267,7 @@ impl Stmt {
         name: String,
         params: Vec<FnParam>,
         body: Block,
-        exported: bool,
+        public: bool,
         return_type: Option<FunctionType>,
     ) -> Self {
         Stmt::Fn(Fn {
@@ -274,7 +275,7 @@ impl Stmt {
             name,
             params,
             body,
-            exported,
+            public,
             return_type,
         })
     }
@@ -362,6 +363,18 @@ impl Stmt {
     /// A `Stmt::Return` variant containing the provided return value.
     pub fn new_return(return_token: Token, expr: Option<Box<Expr>>) -> Self {
         Stmt::Return(Return { return_token, expr })
+    }
+
+    /// Creates a new `Struct` statement.
+    ///
+    /// # Arguments
+    /// * `struct_token` - The token representing the `struct` keyword.
+    /// * `name` - The name of the struct.
+    ///
+    /// # Returns
+    /// A `Stmt::Struct` variant containing the provided struct details.
+    pub fn new_struct(struct_token: Token, name: Token, fields: Vec<StructField>, public: bool) -> Self {
+        Stmt::Struct(Struct { struct_token, name, fields, public })
     }
 }
 
@@ -469,8 +482,8 @@ pub struct Fn {
     pub params: Vec<FnParam>,
     /// The body of the function as a block of statements.
     pub body: Block,
-    /// Indicates whether the function is exported.
-    pub exported: bool,
+    /// Indicates whether the function is public.
+    pub public: bool,
     /// An optional return type annotation.
     pub return_type: Option<FunctionType>,
 }

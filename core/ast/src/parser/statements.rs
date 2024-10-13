@@ -1,4 +1,4 @@
-use crate::{Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, TokenKind, TypeAnnotation};
+use crate::{Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, StructField, TokenKind, TypeAnnotation};
 use log::debug;
 use roan_error::error::PulseError::{
     ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition,
@@ -18,7 +18,15 @@ impl Parser {
         let token = self.peek();
 
         let stmt = match token.kind {
-            TokenKind::Fn | TokenKind::Export => Some(self.parse_fn()?),
+            TokenKind::Fn | TokenKind::Pub | TokenKind::Struct => {
+                if self.peek_next().kind == TokenKind::Fn {
+                    Some(self.parse_fn()?)
+                } else if self.peek_next().kind == TokenKind::Struct {
+                    Some(self.parse_struct()?)
+                } else {
+                    None
+                }
+            }
             TokenKind::Use => Some(self.parse_use()?),
             TokenKind::If => Some(self.parse_if()?),
             TokenKind::Let => Some(self.parse_let()?),
@@ -55,6 +63,44 @@ impl Parser {
         };
 
         Ok(stmt)
+    }
+
+    /// Parses a `struct` declaration.
+    ///
+    /// A `struct` declaration defines a new data structure with named fields.
+    ///
+    /// # Returns
+    /// - `Ok(Stmt)`: A struct declaration.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_struct(&mut self) -> anyhow::Result<Stmt> {
+        debug!("Parsing struct");
+        let mut exported = false;
+        let struct_token = if self.peek().kind == TokenKind::Pub {
+            self.consume();
+            exported = true;
+            self.expect(TokenKind::Struct)?
+        } else {
+            self.expect(TokenKind::Struct)?
+        };
+        let name = self.expect(TokenKind::Identifier)?;
+
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut fields: Vec<StructField> = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let ident = self.expect(TokenKind::Identifier)?;
+            let type_annotation = self.parse_type_annotation()?;
+            fields.push(StructField { ident, type_annotation });
+
+            if self.peek().kind != TokenKind::RightBrace {
+                self.expect(TokenKind::Comma)?;
+            }
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Stmt::new_struct(struct_token, name, fields, exported))
     }
 
     /// Parses a `while` statement.
@@ -261,7 +307,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-            .into());
+                .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -298,7 +344,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-            .into())
+                .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -339,12 +385,12 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_fn(&mut self) -> anyhow::Result<Stmt> {
         debug!("Parsing function");
-        let mut exported = false;
-        let fn_token = if self.peek().kind == TokenKind::Export {
+        let mut public = false;
+        let fn_token = if self.peek().kind == TokenKind::Pub {
             self.consume();
 
             if self.peek().kind == TokenKind::Fn {
-                exported = true;
+                public = true;
 
                 self.consume()
             } else {
@@ -353,7 +399,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                .into());
+                    .into());
             }
         } else {
             self.consume()
@@ -409,7 +455,7 @@ impl Parser {
             name.literal(),
             params,
             body,
-            exported,
+            public,
             return_type,
         ))
     }

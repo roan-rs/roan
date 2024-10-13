@@ -71,6 +71,7 @@ impl Module {
                     vm.push(Value::Void);
                 }
             }
+            _ => {}
         }
 
         Ok(())
@@ -131,7 +132,7 @@ impl Module {
                         "While loop condition".into(),
                         while_stmt.condition.span(),
                     )
-                    .into())
+                        .into())
                 }
             };
 
@@ -161,7 +162,7 @@ impl Module {
             defining_module: Arc::clone(&Arc::new(Mutex::new(self.clone()))),
         });
 
-        if function.exported {
+        if function.public {
             self.exports.push((
                 function.name.clone(),
                 ExportType::Function(function.clone()),
@@ -211,9 +212,9 @@ impl Module {
         for (name, item) in imported_items {
             match loaded_module.find_function(&name) {
                 Some(StoredFunction::Function {
-                    function,
-                    defining_module,
-                }) => {
+                         function,
+                         defining_module,
+                     }) => {
                     self.functions.push(StoredFunction::Function {
                         function: function.clone(),
                         defining_module: Arc::clone(&defining_module),
@@ -249,7 +250,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                .into())
+                    .into())
             }
         };
 
@@ -268,7 +269,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                        .into())
+                            .into())
                     }
                 };
 

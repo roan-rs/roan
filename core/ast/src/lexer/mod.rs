@@ -200,7 +200,7 @@ impl Lexer {
                     "break" => TokenKind::Break,
                     "continue" => TokenKind::Continue,
                     "use" => TokenKind::Use,
-                    "export" => TokenKind::Export,
+                    "pub" => TokenKind::Pub,
                     "from" => TokenKind::From,
                     "throw" => TokenKind::Throw,
                     "try" => TokenKind::Try,
