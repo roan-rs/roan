@@ -57,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-            .expect("Error writing level");
+        .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -173,7 +173,9 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             | PulseError::SemanticError(_, span)
             | PulseError::UnexpectedToken(_, span)
             | PulseError::InvalidEscapeSequence(_, span)
-            | PulseError::NonBooleanCondition(_, span) | PulseError::StructNotFoundError(_, span) | PulseError::TraitNotFoundError(_, span) => Diagnostic {
+            | PulseError::NonBooleanCondition(_, span)
+            | PulseError::StructNotFoundError(_, span)
+            | PulseError::TraitNotFoundError(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -182,7 +184,10 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 content,
             },
             PulseError::TraitMethodNotImplemented(name, methods, span) => Diagnostic {
-                title: format!("Trait {name} doesn't implement these methods: {}", methods.join(", ")),
+                title: format!(
+                    "Trait {name} doesn't implement these methods: {}",
+                    methods.join(", ")
+                ),
                 text: None,
                 level: Level::Error,
                 location: Some(span.clone()),

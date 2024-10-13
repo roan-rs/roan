@@ -428,7 +428,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-                .into());
+            .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -465,7 +465,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-                .into())
+            .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;

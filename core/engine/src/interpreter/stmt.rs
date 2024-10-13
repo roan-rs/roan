@@ -6,7 +6,9 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{Block, Fn, GetSpan, If, Loop, Stmt, Struct, StructImpl, Token, TraitDef, Use, While};
+use roan_ast::{
+    Block, Fn, GetSpan, If, Loop, Stmt, Struct, Token, TraitDef, Use, While,
+};
 use roan_error::{
     error::{
         PulseError,
@@ -80,10 +82,15 @@ impl Module {
             Stmt::StructImpl(impl_stmt) => {
                 let struct_name = impl_stmt.struct_name.literal();
 
-                let mut struct_def = self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
+                let mut struct_def =
+                    self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
                 struct_def.impls.push(impl_stmt);
 
-                if let Some(existing_struct) = self.structs.iter_mut().find(|s| s.name.literal() == struct_name) {
+                if let Some(existing_struct) = self
+                    .structs
+                    .iter_mut()
+                    .find(|s| s.name.literal() == struct_name)
+                {
                     *existing_struct = struct_def;
                 }
             }
@@ -92,25 +99,46 @@ impl Module {
                 let for_name = impl_stmt.struct_name.literal();
                 let trait_name = impl_stmt.trait_name.literal();
 
-                let mut struct_def = self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
+                let mut struct_def =
+                    self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
                 let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
 
-                if struct_def.trait_impls.iter().any(|t| t.trait_name.literal() == trait_name) {
-                    return Err(PulseError::StructAlreadyImplementsTrait(for_name, trait_name, impl_stmt.trait_name.span.clone()).into());
+                if struct_def
+                    .trait_impls
+                    .iter()
+                    .any(|t| t.trait_name.literal() == trait_name)
+                {
+                    return Err(PulseError::StructAlreadyImplementsTrait(
+                        for_name,
+                        trait_name,
+                        impl_stmt.trait_name.span.clone(),
+                    )
+                    .into());
                 }
 
-                let missing_methods: Vec<String> = trait_def.methods.iter()
+                let missing_methods: Vec<String> = trait_def
+                    .methods
+                    .iter()
                     .filter(|m| !impl_stmt.methods.iter().any(|i| i.name == m.name))
                     .map(|m| m.name.clone())
                     .collect();
 
                 if !missing_methods.is_empty() {
-                    return Err(PulseError::TraitMethodNotImplemented(trait_name, missing_methods, impl_stmt.trait_name.span.clone()).into());
+                    return Err(PulseError::TraitMethodNotImplemented(
+                        trait_name,
+                        missing_methods,
+                        impl_stmt.trait_name.span.clone(),
+                    )
+                    .into());
                 }
 
                 struct_def.trait_impls.push(impl_stmt);
 
-                if let Some(existing_struct) = self.structs.iter_mut().find(|s| s.name.literal() == for_name) {
+                if let Some(existing_struct) = self
+                    .structs
+                    .iter_mut()
+                    .find(|s| s.name.literal() == for_name)
+                {
                     *existing_struct = struct_def;
                 }
             }
@@ -120,11 +148,21 @@ impl Module {
     }
 
     pub fn get_trait(&self, name: &str, span: TextSpan) -> Result<TraitDef> {
-        Ok(self.traits.iter().find(|t| t.name.literal() == name).cloned().ok_or_else(|| PulseError::TraitNotFoundError(name.into(), span))?)
+        Ok(self
+            .traits
+            .iter()
+            .find(|t| t.name.literal() == name)
+            .cloned()
+            .ok_or_else(|| PulseError::TraitNotFoundError(name.into(), span))?)
     }
 
     pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<Struct> {
-        Ok(self.structs.iter().find(|s| s.name.literal() == name).cloned().ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
+        Ok(self
+            .structs
+            .iter()
+            .find(|s| s.name.literal() == name)
+            .cloned()
+            .ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
     }
 
     /// Handle the result of a loop statement.
@@ -182,7 +220,7 @@ impl Module {
                         "While loop condition".into(),
                         while_stmt.condition.span(),
                     )
-                        .into())
+                    .into())
                 }
             };
 
@@ -262,9 +300,9 @@ impl Module {
         for (name, item) in imported_items {
             match loaded_module.find_function(&name) {
                 Some(StoredFunction::Function {
-                         function,
-                         defining_module,
-                     }) => {
+                    function,
+                    defining_module,
+                }) => {
                     self.functions.push(StoredFunction::Function {
                         function: function.clone(),
                         defining_module: Arc::clone(&defining_module),
@@ -300,7 +338,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                    .into())
+                .into())
             }
         };
 
@@ -319,7 +357,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                            .into())
+                        .into())
                     }
                 };
 
