@@ -1,0 +1,39 @@
+A-value:
+  - changed-files:
+      - any-glob-to-any-file: core/engine/src/value/**
+
+A-natives:
+  - changed-files:
+      - any-glob-to-any-file: core/engine/src/natives/**
+
+A-module:
+  - changed-files:
+      - any-glob-to-any-file: core/engine/src/module/*
+
+A-module-loader:
+  - changed-files:
+      - any-glob-to-any-file: core/engine/src/module/loaders/**
+
+A-lexer:
+  - changed-files:
+      - any-glob-to-any-file: core/ast/src/lexer/**
+
+A-parser:
+  - changed-files:
+      - any-glob-to-any-file: core/ast/src/parser/**
+
+A-interpreter:
+  - changed-files:
+      - any-glob-to-any-file: core/engine/src/interpreter/**
+
+A-error:
+  - changed-files:
+      - any-glob-to-any-file: core/error/**
+
+A-cli:
+  - changed-files:
+      - any-glob-to-any-file: cli/**
+
+A-std:
+  - changed-files:
+      - any-glob-to-any-file: std/**
