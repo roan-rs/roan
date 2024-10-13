@@ -18,6 +18,8 @@ impl Person {
 }
 
 pub fn main() -> int {
+    eprintln("Hello, World!");
+
     return 0;
 }
 

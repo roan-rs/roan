@@ -23,15 +23,20 @@ impl Parser {
         let token = self.peek();
 
         let stmt = match token.kind {
-            TokenKind::Fn | TokenKind::Pub | TokenKind::Struct => {
+            TokenKind::Pub => {
                 if self.peek_next().kind == TokenKind::Fn {
                     Some(self.parse_fn()?)
                 } else if self.peek_next().kind == TokenKind::Struct {
                     Some(self.parse_struct()?)
+                } else if self.peek_next().kind == TokenKind::Trait {
+                    Some(self.parse_trait()?)
                 } else {
                     None
                 }
             }
+            TokenKind::Fn => Some(self.parse_fn()?),
+            TokenKind::Struct => Some(self.parse_struct()?),
+            TokenKind::Trait => Some(self.parse_trait()?),
             TokenKind::Impl => {
                 let impl_keyword = self.consume();
                 if self.peek().kind == TokenKind::Identifier {
@@ -48,7 +53,6 @@ impl Parser {
                     None
                 }
             }
-            TokenKind::Trait => Some(self.parse_trait()?),
             TokenKind::Use => Some(self.parse_use()?),
             TokenKind::If => Some(self.parse_if()?),
             TokenKind::Let => Some(self.parse_let()?),
@@ -145,6 +149,20 @@ impl Parser {
         ))
     }
 
+    /// Parses a 'pub' keyword (if present) followed by an identifier.
+    pub fn parse_pub(&mut self, expected: TokenKind) -> Result<(Token, bool)> {
+        let mut public = false;
+        let token = if self.peek().kind == TokenKind::Pub {
+            self.consume();
+            public = true;
+            self.consume()
+        } else {
+            self.consume()
+        };
+
+        Ok((token, public))
+    }
+
     /// Parses a `trait` declaration.
     ///
     /// A `trait` declaration defines a new interface that can be implemented by other types.
@@ -154,29 +172,21 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_trait(&mut self) -> Result<Stmt> {
         debug!("Parsing trait");
-        let mut public = false;
-        
-        let trait_token = if self.peek().kind == TokenKind::Pub {
-            self.consume();
-            public = true;
-            self.expect(TokenKind::Trait)?
-        } else {
-            self.expect(TokenKind::Trait)?
-        };
-        
+        let (trait_token, public) = self.parse_pub(TokenKind::Trait)?;
+
         let name = self.expect(TokenKind::Identifier)?;
-        
+
         self.expect(TokenKind::LeftBrace)?;
-        
+
         let mut methods: Vec<crate::Fn> = vec![];
-        
+
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let func = self.parse_fn()?.into_function();
             methods.push(func);
         }
-        
+
         self.expect(TokenKind::RightBrace)?;
-        
+
         Ok(Stmt::new_trait_def(trait_token, name, methods, public))
     }
 
@@ -189,14 +199,7 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_struct(&mut self) -> Result<Stmt> {
         debug!("Parsing struct");
-        let mut public = false;
-        let struct_token = if self.peek().kind == TokenKind::Pub {
-            self.consume();
-            public = true;
-            self.expect(TokenKind::Struct)?
-        } else {
-            self.expect(TokenKind::Struct)?
-        };
+        let (struct_token, public) = self.parse_pub(TokenKind::Struct)?;
         let name = self.expect(TokenKind::Identifier)?;
 
         self.expect(TokenKind::LeftBrace)?;
@@ -503,25 +506,8 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_fn(&mut self) -> Result<Stmt> {
         debug!("Parsing function");
-        let mut public = false;
-        let fn_token = if self.peek().kind == TokenKind::Pub {
-            self.consume();
+        let (fn_token, public) = self.parse_pub(TokenKind::Fn)?;
 
-            if self.peek().kind == TokenKind::Fn {
-                public = true;
-
-                self.consume()
-            } else {
-                return Err(ExpectedToken(
-                    "function".to_string(),
-                    "You can only export functions".to_string(),
-                    self.peek().span.clone(),
-                )
-                    .into());
-            }
-        } else {
-            self.consume()
-        };
         let name = self.expect(TokenKind::Identifier)?;
 
         self.expect(TokenKind::LeftParen)?;
