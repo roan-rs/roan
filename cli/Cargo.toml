@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 backtrace = "0.3.74"
-clap = { version = "4.5.18", features = ["derive"] }
+clap = { version = "4.5.20", features = ["derive"] }
 colored = "2.1.0"
 log = "0.4.22"
 thiserror = "1.0.64"
