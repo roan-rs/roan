@@ -32,6 +32,56 @@ pub enum Stmt {
     Loop(Loop),
     /// A `while` statement to create a loop with a condition.
     While(While),
+    /// A struct definition.
+    Struct(Struct),
+    /// A trait definition.
+    TraitDef(TraitDef),
+    /// A struct implementation.
+    StructImpl(StructImpl),
+    /// A trait implementation.
+    TraitImpl(TraitImpl),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Struct {
+    pub struct_token: Token,
+    pub name: Token,
+    pub fields: Vec<StructField>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StructField {
+    pub ident: Token,
+    pub type_annotation: TypeAnnotation,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Method {
+    pub function: Fn,
+    pub is_static: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TraitDef {
+    pub trait_token: Token,
+    pub name: Token,
+    pub methods: Vec<Fn>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StructImpl {
+    pub impl_token: Token,
+    pub struct_name: Token,
+    pub methods: Vec<Method>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TraitImpl {
+    pub impl_token: Token,
+    pub trait_name: Token,
+    pub for_token: Token,
+    pub struct_name: Token,
+    pub methods: Vec<Method>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
