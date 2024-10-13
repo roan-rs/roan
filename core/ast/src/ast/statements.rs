@@ -63,6 +63,7 @@ pub struct TraitDef {
     pub trait_token: Token,
     pub name: Token,
     pub methods: Vec<Fn>,
+    pub public: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -401,11 +402,12 @@ impl Stmt {
     /// * `trait_token` - The token representing the `trait` keyword.
     /// * `name` - The name of the trait.
     /// * `methods` - A vector of function declarations representing the trait methods.
-    pub fn new_trait_def(trait_token: Token, name: Token, methods: Vec<Fn>) -> Self {
+    pub fn new_trait_def(trait_token: Token, name: Token, methods: Vec<Fn>, public: bool) -> Self {
         Stmt::TraitDef(TraitDef {
             trait_token,
             name,
             methods,
+            public,
         })
     }
 

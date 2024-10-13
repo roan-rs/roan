@@ -38,8 +38,7 @@ impl Parser {
                     let ident = self.consume();
 
                     if self.peek().kind == TokenKind::For {
-                        // Some(self.parse_trait_impl(impl_keyword, ident)?)
-                        None
+                        Some(self.parse_trait_impl(impl_keyword, ident)?)
                     } else if self.peek().kind == TokenKind::LeftBrace {
                         Some(self.parse_impl(impl_keyword, ident)?)
                     } else {
@@ -155,27 +154,30 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_trait(&mut self) -> Result<Stmt> {
         debug!("Parsing trait");
+        let mut public = false;
+        
         let trait_token = if self.peek().kind == TokenKind::Pub {
             self.consume();
+            public = true;
             self.expect(TokenKind::Trait)?
         } else {
             self.expect(TokenKind::Trait)?
         };
+        
         let name = self.expect(TokenKind::Identifier)?;
-
+        
         self.expect(TokenKind::LeftBrace)?;
-
+        
         let mut methods: Vec<crate::Fn> = vec![];
-
+        
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let func = self.parse_fn()?.into_function();
-
             methods.push(func);
         }
-
+        
         self.expect(TokenKind::RightBrace)?;
-
-        Ok(Stmt::new_trait_def(trait_token, name, methods))
+        
+        Ok(Stmt::new_trait_def(trait_token, name, methods, public))
     }
 
     /// Parses a `struct` declaration.
@@ -187,10 +189,10 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_struct(&mut self) -> Result<Stmt> {
         debug!("Parsing struct");
-        let mut exported = false;
+        let mut public = false;
         let struct_token = if self.peek().kind == TokenKind::Pub {
             self.consume();
-            exported = true;
+            public = true;
             self.expect(TokenKind::Struct)?
         } else {
             self.expect(TokenKind::Struct)?
@@ -216,7 +218,7 @@ impl Parser {
 
         self.expect(TokenKind::RightBrace)?;
 
-        Ok(Stmt::new_struct(struct_token, name, fields, exported))
+        Ok(Stmt::new_struct(struct_token, name, fields, public))
     }
 
     /// Parses a `while` statement.
@@ -423,7 +425,7 @@ impl Parser {
                 "Expected string that is valid module or file".to_string(),
                 self.peek().span.clone(),
             )
-            .into());
+                .into());
         };
 
         Ok(Stmt::new_use(use_token, from, items))
@@ -460,7 +462,7 @@ impl Parser {
                 "Expected arrow".to_string(),
                 self.peek().span.clone(),
             )
-            .into())
+                .into())
         } else {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
@@ -515,7 +517,7 @@ impl Parser {
                     "You can only export functions".to_string(),
                     self.peek().span.clone(),
                 )
-                .into());
+                    .into());
             }
         } else {
             self.consume()
