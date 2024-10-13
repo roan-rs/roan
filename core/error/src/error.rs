@@ -61,4 +61,12 @@ pub enum PulseError {
     SelfParameterNotFirst(TextSpan),
     #[error("Self parameter cannot be rest.")]
     SelfParameterCannotBeRest(TextSpan),
+    #[error("Struct not found: {0}")]
+    StructNotFoundError(String, TextSpan),
+    #[error("Trait definition not found: {0}")]
+    TraitNotFoundError(String, TextSpan),
+    #[error("Struct {0} already implements trait {1}")]
+    StructAlreadyImplementsTrait(String, String, TextSpan),
+    #[error("Trait {0} doesn't implement required method")]
+    TraitMethodNotImplemented(String, Vec<String>, TextSpan),
 }

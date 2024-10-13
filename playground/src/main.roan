@@ -17,6 +17,20 @@ impl Person {
     }
 }
 
+impl PersonTrait for Person {
+    fn new(name: string, age: int) -> Person {
+        return null;
+    }
+
+    fn get_name(self) -> string {
+        return self.name;
+    }
+
+    fn get_age(self) -> int {
+        return self.age;
+    }
+}
+
 pub fn main() -> int {
     eprintln("Hello, World!");
 
