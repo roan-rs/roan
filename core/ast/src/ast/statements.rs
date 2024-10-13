@@ -57,12 +57,6 @@ pub struct StructField {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Method {
-    pub function: Fn,
-    pub is_static: bool,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct TraitDef {
     pub trait_token: Token,
     pub name: Token,
@@ -73,7 +67,7 @@ pub struct TraitDef {
 pub struct StructImpl {
     pub impl_token: Token,
     pub struct_name: Token,
-    pub methods: Vec<Method>,
+    pub methods: Vec<Fn>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -82,7 +76,7 @@ pub struct TraitImpl {
     pub trait_name: Token,
     pub for_token: Token,
     pub struct_name: Token,
-    pub methods: Vec<Method>,
+    pub methods: Vec<Fn>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -154,6 +148,13 @@ impl From<Expr> for Stmt {
 }
 
 impl Stmt {
+    pub fn into_function(self) -> Fn {
+        match self {
+            Stmt::Fn(f) => f,
+            _ => panic!("Expected function"),
+        }
+    }
+
     /// Creates a new `Loop` statement.
     ///
     /// # Arguments
@@ -258,6 +259,7 @@ impl Stmt {
     /// * `body` - The block of code representing the function body.
     /// * `public` - A boolean indicating if the function is public.
     /// * `return_type` - An optional return type annotation.
+    /// * `is_static` - A boolean indicating if the function is static.
     ///
     /// # Returns
     ///
@@ -269,6 +271,7 @@ impl Stmt {
         body: Block,
         public: bool,
         return_type: Option<FunctionType>,
+        is_static: bool,
     ) -> Self {
         Stmt::Fn(Fn {
             fn_token,
@@ -277,6 +280,7 @@ impl Stmt {
             body,
             public,
             return_type,
+            is_static,
         })
     }
 
@@ -376,6 +380,16 @@ impl Stmt {
     pub fn new_struct(struct_token: Token, name: Token, fields: Vec<StructField>, public: bool) -> Self {
         Stmt::Struct(Struct { struct_token, name, fields, public })
     }
+
+    /// Creates a new `TraitDef` statement.
+    ///
+    /// # Arguments
+    /// * `trait_token` - The token representing the `trait` keyword.
+    /// * `name` - The name of the trait.
+    /// * `methods` - A vector of function declarations representing the trait methods.
+    pub fn new_trait_def(trait_token: Token, name: Token, methods: Vec<Fn>) -> Self {
+        Stmt::TraitDef(TraitDef { trait_token, name, methods })
+    }
 }
 
 impl Stmt {
@@ -405,7 +419,7 @@ pub struct FnParam {
     /// The token representing the parameter identifier.
     pub ident: Token,
     /// The type annotation of the parameter.
-    pub type_annotation: TypeAnnotation,
+    pub type_annotation: Option<TypeAnnotation>,
     /// Indicates whether the parameter is a rest parameter.
     pub is_rest: bool,
 }
@@ -422,7 +436,7 @@ impl FnParam {
     /// # Returns
     ///
     /// A new `FnParam` instance.
-    pub fn new(ident: Token, type_annotation: TypeAnnotation, is_rest: bool) -> Self {
+    pub fn new(ident: Token, type_annotation: Option<TypeAnnotation>, is_rest: bool) -> Self {
         Self {
             ident,
             type_annotation,
@@ -486,6 +500,8 @@ pub struct Fn {
     pub public: bool,
     /// An optional return type annotation.
     pub return_type: Option<FunctionType>,
+    /// Indicates whether the function is static.
+    pub is_static: bool,
 }
 
 /// Represents an `if` statement in the AST.

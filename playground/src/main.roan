@@ -5,6 +5,12 @@ pub struct Person {
     age: int,
 }
 
+trait PersonTrait {
+    fn new(name: string, age: int) -> Self;
+    fn get_name(self) -> string;
+    fn get_age(self) -> int;
+}
+
 pub fn main() -> int {
     return 0;
 }

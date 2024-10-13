@@ -1,8 +1,7 @@
 use crate::{Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, StructField, TokenKind, TypeAnnotation};
 use log::debug;
-use roan_error::error::PulseError::{
-    ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition,
-};
+use roan_error::error::PulseError::{ExpectedToken, MultipleRestParameters, MultipleSelfParameters, RestParameterNotLastPosition, SelfParameterCannotBeRest, SelfParameterNotFirst};
+use anyhow::Result;
 
 impl Parser {
     /// Parses a statement from the tokens.
@@ -14,7 +13,7 @@ impl Parser {
     /// - `Ok(Some(Stmt))`: A parsed statement.
     /// - `Ok(None)`: If the token is a comment or semicolon.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_stmt(&mut self) -> anyhow::Result<Option<Stmt>> {
+    pub fn parse_stmt(&mut self) -> Result<Option<Stmt>> {
         let token = self.peek();
 
         let stmt = match token.kind {
@@ -27,6 +26,7 @@ impl Parser {
                     None
                 }
             }
+            TokenKind::Trait => Some(self.parse_trait()?),
             TokenKind::Use => Some(self.parse_use()?),
             TokenKind::If => Some(self.parse_if()?),
             TokenKind::Let => Some(self.parse_let()?),
@@ -65,6 +65,40 @@ impl Parser {
         Ok(stmt)
     }
 
+    /// Parses a `trait` declaration.
+    ///
+    /// A `trait` declaration defines a new interface that can be implemented by other types.
+    ///
+    /// # Returns
+    /// - `Ok(Stmt)`: A trait declaration.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_trait(&mut self) -> Result<Stmt> {
+        debug!("Parsing trait");
+        let trait_token = if self.peek().kind == TokenKind::Pub {
+            self.consume();
+            self.expect(TokenKind::Trait)?
+        } else {
+            self.expect(TokenKind::Trait)?
+        };
+        let name = self.expect(TokenKind::Identifier)?;
+
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut methods: Vec<crate::Fn> = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let func = self.parse_fn()?.into_function();
+
+            methods.push(func);
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        let t = Stmt::new_trait_def(trait_token, name, methods);
+        println!("{:#?}", t);
+        Ok(t)
+    }
+
     /// Parses a `struct` declaration.
     ///
     /// A `struct` declaration defines a new data structure with named fields.
@@ -72,7 +106,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A struct declaration.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_struct(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_struct(&mut self) -> Result<Stmt> {
         debug!("Parsing struct");
         let mut exported = false;
         let struct_token = if self.peek().kind == TokenKind::Pub {
@@ -110,7 +144,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A while statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_while(&mut self) -> anyhow::Result<Option<Stmt>> {
+    pub fn parse_while(&mut self) -> Result<Option<Stmt>> {
         debug!("Parsing while statement");
         let while_token = self.consume();
         let condition = self.parse_expr()?;
@@ -129,7 +163,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A throw statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_throw(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_throw(&mut self) -> Result<Stmt> {
         debug!("Parsing throw statement");
         let throw_token = self.consume();
         let value = self.parse_expr()?;
@@ -146,7 +180,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A try-catch statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_try(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_try(&mut self) -> Result<Stmt> {
         debug!("Parsing try statement");
         let try_token = self.consume();
 
@@ -177,7 +211,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Some(Stmt))`: A return statement with or without a value.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_return(&mut self) -> anyhow::Result<Option<Stmt>> {
+    pub fn parse_return(&mut self) -> Result<Option<Stmt>> {
         debug!("Parsing return statement");
         let return_token = self.consume();
         let value = if self.peek().kind != TokenKind::Semicolon {
@@ -198,7 +232,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A variable declaration statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_let(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_let(&mut self) -> Result<Stmt> {
         debug!("Parsing let statement");
         self.expect(TokenKind::Let)?;
         let ident = self.expect(TokenKind::Identifier)?;
@@ -215,7 +249,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: An if statement with possible elseif and else blocks.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_if(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_if(&mut self) -> Result<Stmt> {
         debug!("Parsing if statement");
         let if_token = self.consume();
 
@@ -277,7 +311,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A use statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_use(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_use(&mut self) -> Result<Stmt> {
         debug!("Parsing use statement");
         let use_token = self.consume();
 
@@ -315,12 +349,12 @@ impl Parser {
 
     /// Parses a type annotation following a variable or parameter.
     ///
-    /// A type annotation specifies the type of a variable or function parameter.
+    /// A type annotation specifies the type of variable or function parameter.
     ///
     /// # Returns
     /// - `Ok(TypeAnnotation)`: A parsed type annotation.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_type_annotation(&mut self) -> anyhow::Result<TypeAnnotation> {
+    pub fn parse_type_annotation(&mut self) -> Result<TypeAnnotation> {
         debug!("Parsing type annotation");
         let colon = self.expect(TokenKind::Colon)?;
         let type_name = self.expect(TokenKind::Identifier)?;
@@ -328,7 +362,7 @@ impl Parser {
         Ok(TypeAnnotation { colon, type_name })
     }
 
-    /// Parses the return type of a function.
+    /// Parses the return type of function.
     ///
     /// The return type indicates the type of value a function returns.
     ///
@@ -336,7 +370,7 @@ impl Parser {
     /// - `Ok(Some(FunctionType))`: If the return type is parsed.
     /// - `Ok(None)`: If no return type is provided.
     /// - `Err`: If the syntax is incorrect.
-    pub fn parse_return_type(&mut self) -> anyhow::Result<Option<FunctionType>> {
+    pub fn parse_return_type(&mut self) -> Result<Option<FunctionType>> {
         debug!("Parsing return type");
         if self.peek().kind == TokenKind::Identifier {
             Err(ExpectedToken(
@@ -360,7 +394,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Block)`: A parsed block of statements.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_block(&mut self) -> anyhow::Result<Block> {
+    pub fn parse_block(&mut self) -> Result<Block> {
         debug!("Parsing block");
         let mut stmts = vec![];
 
@@ -383,7 +417,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A function declaration.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_fn(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_fn(&mut self) -> Result<Stmt> {
         debug!("Parsing function");
         let mut public = false;
         let fn_token = if self.peek().kind == TokenKind::Pub {
@@ -410,6 +444,7 @@ impl Parser {
         let mut params = vec![];
 
         let mut has_rest_param = false;
+        let mut is_static = true;
 
         if self.peek().kind != TokenKind::RightParen {
             while self.peek().kind != TokenKind::RightParen && !self.is_eof() {
@@ -426,7 +461,20 @@ impl Parser {
                 }
 
                 let param = self.consume();
-                let type_annotation = self.parse_type_annotation()?;
+
+                if param.literal() == "self" {
+                    if !is_static {
+                        return Err(MultipleSelfParameters(self.peek().span.clone()).into());
+                    }
+
+                    is_static = false;
+
+                    if is_rest {
+                        return Err(SelfParameterCannotBeRest(self.peek().span.clone()).into());
+                    }
+                }
+
+                let type_annotation = self.parse_optional_type_annotation()?;
 
                 if has_rest_param && self.peek().kind != TokenKind::RightParen {
                     return Err(RestParameterNotLastPosition(param.span.clone()).into());
@@ -440,15 +488,22 @@ impl Parser {
             }
         }
 
+        if !is_static && params[0].ident.literal() != "self" {
+            return Err(SelfParameterNotFirst(self.peek().span.clone()).into());
+        }
+
         self.expect(TokenKind::RightParen)?;
 
         let return_type = self.parse_return_type()?;
 
-        self.expect(TokenKind::LeftBrace)?;
-
-        let body = self.parse_block()?;
-
-        self.expect(TokenKind::RightBrace)?;
+        let mut body = Block { stmts: vec![] };
+        if self.peek().kind != TokenKind::LeftBrace {
+            self.expect(TokenKind::Semicolon)?;
+        } else {
+            self.expect(TokenKind::LeftBrace)?;
+            body = self.parse_block()?;
+            self.expect(TokenKind::RightBrace)?;
+        }
 
         Ok(Stmt::new_fn(
             fn_token,
@@ -457,6 +512,7 @@ impl Parser {
             body,
             public,
             return_type,
+            is_static,
         ))
     }
 }

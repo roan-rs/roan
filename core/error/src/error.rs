@@ -55,4 +55,10 @@ pub enum PulseError {
     LoopContinue(TextSpan),
     #[error("Invalid spread operator usage.")]
     InvalidSpread(TextSpan),
+    #[error("Found multiple 'self' parameters.")]
+    MultipleSelfParameters(TextSpan),
+    #[error("Found 'self' parameter in non-first position.")]
+    SelfParameterNotFirst(TextSpan),
+    #[error("Self parameter cannot be rest.")]
+    SelfParameterCannotBeRest(TextSpan),
 }
