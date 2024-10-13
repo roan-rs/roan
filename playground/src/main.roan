@@ -11,6 +11,12 @@ trait PersonTrait {
     fn get_age(self) -> int;
 }
 
+impl Person {
+    pub fn new(name: string, age: int) -> Person {
+        return null;
+    }
+}
+
 pub fn main() -> int {
     return 0;
 }

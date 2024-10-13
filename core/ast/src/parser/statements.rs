@@ -1,4 +1,4 @@
-use crate::{Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, StructField, TokenKind, TypeAnnotation};
+use crate::{Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, StructField, Token, TokenKind, TypeAnnotation};
 use log::debug;
 use roan_error::error::PulseError::{ExpectedToken, MultipleRestParameters, MultipleSelfParameters, RestParameterNotLastPosition, SelfParameterCannotBeRest, SelfParameterNotFirst};
 use anyhow::Result;
@@ -22,6 +22,23 @@ impl Parser {
                     Some(self.parse_fn()?)
                 } else if self.peek_next().kind == TokenKind::Struct {
                     Some(self.parse_struct()?)
+                } else {
+                    None
+                }
+            }
+            TokenKind::Impl => {
+                let impl_keyword = self.consume();
+                if self.peek().kind == TokenKind::Identifier {
+                    let ident = self.consume();
+
+                    if self.peek().kind == TokenKind::For {
+                        // Some(self.parse_trait_impl(impl_keyword, ident)?)
+                        None
+                    } else if self.peek().kind == TokenKind::LeftBrace {
+                        Some(self.parse_impl(impl_keyword, ident)?)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -65,6 +82,58 @@ impl Parser {
         Ok(stmt)
     }
 
+    /// Parses an `impl` block for implementing a struct.
+    ///
+    /// An `impl` block is used to implement methods for a struct.
+    ///
+    /// # Returns
+    /// - `Ok(Stmt)`: An impl block.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_impl(&mut self, impl_keyword: Token, ident: Token) -> Result<Stmt> {
+        debug!("Parsing impl block");
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut methods: Vec<crate::Fn> = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let func = self.parse_fn()?.into_function();
+
+            methods.push(func);
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+        
+        Ok(Stmt::new_struct_impl(impl_keyword, ident, methods))
+    }
+    
+    /// Parses an `impl` block for implementing a trait.
+    /// 
+    /// An `impl` block is used to implement methods for a trait.
+    /// 
+    /// # Returns
+    /// - `Ok(Stmt)`: An impl block.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_trait_impl(&mut self, impl_keyword: Token, ident: Token) -> Result<Stmt> {
+        debug!("Parsing impl block");
+        let for_token  = self.expect(TokenKind::For)?;
+
+        let trait_name = self.expect(TokenKind::Identifier)?;
+
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut methods: Vec<crate::Fn> = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let func = self.parse_fn()?.into_function();
+
+            methods.push(func);
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Stmt::new_trait_impl(impl_keyword, ident, for_token, trait_name, methods))
+    }
+
     /// Parses a `trait` declaration.
     ///
     /// A `trait` declaration defines a new interface that can be implemented by other types.
@@ -94,9 +163,7 @@ impl Parser {
 
         self.expect(TokenKind::RightBrace)?;
 
-        let t = Stmt::new_trait_def(trait_token, name, methods);
-        println!("{:#?}", t);
-        Ok(t)
+        Ok(Stmt::new_trait_def(trait_token, name, methods))
     }
 
     /// Parses a `struct` declaration.
