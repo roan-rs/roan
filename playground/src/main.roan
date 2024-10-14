@@ -1,4 +1,4 @@
-use {eprintln,format} from "std::io";
+use { println } from "std::io";
 
 pub struct Person {
     name: string,
@@ -36,6 +36,8 @@ impl PersonTrait for Person {
 
 pub fn main() -> int {
     let person = Person::new("John Doe", 30);
+
+    println("Name: {}", person.name);
 
     return 0;
 }

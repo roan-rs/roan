@@ -97,14 +97,14 @@ impl Module {
                             }
 
                             let method = method.unwrap();
-                            
+
                             let args = call.args.iter().map(|arg| {
                                 self.interpret_expr(arg, ctx, vm).unwrap();
                                 vm.pop().unwrap()
                             }).collect();
 
                             self.execute_user_defined_function(method.clone(), Arc::new(Mutex::new(self.clone())), args, ctx, vm)?;
-                            
+
                             Ok(vm.pop().unwrap())
                         }
                         _ => return Err(StaticContext(expr.span()).into()),
@@ -115,7 +115,7 @@ impl Module {
                 let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
 
                 let mut fields = HashMap::new();
-                
+
                 for (field_name, expr) in constructor.fields.iter() {
                     self.interpret_expr(expr, ctx, vm)?;
                     fields.insert(field_name.clone(), vm.pop().unwrap());
@@ -418,12 +418,17 @@ impl Module {
                     Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into())
                 }
             }
-            Expr::Literal(lit) => {
-                if let LiteralType::String(s) = &lit.value {
-                    unimplemented!("There isn't any feature that requires this code to be implemented now. This will be implemented with objects/structs.");
-                    // self.access_field(&Expr::Literal(lit.clone()))
-                } else {
-                    Err(PropertyNotFoundError("".to_string(), expr.span()).into())
+            Expr::Variable(lit) => {
+                let name = lit.ident.clone();
+                match value {
+                    Value::Struct(_, fields) => {
+                        let field = fields
+                            .get(&name)
+                            .ok_or_else(|| PropertyNotFoundError(name.clone(), lit.token.span.clone()))?;
+
+                        Ok(field.clone())
+                    }
+                    _ => Err(PropertyNotFoundError(name.clone(), lit.token.span.clone()).into()),
                 }
             }
             _ => {
