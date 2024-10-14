@@ -227,7 +227,7 @@ impl Lexer {
                         TokenKind::DoubleDot,
                         TokenKind::TripleDot,
                     ),
-                    ':' => TokenKind::Colon,
+                    ':' => self.lex_potential_double(':', TokenKind::Colon, TokenKind::DoubleColon),
                     ';' => TokenKind::Semicolon,
                     '/' => {
                         if self.match_next('/') {

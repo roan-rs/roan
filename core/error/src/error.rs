@@ -69,4 +69,10 @@ pub enum PulseError {
     StructAlreadyImplementsTrait(String, String, TextSpan),
     #[error("Trait {0} doesn't implement required method")]
     TraitMethodNotImplemented(String, Vec<String>, TextSpan),
+    #[error("Cannot assign value to static member")]
+    StaticMemberAssignment(TextSpan),
+    #[error("Attempted to access static member of non-struct type")]
+    StaticMemberAccess(TextSpan),
+    #[error("Only call expressions can be accessed in a static context")]
+    StaticContext(TextSpan),
 }

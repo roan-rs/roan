@@ -55,6 +55,7 @@ impl Display for TokenKind {
             TokenKind::Arrow => write!(f, "->"),
             TokenKind::DoubleDot => write!(f, ".."),
             TokenKind::TripleDot => write!(f, "..."),
+            TokenKind::DoubleColon => write!(f, "::"),
 
             // Literals
             TokenKind::Identifier => write!(f, "Identifier"),
@@ -140,6 +141,7 @@ pub enum TokenKind {
     Arrow,
     DoubleDot,
     TripleDot,
+    DoubleColon,
 
     // Literals
     Identifier,

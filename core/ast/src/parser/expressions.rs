@@ -179,6 +179,11 @@ impl Parser {
                 let index = self.parse_expr()?;
                 self.expect(TokenKind::RightBracket)?;
                 expr = Expr::new_index_access(expr, index, token);
+            } else if token.kind == TokenKind::DoubleColon {
+                let colons = self.consume();
+                let field = self.parse_expr()?;
+
+                expr = Expr::new_static_method_access(expr, field, colons);
             } else {
                 break;
             }
@@ -187,14 +192,14 @@ impl Parser {
 
         Ok(expr)
     }
-    
+
     /// Parses a struct constructor expression.
-    /// 
+    ///
     /// This method expects an identifier followed by a left brace and a list of field assignments.
-    /// 
+    ///
     /// # Parameters
     /// - `identifier`: The token representing the struct name.
-    /// 
+    ///
     /// # Returns
     /// - `Ok(Expr)`: The parsed struct constructor expression if successful.
     /// - `Err(anyhow::Error)`: An error if parsing fails.
@@ -242,10 +247,7 @@ impl Parser {
                 if self.peek().kind == TokenKind::LeftParen {
                     self.parse_call_expr(token)
                 } else if self.peek().kind == TokenKind::LeftBrace {
-                   let x =  self.parse_struct_constructor(token);
-                    
-                    println!("{:#?}", x);
-                    x
+                    self.parse_struct_constructor(token)
                 } else {
                     Ok(Expr::new_variable(token.clone(), token.literal()))
                 }

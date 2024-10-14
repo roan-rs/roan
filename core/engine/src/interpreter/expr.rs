@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use crate::{
     context::Context,
     module::{Module, StoredFunction},
@@ -19,6 +20,7 @@ use roan_error::{
     },
     print_diagnostic,
 };
+use roan_error::error::PulseError::{StaticContext, StaticMemberAccess, StaticMemberAssignment};
 
 impl Module {
     /// Interpret an expression.
@@ -73,6 +75,41 @@ impl Module {
 
                     Ok(base.access_index(index))
                 }
+                AccessKind::StaticMethod(expr) => {
+                    let base = access.base.as_ref().clone();
+
+                    let (struct_name, span) = match base {
+                        Expr::Variable(v) => (v.ident.clone(), v.token.span.clone()),
+                        _ => return Err(StaticMemberAccess(access.span()).into()),
+                    };
+
+                    let struct_def = self.get_struct(&struct_name, span)?;
+
+                    let expr = expr.as_ref().clone();
+                    match expr {
+                        Expr::Call(call) => {
+                            let method_name = call.callee.clone();
+                            let method = struct_def.find_static_method(&method_name);
+
+                            if method.is_none() {
+                                return Err(UndefinedFunctionError(method_name, call.token.span.clone()).into());
+                            }
+
+                            let method = method.unwrap();
+                            
+                            let args = call.args.iter().map(|arg| {
+                                self.interpret_expr(arg, ctx, vm).unwrap();
+                                vm.pop().unwrap()
+                            }).collect();
+
+                            self.execute_user_defined_function(method.clone(), Arc::new(Mutex::new(self.clone())), args, ctx, vm)?;
+                            
+                            Ok(vm.pop().unwrap())
+                        }
+                        _ => return Err(StaticContext(expr.span()).into()),
+                    }
+                }
+                _ => todo!("missing access: {:?}", access),
             },
             Expr::Assign(assign) => self.interpret_assignment(assign.clone(), ctx, vm),
             Expr::Vec(vec) => self.interpret_vec(vec.clone(), ctx, vm),
@@ -307,7 +344,7 @@ impl Module {
                                 vec.len(),
                                 index_expr.span(),
                             )
-                            .into());
+                                .into());
                         }
 
                         vec[idx] = new_val.clone();
@@ -320,16 +357,17 @@ impl Module {
                                 "Unable to determine variable for assignment".into(),
                                 access.base.span(),
                             )
-                            .into())
+                                .into())
                         }
                     } else {
                         Err(PulseError::TypeMismatch(
                             "Left side of assignment must be a vector with integer index".into(),
                             access.base.span(),
                         )
-                        .into())
+                            .into())
                     }
                 }
+                AccessKind::StaticMethod(_) => Err(StaticMemberAssignment(access.span()).into()),
             },
             _ => todo!("missing left: {:?}", left),
         }
@@ -370,7 +408,7 @@ impl Module {
             }
             Expr::Literal(lit) => {
                 if let LiteralType::String(s) = &lit.value {
-                    unimplemented!("There is not future that requires this code to be implemented now. This will be implemented with objects/structs.");
+                    unimplemented!("There isn't any feature that requires this code to be implemented now. This will be implemented with objects/structs.");
                     // self.access_field(&Expr::Literal(lit.clone()))
                 } else {
                     Err(PropertyNotFoundError("".to_string(), expr.span()).into())

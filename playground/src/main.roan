@@ -35,7 +35,7 @@ impl PersonTrait for Person {
 }
 
 pub fn main() -> int {
-    eprintln("Hello, World!");
+    let person = Person::new("John Doe", 30);
 
     return 0;
 }

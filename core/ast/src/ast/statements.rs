@@ -52,6 +52,23 @@ pub struct Struct {
     pub trait_impls: Vec<TraitImpl>,
 }
 
+impl Struct {
+    pub fn find_static_method(&self, name: &str) -> Option<&Fn> {
+        let methods = self
+            .impls
+            .iter()
+            .flat_map(|impl_stmt| impl_stmt.methods.iter())
+            .chain(self.trait_impls.iter().flat_map(|impl_stmt| impl_stmt.methods.iter()));
+
+        for method in methods {
+            if method.name == name && method.is_static {
+                return Some(method);
+            }
+        }
+        None
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructField {
     pub ident: Token,
