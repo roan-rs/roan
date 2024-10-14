@@ -13,7 +13,10 @@ trait PersonTrait {
 
 impl Person {
     pub fn new(name: string, age: int) -> Person {
-        return null;
+        return Person {
+            name: name,
+            age: age,
+        };
     }
 }
 

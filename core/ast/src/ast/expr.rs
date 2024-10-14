@@ -381,6 +381,21 @@ pub enum Expr {
     Spread(Spread),
     /// Null literal.
     Null(Token),
+    /// Struct constructor. (e.g., `MyStruct { field: value }`)
+    StructConstructor(StructConstructor),
+}
+
+/// Represents a struct constructor expression in the AST.
+/// 
+/// A struct constructor creates a new instance of a struct with the specified field values.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StructConstructor {
+    /// The name of the struct being constructed.
+    pub name: String,
+    /// The field values for the struct.
+    pub fields: Vec<(String, Expr)>,
+    /// The token representing the struct constructor in the source code.
+    pub token: Token,
 }
 
 /// Enum representing the kind of access in an access expression.
@@ -445,6 +460,7 @@ impl GetSpan for Expr {
             Expr::Access(a) => a.span(),
             Expr::Spread(s) => TextSpan::combine(vec![s.token.span.clone(), s.expr.span()]),
             Expr::Null(t) => t.span.clone(),
+            Expr::StructConstructor(s) => s.token.span.clone(),
         }
     }
 }
@@ -721,5 +737,23 @@ impl Expr {
     /// A new `Expr::Vec` variant.
     pub fn new_vec(exprs: Vec<Expr>) -> Self {
         Expr::Vec(VecExpr { exprs })
+    }
+    
+    /// Creates a new struct constructor expression.
+    /// 
+    /// # Arguments
+    /// * `name` - The name of the struct being constructed.
+    /// * `fields` - The field values for the struct.
+    /// * `token` - The token representing the struct constructor.
+    /// 
+    /// # Returns
+    /// 
+    /// A new `Expr::StructConstructor` variant.
+    pub fn new_struct_constructor(name: String, fields: Vec<(String, Expr)>, token: Token) -> Self {
+        Expr::StructConstructor(StructConstructor {
+            name,
+            fields,
+            token,
+        })
     }
 }
