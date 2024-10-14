@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use crate::{
     context::Context,
     module::{Module, StoredFunction},
@@ -7,7 +9,8 @@ use crate::{
 use anyhow::Result;
 use log::debug;
 use roan_ast::{
-    AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType, VecExpr,
+    AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType,
+    VecExpr,
 };
 use roan_error::{
     error::{
@@ -18,6 +21,7 @@ use roan_error::{
     },
     print_diagnostic,
 };
+use roan_error::error::PulseError::{StaticContext, StaticMemberAccess, StaticMemberAssignment};
 
 impl Module {
     /// Interpret an expression.
@@ -72,7 +76,53 @@ impl Module {
 
                     Ok(base.access_index(index))
                 }
+                AccessKind::StaticMethod(expr) => {
+                    let base = access.base.as_ref().clone();
+
+                    let (struct_name, span) = match base {
+                        Expr::Variable(v) => (v.ident.clone(), v.token.span.clone()),
+                        _ => return Err(StaticMemberAccess(access.span()).into()),
+                    };
+
+                    let struct_def = self.get_struct(&struct_name, span)?;
+
+                    let expr = expr.as_ref().clone();
+                    match expr {
+                        Expr::Call(call) => {
+                            let method_name = call.callee.clone();
+                            let method = struct_def.find_static_method(&method_name);
+
+                            if method.is_none() {
+                                return Err(UndefinedFunctionError(method_name, call.token.span.clone()).into());
+                            }
+
+                            let method = method.unwrap();
+
+                            let args = call.args.iter().map(|arg| {
+                                self.interpret_expr(arg, ctx, vm).unwrap();
+                                vm.pop().unwrap()
+                            }).collect();
+
+                            self.execute_user_defined_function(method.clone(), Arc::new(Mutex::new(self.clone())), args, ctx, vm)?;
+
+                            Ok(vm.pop().unwrap())
+                        }
+                        _ => return Err(StaticContext(expr.span()).into()),
+                    }
+                }
             },
+            Expr::StructConstructor(constructor) => {
+                let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
+
+                let mut fields = HashMap::new();
+
+                for (field_name, expr) in constructor.fields.iter() {
+                    self.interpret_expr(expr, ctx, vm)?;
+                    fields.insert(field_name.clone(), vm.pop().unwrap());
+                }
+
+                Ok(Value::Struct(struct_def, fields))
+            }
             Expr::Assign(assign) => self.interpret_assignment(assign.clone(), ctx, vm),
             Expr::Vec(vec) => self.interpret_vec(vec.clone(), ctx, vm),
             Expr::Binary(b) => self.interpret_binary(b.clone(), ctx, vm),
@@ -306,7 +356,7 @@ impl Module {
                                 vec.len(),
                                 index_expr.span(),
                             )
-                            .into());
+                                .into());
                         }
 
                         vec[idx] = new_val.clone();
@@ -319,16 +369,17 @@ impl Module {
                                 "Unable to determine variable for assignment".into(),
                                 access.base.span(),
                             )
-                            .into())
+                                .into())
                         }
                     } else {
                         Err(PulseError::TypeMismatch(
                             "Left side of assignment must be a vector with integer index".into(),
                             access.base.span(),
                         )
-                        .into())
+                            .into())
                     }
                 }
+                AccessKind::StaticMethod(_) => Err(StaticMemberAssignment(access.span()).into()),
             },
             _ => todo!("missing left: {:?}", left),
         }
@@ -352,6 +403,27 @@ impl Module {
     ) -> Result<Value> {
         match expr {
             Expr::Call(call) => {
+                let value_clone = value.clone();
+                if let Value::Struct(struct_def, _) = value_clone {
+                    let field = struct_def.find_method(&call.callee);
+
+                    if field.is_none() {
+                        return Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into());
+                    }
+
+                    let field = field.unwrap();
+                    let mut args = vec![value.clone()];
+                    for arg in call.args.iter() {
+                        self.interpret_expr(arg, ctx, vm)?;
+                        args.push(vm.pop().expect("Expected value on stack"));
+                    }
+
+                    self.execute_user_defined_function(field.clone(), Arc::new(Mutex::new(self.clone())), args, ctx, vm)?;
+
+                    return Ok(vm.pop().expect("Expected value on stack"));
+                }
+
+
                 let methods = value.builtin_methods();
                 if let Some(method) = methods.get(&call.callee) {
                     let mut args = vec![value.clone()];
@@ -367,12 +439,17 @@ impl Module {
                     Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into())
                 }
             }
-            Expr::Literal(lit) => {
-                if let LiteralType::String(s) = &lit.value {
-                    unimplemented!("There is not future that requires this code to be implemented now. This will be implemented with objects/structs.");
-                    // self.access_field(&Expr::Literal(lit.clone()))
-                } else {
-                    Err(PropertyNotFoundError("".to_string(), expr.span()).into())
+            Expr::Variable(lit) => {
+                let name = lit.ident.clone();
+                match value {
+                    Value::Struct(_, fields) => {
+                        let field = fields
+                            .get(&name)
+                            .ok_or_else(|| PropertyNotFoundError(name.clone(), lit.token.span.clone()))?;
+
+                        Ok(field.clone())
+                    }
+                    _ => Err(PropertyNotFoundError(name.clone(), lit.token.span.clone()).into()),
                 }
             }
             _ => {

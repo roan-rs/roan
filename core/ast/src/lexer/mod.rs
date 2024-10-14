@@ -200,12 +200,15 @@ impl Lexer {
                     "break" => TokenKind::Break,
                     "continue" => TokenKind::Continue,
                     "use" => TokenKind::Use,
-                    "export" => TokenKind::Export,
+                    "pub" => TokenKind::Pub,
                     "from" => TokenKind::From,
                     "throw" => TokenKind::Throw,
                     "try" => TokenKind::Try,
                     "catch" => TokenKind::Catch,
                     "loop" => TokenKind::Loop,
+                    "struct" => TokenKind::Struct,
+                    "impl" => TokenKind::Impl,
+                    "trait" => TokenKind::Trait,
 
                     _ => TokenKind::Identifier,
                 }
@@ -224,7 +227,7 @@ impl Lexer {
                         TokenKind::DoubleDot,
                         TokenKind::TripleDot,
                     ),
-                    ':' => TokenKind::Colon,
+                    ':' => self.lex_potential_double(':', TokenKind::Colon, TokenKind::DoubleColon),
                     ';' => TokenKind::Semicolon,
                     '/' => {
                         if self.match_next('/') {

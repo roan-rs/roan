@@ -6,6 +6,7 @@ use crate::{
     Ast,
 };
 use anyhow::Result;
+use log::debug;
 use roan_error::error::PulseError::ExpectedToken;
 
 /// A parser that converts a list of tokens into an Abstract Syntax Tree (AST).
@@ -128,6 +129,7 @@ impl Parser {
     pub fn expect(&mut self, kind: TokenKind) -> Result<Token> {
         let token = self.peek();
 
+        debug!("Expected token: {:?}, found: {:?}", kind, token.kind);
         if token.kind == kind {
             Ok(self.consume())
         } else {

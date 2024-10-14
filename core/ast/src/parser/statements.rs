@@ -1,7 +1,12 @@
-use crate::{Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, TokenKind, TypeAnnotation};
+use crate::{
+    Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, StructField, Token, TokenKind,
+    TypeAnnotation,
+};
+use anyhow::Result;
 use log::debug;
 use roan_error::error::PulseError::{
-    ExpectedToken, MultipleRestParameters, RestParameterNotLastPosition,
+    ExpectedToken, MultipleRestParameters, MultipleSelfParameters, RestParameterNotLastPosition,
+    SelfParameterCannotBeRest, SelfParameterNotFirst,
 };
 
 impl Parser {
@@ -14,11 +19,40 @@ impl Parser {
     /// - `Ok(Some(Stmt))`: A parsed statement.
     /// - `Ok(None)`: If the token is a comment or semicolon.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_stmt(&mut self) -> anyhow::Result<Option<Stmt>> {
+    pub fn parse_stmt(&mut self) -> Result<Option<Stmt>> {
         let token = self.peek();
 
         let stmt = match token.kind {
-            TokenKind::Fn | TokenKind::Export => Some(self.parse_fn()?),
+            TokenKind::Pub => {
+                if self.peek_next().kind == TokenKind::Fn {
+                    Some(self.parse_fn()?)
+                } else if self.peek_next().kind == TokenKind::Struct {
+                    Some(self.parse_struct()?)
+                } else if self.peek_next().kind == TokenKind::Trait {
+                    Some(self.parse_trait()?)
+                } else {
+                    None
+                }
+            }
+            TokenKind::Fn => Some(self.parse_fn()?),
+            TokenKind::Struct => Some(self.parse_struct()?),
+            TokenKind::Trait => Some(self.parse_trait()?),
+            TokenKind::Impl => {
+                let impl_keyword = self.consume();
+                if self.peek().kind == TokenKind::Identifier {
+                    let ident = self.consume();
+
+                    if self.peek().kind == TokenKind::For {
+                        Some(self.parse_trait_impl(impl_keyword, ident)?)
+                    } else if self.peek().kind == TokenKind::LeftBrace {
+                        Some(self.parse_impl(impl_keyword, ident)?)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
             TokenKind::Use => Some(self.parse_use()?),
             TokenKind::If => Some(self.parse_if()?),
             TokenKind::Let => Some(self.parse_let()?),
@@ -57,6 +91,139 @@ impl Parser {
         Ok(stmt)
     }
 
+    /// Parses an `impl` block for implementing a struct.
+    ///
+    /// An `impl` block is used to implement methods for a struct.
+    ///
+    /// # Returns
+    /// - `Ok(Stmt)`: An impl block.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_impl(&mut self, impl_keyword: Token, ident: Token) -> Result<Stmt> {
+        debug!("Parsing impl block");
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut methods: Vec<crate::Fn> = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let func = self.parse_fn()?.into_function();
+
+            methods.push(func);
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Stmt::new_struct_impl(impl_keyword, ident, methods))
+    }
+
+    /// Parses an `impl` block for implementing a trait.
+    ///
+    /// An `impl` block is used to implement methods for a trait.
+    ///
+    /// # Returns
+    /// - `Ok(Stmt)`: An impl block.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_trait_impl(&mut self, impl_keyword: Token, ident: Token) -> Result<Stmt> {
+        debug!("Parsing impl block");
+        let for_token = self.expect(TokenKind::For)?;
+
+        let trait_name = self.expect(TokenKind::Identifier)?;
+
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut methods: Vec<crate::Fn> = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let func = self.parse_fn()?.into_function();
+
+            methods.push(func);
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Stmt::new_trait_impl(
+            impl_keyword,
+            ident,
+            for_token,
+            trait_name,
+            methods,
+        ))
+    }
+
+    /// Parses a 'pub' keyword (if present) followed by an identifier.
+    pub fn parse_pub(&mut self, expected: TokenKind) -> Result<(Token, bool)> {
+        let mut public = false;
+        let token = if self.peek().kind == TokenKind::Pub {
+            self.consume();
+            public = true;
+            self.consume()
+        } else {
+            self.consume()
+        };
+
+        Ok((token, public))
+    }
+
+    /// Parses a `trait` declaration.
+    ///
+    /// A `trait` declaration defines a new interface that can be implemented by other types.
+    ///
+    /// # Returns
+    /// - `Ok(Stmt)`: A trait declaration.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_trait(&mut self) -> Result<Stmt> {
+        debug!("Parsing trait");
+        let (trait_token, public) = self.parse_pub(TokenKind::Trait)?;
+
+        let name = self.expect(TokenKind::Identifier)?;
+
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut methods: Vec<crate::Fn> = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let func = self.parse_fn()?.into_function();
+            methods.push(func);
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Stmt::new_trait_def(trait_token, name, methods, public))
+    }
+
+    /// Parses a `struct` declaration.
+    ///
+    /// A `struct` declaration defines a new data structure with named fields.
+    ///
+    /// # Returns
+    /// - `Ok(Stmt)`: A struct declaration.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_struct(&mut self) -> Result<Stmt> {
+        debug!("Parsing struct");
+        let (struct_token, public) = self.parse_pub(TokenKind::Struct)?;
+        let name = self.expect(TokenKind::Identifier)?;
+
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut fields: Vec<StructField> = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let ident = self.expect(TokenKind::Identifier)?;
+            let type_annotation = self.parse_type_annotation()?;
+            fields.push(StructField {
+                ident,
+                type_annotation,
+            });
+
+            if self.peek().kind != TokenKind::RightBrace {
+                self.expect(TokenKind::Comma)?;
+            }
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Stmt::new_struct(struct_token, name, fields, public))
+    }
+
     /// Parses a `while` statement.
     ///
     /// A `while` statement is used to execute a block of code repeatedly as long as a condition is true.
@@ -64,7 +231,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A while statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_while(&mut self) -> anyhow::Result<Option<Stmt>> {
+    pub fn parse_while(&mut self) -> Result<Option<Stmt>> {
         debug!("Parsing while statement");
         let while_token = self.consume();
         let condition = self.parse_expr()?;
@@ -83,7 +250,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A throw statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_throw(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_throw(&mut self) -> Result<Stmt> {
         debug!("Parsing throw statement");
         let throw_token = self.consume();
         let value = self.parse_expr()?;
@@ -100,7 +267,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A try-catch statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_try(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_try(&mut self) -> Result<Stmt> {
         debug!("Parsing try statement");
         let try_token = self.consume();
 
@@ -131,7 +298,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Some(Stmt))`: A return statement with or without a value.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_return(&mut self) -> anyhow::Result<Option<Stmt>> {
+    pub fn parse_return(&mut self) -> Result<Option<Stmt>> {
         debug!("Parsing return statement");
         let return_token = self.consume();
         let value = if self.peek().kind != TokenKind::Semicolon {
@@ -152,7 +319,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A variable declaration statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_let(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_let(&mut self) -> Result<Stmt> {
         debug!("Parsing let statement");
         self.expect(TokenKind::Let)?;
         let ident = self.expect(TokenKind::Identifier)?;
@@ -169,7 +336,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: An if statement with possible elseif and else blocks.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_if(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_if(&mut self) -> Result<Stmt> {
         debug!("Parsing if statement");
         let if_token = self.consume();
 
@@ -231,7 +398,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A use statement.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_use(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_use(&mut self) -> Result<Stmt> {
         debug!("Parsing use statement");
         let use_token = self.consume();
 
@@ -269,12 +436,12 @@ impl Parser {
 
     /// Parses a type annotation following a variable or parameter.
     ///
-    /// A type annotation specifies the type of a variable or function parameter.
+    /// A type annotation specifies the type of variable or function parameter.
     ///
     /// # Returns
     /// - `Ok(TypeAnnotation)`: A parsed type annotation.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_type_annotation(&mut self) -> anyhow::Result<TypeAnnotation> {
+    pub fn parse_type_annotation(&mut self) -> Result<TypeAnnotation> {
         debug!("Parsing type annotation");
         let colon = self.expect(TokenKind::Colon)?;
         let type_name = self.expect(TokenKind::Identifier)?;
@@ -282,7 +449,7 @@ impl Parser {
         Ok(TypeAnnotation { colon, type_name })
     }
 
-    /// Parses the return type of a function.
+    /// Parses the return type of function.
     ///
     /// The return type indicates the type of value a function returns.
     ///
@@ -290,7 +457,7 @@ impl Parser {
     /// - `Ok(Some(FunctionType))`: If the return type is parsed.
     /// - `Ok(None)`: If no return type is provided.
     /// - `Err`: If the syntax is incorrect.
-    pub fn parse_return_type(&mut self) -> anyhow::Result<Option<FunctionType>> {
+    pub fn parse_return_type(&mut self) -> Result<Option<FunctionType>> {
         debug!("Parsing return type");
         if self.peek().kind == TokenKind::Identifier {
             Err(ExpectedToken(
@@ -314,7 +481,7 @@ impl Parser {
     /// # Returns
     /// - `Ok(Block)`: A parsed block of statements.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_block(&mut self) -> anyhow::Result<Block> {
+    pub fn parse_block(&mut self) -> Result<Block> {
         debug!("Parsing block");
         let mut stmts = vec![];
 
@@ -337,33 +504,17 @@ impl Parser {
     /// # Returns
     /// - `Ok(Stmt)`: A function declaration.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_fn(&mut self) -> anyhow::Result<Stmt> {
+    pub fn parse_fn(&mut self) -> Result<Stmt> {
         debug!("Parsing function");
-        let mut exported = false;
-        let fn_token = if self.peek().kind == TokenKind::Export {
-            self.consume();
+        let (fn_token, public) = self.parse_pub(TokenKind::Fn)?;
 
-            if self.peek().kind == TokenKind::Fn {
-                exported = true;
-
-                self.consume()
-            } else {
-                return Err(ExpectedToken(
-                    "function".to_string(),
-                    "You can only export functions".to_string(),
-                    self.peek().span.clone(),
-                )
-                .into());
-            }
-        } else {
-            self.consume()
-        };
         let name = self.expect(TokenKind::Identifier)?;
 
         self.expect(TokenKind::LeftParen)?;
         let mut params = vec![];
 
         let mut has_rest_param = false;
+        let mut is_static = true;
 
         if self.peek().kind != TokenKind::RightParen {
             while self.peek().kind != TokenKind::RightParen && !self.is_eof() {
@@ -380,7 +531,20 @@ impl Parser {
                 }
 
                 let param = self.consume();
-                let type_annotation = self.parse_type_annotation()?;
+
+                if param.literal() == "self" {
+                    if !is_static {
+                        return Err(MultipleSelfParameters(self.peek().span.clone()).into());
+                    }
+
+                    is_static = false;
+
+                    if is_rest {
+                        return Err(SelfParameterCannotBeRest(self.peek().span.clone()).into());
+                    }
+                }
+
+                let type_annotation = self.parse_optional_type_annotation()?;
 
                 if has_rest_param && self.peek().kind != TokenKind::RightParen {
                     return Err(RestParameterNotLastPosition(param.span.clone()).into());
@@ -394,23 +558,31 @@ impl Parser {
             }
         }
 
+        if !is_static && params[0].ident.literal() != "self" {
+            return Err(SelfParameterNotFirst(self.peek().span.clone()).into());
+        }
+
         self.expect(TokenKind::RightParen)?;
 
         let return_type = self.parse_return_type()?;
 
-        self.expect(TokenKind::LeftBrace)?;
-
-        let body = self.parse_block()?;
-
-        self.expect(TokenKind::RightBrace)?;
+        let mut body = Block { stmts: vec![] };
+        if self.peek().kind != TokenKind::LeftBrace {
+            self.expect(TokenKind::Semicolon)?;
+        } else {
+            self.expect(TokenKind::LeftBrace)?;
+            body = self.parse_block()?;
+            self.expect(TokenKind::RightBrace)?;
+        }
 
         Ok(Stmt::new_fn(
             fn_token,
             name.literal(),
             params,
             body,
-            exported,
+            public,
             return_type,
+            is_static,
         ))
     }
 }

@@ -375,12 +375,27 @@ pub enum Expr {
     Assign(Assign),
     /// A vector (list) of expressions.
     Vec(VecExpr),
-    /// An access expression (e.g., `struct.name`, `arr[0]`).
+    /// An access expression (e.g., `struct.name`, `arr[0]`, `Person::new`).
     Access(AccessExpr),
     /// A spread operator for variadic arguments. (e.g., `...args`)
     Spread(Spread),
     /// Null literal.
     Null(Token),
+    /// Struct constructor. (e.g., `MyStruct { field: value }`)
+    StructConstructor(StructConstructor),
+}
+
+/// Represents a struct constructor expression in the AST.
+///
+/// A struct constructor creates a new instance of a struct with the specified field values.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StructConstructor {
+    /// The name of the struct being constructed.
+    pub name: String,
+    /// The field values for the struct.
+    pub fields: Vec<(String, Expr)>,
+    /// The token representing the struct constructor in the source code.
+    pub token: Token,
 }
 
 /// Enum representing the kind of access in an access expression.
@@ -390,6 +405,8 @@ pub enum AccessKind {
     Field(Box<Expr>),
     /// Index access (e.g., `[0]`).
     Index(Box<Expr>),
+    /// Static method access (e.g., `Person::new`).
+    StaticMethod(Box<Expr>),
 }
 
 /// Represents an access expression in the AST.
@@ -413,6 +430,9 @@ impl GetSpan for AccessExpr {
             AccessKind::Index(index_expr) => {
                 TextSpan::combine(vec![self.token.span.clone(), index_expr.span()])
             } // Span includes '[' , index, and ']'
+            AccessKind::StaticMethod(method) => {
+                TextSpan::combine(vec![self.token.span.clone(), method.span()])
+            }
         };
         TextSpan::combine(vec![base_span, access_span])
     }
@@ -445,6 +465,7 @@ impl GetSpan for Expr {
             Expr::Access(a) => a.span(),
             Expr::Spread(s) => TextSpan::combine(vec![s.token.span.clone(), s.expr.span()]),
             Expr::Null(t) => t.span.clone(),
+            Expr::StructConstructor(s) => s.token.span.clone(),
         }
     }
 }
@@ -721,5 +742,41 @@ impl Expr {
     /// A new `Expr::Vec` variant.
     pub fn new_vec(exprs: Vec<Expr>) -> Self {
         Expr::Vec(VecExpr { exprs })
+    }
+
+    /// Creates a new struct constructor expression.
+    ///
+    /// # Arguments
+    /// * `name` - The name of the struct being constructed.
+    /// * `fields` - The field values for the struct.
+    /// * `token` - The token representing the struct constructor.
+    ///
+    /// # Returns
+    ///
+    /// A new `Expr::StructConstructor` variant.
+    pub fn new_struct_constructor(name: String, fields: Vec<(String, Expr)>, token: Token) -> Self {
+        Expr::StructConstructor(StructConstructor {
+            name,
+            fields,
+            token,
+        })
+    }
+    
+    /// Creates a new static method access expression.
+    /// 
+    /// # Arguments
+    /// * `base` - The base expression being accessed.
+    /// * `method` - The method expression.
+    /// * `token` - The token representing the '::' operator.
+    /// 
+    /// # Returns
+    /// 
+    /// A new `Expr::Access` variant with `AccessKind::StaticMethod`.
+    pub fn new_static_method_access(base: Expr, method: Expr, token: Token) -> Self {
+        Expr::Access(AccessExpr {
+            base: Box::new(base),
+            access: AccessKind::StaticMethod(Box::new(method)),
+            token,
+        })
     }
 }

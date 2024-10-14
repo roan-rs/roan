@@ -55,4 +55,24 @@ pub enum PulseError {
     LoopContinue(TextSpan),
     #[error("Invalid spread operator usage.")]
     InvalidSpread(TextSpan),
+    #[error("Found multiple 'self' parameters.")]
+    MultipleSelfParameters(TextSpan),
+    #[error("Found 'self' parameter in non-first position.")]
+    SelfParameterNotFirst(TextSpan),
+    #[error("Self parameter cannot be rest.")]
+    SelfParameterCannotBeRest(TextSpan),
+    #[error("Struct not found: {0}")]
+    StructNotFoundError(String, TextSpan),
+    #[error("Trait definition not found: {0}")]
+    TraitNotFoundError(String, TextSpan),
+    #[error("Struct {0} already implements trait {1}")]
+    StructAlreadyImplementsTrait(String, String, TextSpan),
+    #[error("Trait {0} doesn't implement required method")]
+    TraitMethodNotImplemented(String, Vec<String>, TextSpan),
+    #[error("Cannot assign value to static member")]
+    StaticMemberAssignment(TextSpan),
+    #[error("Attempted to access static member of non-struct type")]
+    StaticMemberAccess(TextSpan),
+    #[error("Only call expressions can be accessed in a static context")]
+    StaticContext(TextSpan),
 }

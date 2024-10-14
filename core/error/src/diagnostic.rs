@@ -57,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-        .expect("Error writing level");
+            .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -158,7 +158,10 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             },
             PulseError::RestParameterNotLast(span)
             | PulseError::RestParameterNotLastPosition(span)
-            | PulseError::MultipleRestParameters(span) => Diagnostic {
+            | PulseError::MultipleRestParameters(span)
+            | PulseError::SelfParameterCannotBeRest(span)
+            | PulseError::SelfParameterNotFirst(span)
+            | PulseError::MultipleSelfParameters(span)| PulseError::StaticContext(span) | PulseError::StaticMemberAccess(span) | PulseError::StaticMemberAssignment(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -170,12 +173,34 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             | PulseError::SemanticError(_, span)
             | PulseError::UnexpectedToken(_, span)
             | PulseError::InvalidEscapeSequence(_, span)
-            | PulseError::NonBooleanCondition(_, span) => Diagnostic {
+            | PulseError::NonBooleanCondition(_, span)
+            | PulseError::StructNotFoundError(_, span)
+            | PulseError::TraitNotFoundError(_, span)
+            => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
                 location: Some(span.clone()),
                 hint: None,
+                content,
+            },
+            PulseError::TraitMethodNotImplemented(name, methods, span) => Diagnostic {
+                title: format!(
+                    "Trait {name} doesn't implement these methods: {}",
+                    methods.join(", ")
+                ),
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: Some("Method not implemented".to_string()),
+                content,
+            },
+            PulseError::StructAlreadyImplementsTrait(_, _, span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: Some("Struct already implements this trait".to_string()),
                 content,
             },
             PulseError::ExpectedToken(expected, hint, span) => Diagnostic {

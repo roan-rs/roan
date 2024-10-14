@@ -109,7 +109,7 @@ impl Parser {
 
                 if next_precedence > operator_precedence
                     || (next_precedence == operator_precedence
-                        && next_operator.associativity() == BinOpAssociativity::Right)
+                    && next_operator.associativity() == BinOpAssociativity::Right)
                 {
                     right = self.parse_binary_expression_recurse(right, next_precedence)?;
                 } else {
@@ -179,6 +179,11 @@ impl Parser {
                 let index = self.parse_expr()?;
                 self.expect(TokenKind::RightBracket)?;
                 expr = Expr::new_index_access(expr, index, token);
+            } else if token.kind == TokenKind::DoubleColon {
+                let colons = self.consume();
+                let field = self.parse_expr()?;
+
+                expr = Expr::new_static_method_access(expr, field, colons);
             } else {
                 break;
             }
@@ -186,6 +191,38 @@ impl Parser {
         }
 
         Ok(expr)
+    }
+
+    /// Parses a struct constructor expression.
+    ///
+    /// This method expects an identifier followed by a left brace and a list of field assignments.
+    ///
+    /// # Parameters
+    /// - `identifier`: The token representing the struct name.
+    ///
+    /// # Returns
+    /// - `Ok(Expr)`: The parsed struct constructor expression if successful.
+    /// - `Err(anyhow::Error)`: An error if parsing fails.
+    pub fn parse_struct_constructor(&mut self, identifier: Token) -> anyhow::Result<Expr> {
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut fields = vec![];
+
+        while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+            let field_name = self.consume();
+            self.expect(TokenKind::Colon)?;
+            let field_value = self.parse_expr()?;
+
+            fields.push((field_name.literal(), field_value));
+
+            if self.peek().kind != TokenKind::RightBrace {
+                self.expect(TokenKind::Comma)?;
+            }
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Expr::new_struct_constructor(identifier.literal(), fields, identifier))
     }
 
     /// Parses a primary expression, such as literals, identifiers, or parenthesized expressions.
@@ -209,6 +246,8 @@ impl Parser {
                 log::debug!("Parsing identifier: {}", token.literal());
                 if self.peek().kind == TokenKind::LeftParen {
                     self.parse_call_expr(token)
+                } else if self.peek().kind == TokenKind::LeftBrace {
+                    self.parse_struct_constructor(token)
                 } else {
                     Ok(Expr::new_variable(token.clone(), token.literal()))
                 }

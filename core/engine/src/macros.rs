@@ -8,5 +8,5 @@ macro_rules! entries {
             )*
             map
         }
-    };
+    }
 }

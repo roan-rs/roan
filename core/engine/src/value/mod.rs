@@ -5,15 +5,14 @@ use crate::{
             __string_char_at, __string_char_code_at, __string_chars, __string_contains,
             __string_ends_with, __string_index_of, __string_last_index_of, __string_len,
             __string_replace, __string_reverse, __string_slice, __string_split,
-            __string_starts_with,
-            __string_to_lowercase, __string_to_uppercase, __string_trim, __string_trim_end,
-            __string_trim_start,
+            __string_starts_with, __string_to_lowercase, __string_to_uppercase, __string_trim,
+            __string_trim_end, __string_trim_start,
         },
         vec::{__vec_len, __vec_next},
     },
     vm::native_fn::NativeFunction,
 };
-use roan_ast::{Literal, LiteralType};
+use roan_ast::{Literal, LiteralType, Struct};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
@@ -32,6 +31,7 @@ pub enum Value {
     Bool(bool),
     String(String),
     Vec(Vec<Value>),
+    Struct(Struct, HashMap<String, Value>),
     Null,
     Void,
 }
@@ -127,6 +127,8 @@ impl Display for Value {
             }
             Value::Null => write!(f, "null"),
             Value::Void => write!(f, "void"),
+            // TODO: improve formatting of structs
+            Value::Struct(..) => write!(f, "struct"),
         }
     }
 }

@@ -1,10 +1,57 @@
-use {eprintln,format} from "std::io";
+use { println, print } from "std::io";
 
-export fn main() -> int {
-    let name = "Roan";
-    let code = name.char_code_at(0);
+pub struct Person {
+    name: string,
+    age: int,
+    occupation: string,
+}
 
-    eprintln("Hello, {}{}!", );
+trait PersonTrait {
+    fn new(name: string, age: int, occupation: string) -> Self;
+    fn get_name(self) -> string;
+    fn get_age(self) -> int;
+    fn get_occupation(self) -> string;
+    fn introduce(self) -> void;
+}
+
+impl Person {
+    pub fn new(name: string, age: int, occupation: string) -> Person {
+        return Person {
+            name: name,
+            age: age,
+            occupation: occupation,
+        };
+    }
+}
+
+impl PersonTrait for Person {
+    fn new(name: string, age: int, occupation: string) -> Person {
+        return Person::new(name, age, occupation);
+    }
+
+    fn get_name(self) -> string {
+        return self.name;
+    }
+
+    fn get_age(self) -> int {
+        return self.age;
+    }
+
+    fn get_occupation(self) -> string {
+        return self.occupation;
+    }
+
+    fn introduce(self) -> void {
+        println("Hello! My name is {}.", self.get_name());
+        println("I am {} years old.", self.get_age());
+        println("I work as a {}.", self.get_occupation());
+    }
+}
+
+pub fn main() -> int {
+    let person = Person::new("John Doe", 30, "Software Engineer");
+
+    person.introduce();
 
     return 0;
 }
