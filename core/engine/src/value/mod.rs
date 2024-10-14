@@ -12,7 +12,7 @@ use crate::{
     },
     vm::native_fn::NativeFunction,
 };
-use roan_ast::{Literal, LiteralType};
+use roan_ast::{Literal, LiteralType, Struct};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
@@ -31,6 +31,7 @@ pub enum Value {
     Bool(bool),
     String(String),
     Vec(Vec<Value>),
+    Struct(Struct, HashMap<String, Value>),
     Null,
     Void,
 }
@@ -126,6 +127,8 @@ impl Display for Value {
             }
             Value::Null => write!(f, "null"),
             Value::Void => write!(f, "void"),
+            // TODO: improve formatting of structs
+            Value::Struct(..) => write!(f, "struct"),
         }
     }
 }

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::{
     context::Context,
@@ -109,8 +110,19 @@ impl Module {
                         _ => return Err(StaticContext(expr.span()).into()),
                     }
                 }
-                _ => todo!("missing access: {:?}", access),
             },
+            Expr::StructConstructor(constructor) => {
+                let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
+
+                let mut fields = HashMap::new();
+                
+                for (field_name, expr) in constructor.fields.iter() {
+                    self.interpret_expr(expr, ctx, vm)?;
+                    fields.insert(field_name.clone(), vm.pop().unwrap());
+                }
+
+                Ok(Value::Struct(struct_def, fields))
+            }
             Expr::Assign(assign) => self.interpret_assignment(assign.clone(), ctx, vm),
             Expr::Vec(vec) => self.interpret_vec(vec.clone(), ctx, vm),
             Expr::Binary(b) => self.interpret_binary(b.clone(), ctx, vm),
