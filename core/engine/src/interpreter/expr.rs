@@ -403,6 +403,27 @@ impl Module {
     ) -> Result<Value> {
         match expr {
             Expr::Call(call) => {
+                let value_clone = value.clone();
+                if let Value::Struct(struct_def, _) = value_clone {
+                    let field = struct_def.find_method(&call.callee);
+
+                    if field.is_none() {
+                        return Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into());
+                    }
+
+                    let field = field.unwrap();
+                    let mut args = vec![value.clone()];
+                    for arg in call.args.iter() {
+                        self.interpret_expr(arg, ctx, vm)?;
+                        args.push(vm.pop().expect("Expected value on stack"));
+                    }
+
+                    self.execute_user_defined_function(field.clone(), Arc::new(Mutex::new(self.clone())), args, ctx, vm)?;
+
+                    return Ok(vm.pop().expect("Expected value on stack"));
+                }
+
+
                 let methods = value.builtin_methods();
                 if let Some(method) = methods.get(&call.callee) {
                     let mut args = vec![value.clone()];

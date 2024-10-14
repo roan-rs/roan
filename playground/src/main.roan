@@ -1,28 +1,32 @@
-use { println } from "std::io";
+use { println, print } from "std::io";
 
 pub struct Person {
     name: string,
     age: int,
+    occupation: string,
 }
 
 trait PersonTrait {
-    fn new(name: string, age: int) -> Self;
+    fn new(name: string, age: int, occupation: string) -> Self;
     fn get_name(self) -> string;
     fn get_age(self) -> int;
+    fn get_occupation(self) -> string;
+    fn introduce(self) -> void;
 }
 
 impl Person {
-    pub fn new(name: string, age: int) -> Person {
+    pub fn new(name: string, age: int, occupation: string) -> Person {
         return Person {
             name: name,
             age: age,
+            occupation: occupation,
         };
     }
 }
 
 impl PersonTrait for Person {
-    fn new(name: string, age: int) -> Person {
-        return null;
+    fn new(name: string, age: int, occupation: string) -> Person {
+        return Person::new(name, age, occupation);
     }
 
     fn get_name(self) -> string {
@@ -32,12 +36,22 @@ impl PersonTrait for Person {
     fn get_age(self) -> int {
         return self.age;
     }
+
+    fn get_occupation(self) -> string {
+        return self.occupation;
+    }
+
+    fn introduce(self) -> void {
+        println("Hello! My name is {}.", self.get_name());
+        println("I am {} years old.", self.get_age());
+        println("I work as a {}.", self.get_occupation());
+    }
 }
 
 pub fn main() -> int {
-    let person = Person::new("John Doe", 30);
+    let person = Person::new("John Doe", 30, "Software Engineer");
 
-    println("Name: {}", person.name);
+    person.introduce();
 
     return 0;
 }
