@@ -11,6 +11,7 @@ use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
+use crate::path::canonicalize_path;
 
 /// A basic implementation of the `ModuleLoader` trait that caches modules in memory.
 #[derive(Debug)]
@@ -63,7 +64,7 @@ impl ModuleLoader for BasicModuleLoader {
         }
 
         // Use the resolved path as the cache key to prevent duplicates.
-        let resolved_path = self.resolve_referrer(referrer, spec)?;
+        let resolved_path = canonicalize_path(self.resolve_referrer(referrer, spec)?)?;
         let cache_key = resolved_path.to_string_lossy().to_string();
 
         // Module not in cache; proceed to load.
