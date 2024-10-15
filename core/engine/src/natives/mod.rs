@@ -12,6 +12,7 @@ mod process;
 #[macro_export]
 macro_rules! native_function {
     (fn $name:ident($($arg:ident),* $(, ...$rest:ident)?) {$($body:tt)*}) => {
+        #[allow(unused_mut, unused_variables)]
         pub fn $name() -> NativeFunction {
             NativeFunction {
                 name: stringify!($name).to_string(),
@@ -71,7 +72,7 @@ pub fn get_stored_function() -> Vec<StoredFunction> {
         __abort(),
         __pid(),
     ]
-    .into_iter()
-    .map(|f| StoredFunction::Native(f))
-    .collect()
+        .into_iter()
+        .map(|f| StoredFunction::Native(f))
+        .collect()
 }
