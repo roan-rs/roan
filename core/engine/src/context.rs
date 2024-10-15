@@ -23,7 +23,7 @@ use std::{
 /// let src_code = r#"
 /// use { println, eprintln } from "std::io";
 ///
-/// export fn add(a: float, b: float) -> float {
+/// fn add(a: float, b: float) -> float {
 ///     return a + b;
 /// }
 ///
@@ -115,5 +115,36 @@ impl Context {
     pub fn insert_module(&self, name: String, module: Arc<Mutex<Module>>) {
         debug!("Inserting module: {}", name);
         self.module_loader.insert(name, module);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::module::Module;
+    use crate::source::Source;
+    use crate::value::Value;
+    use crate::vm::VM;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_eval() {
+        let ctx = Context::builder().build();
+        let src_code = r#"
+fn main() -> int {
+    return 3;
+}
+
+main();
+"#;
+
+        let source = Source::from_string(src_code.to_string());
+        let module = Module::new(source);
+
+        let mut vm = VM::new();
+        let result = ctx.eval(module, &mut vm);
+
+
+        assert_eq!(vm.pop(), Some(Value::Int(3)));
     }
 }
