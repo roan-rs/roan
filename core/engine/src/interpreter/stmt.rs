@@ -91,10 +91,18 @@ impl Module {
                 }
             }
             Stmt::Struct(struct_stmt) => {
-                self.structs.push(struct_stmt);
+                self.structs.push(struct_stmt.clone());
+
+                if struct_stmt.public {
+                    self.exports.push((struct_stmt.name.literal(), ExportType::Struct(struct_stmt.clone())));
+                }
             }
             Stmt::TraitDef(trait_stmt) => {
-                self.traits.push(trait_stmt);
+                self.traits.push(trait_stmt.clone());
+
+                if trait_stmt.public {
+                    self.exports.push((trait_stmt.name.literal(), ExportType::Trait(trait_stmt.clone())));
+                }
             }
             Stmt::StructImpl(impl_stmt) => {
                 let struct_name = impl_stmt.struct_name.literal();
@@ -129,7 +137,7 @@ impl Module {
                         trait_name,
                         impl_stmt.trait_name.span.clone(),
                     )
-                    .into());
+                        .into());
                 }
 
                 let missing_methods: Vec<String> = trait_def
@@ -145,7 +153,7 @@ impl Module {
                         missing_methods,
                         impl_stmt.trait_name.span.clone(),
                     )
-                    .into());
+                        .into());
                 }
 
                 struct_def.trait_impls.push(impl_stmt);
@@ -236,7 +244,7 @@ impl Module {
                         "While loop condition".into(),
                         while_stmt.condition.span(),
                     )
-                    .into())
+                        .into())
                 }
             };
 
@@ -314,22 +322,25 @@ impl Module {
             u.items.iter().map(|i| (i.literal(), i)).collect();
 
         for (name, item) in imported_items {
-            match loaded_module.find_function(&name) {
-                Some(StoredFunction::Function {
-                    function,
-                    defining_module,
-                }) => {
-                    self.functions.push(StoredFunction::Function {
-                        function: function.clone(),
-                        defining_module: Arc::clone(&defining_module),
-                    });
+            let export = loaded_module.exports.iter().find(|(n, _)| n == &name);
+
+            if let Some((name, value)) = export {
+                match value {
+                    ExportType::Function(f) => {
+                        self.functions.push(StoredFunction::Function {
+                            function: f.clone(),
+                            defining_module: Arc::clone(&module),
+                        });
+                    }
+                    ExportType::Struct(s) => {
+                        self.structs.push(s.clone());
+                    }
+                    ExportType::Trait(t) => {
+                        self.traits.push(t.clone());
+                    }
                 }
-                Some(StoredFunction::Native(n)) => {
-                    self.functions.push(StoredFunction::Native(n.clone()));
-                }
-                None => {
-                    return Err(ImportError(name, item.span.clone()).into());
-                }
+            } else {
+                return Err(ImportError(name, item.span.clone()).into());
             }
         }
 
@@ -354,7 +365,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                .into())
+                    .into())
             }
         };
 
@@ -373,7 +384,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                        .into())
+                            .into())
                     }
                 };
 

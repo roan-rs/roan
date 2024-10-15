@@ -20,7 +20,8 @@ pub mod loaders;
 #[derive(Debug, Clone)]
 pub enum ExportType {
     Function(Fn),
-    Variable,
+    Trait(TraitDef),
+    Struct(Struct),
 }
 
 /// Represents a function stored in a module.

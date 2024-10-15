@@ -1,4 +1,4 @@
-use { println, print } from "std::io";
+use { println, print, format, Debug } from "std::io";
 use { pid } from "std::process";
 
 pub struct Person {
@@ -49,7 +49,14 @@ impl PersonTrait for Person {
     }
 }
 
+impl Debug for Person {
+    fn fmt(self) -> string {
+        return format("Person {{ name: {}, age: {}, occupation: {} }}", self.get_name(), self.get_age(), self.get_occupation());
+    }
+}
+
 pub fn introduce_person(name: string, age: int, occupation: string) -> void {
     let person = Person::new(name, age, occupation);
-    person.introduce();
+
+    println("Introducing a new person: {}", person.fmt());
 }
