@@ -16,3 +16,9 @@ native_function!(
         std::process::abort();
     }
 );
+
+native_function!(
+    fn __pid() {
+        Value::Int(std::process::id() as i64)
+    }
+);

@@ -2,7 +2,7 @@ use crate::{
     module::StoredFunction,
     natives::io::{__eprint, __format, __print},
 };
-use crate::natives::process::{__abort, __exit};
+use crate::natives::process::{__abort, __exit, __pid};
 
 pub mod io;
 mod process;
@@ -61,7 +61,7 @@ macro_rules! as_cast {
 }
 
 pub fn get_stored_function() -> Vec<StoredFunction> {
-    vec![__print(), __format(), __eprint(), __exit(), __abort()]
+    vec![__print(), __format(), __eprint(), __exit(), __abort(), __pid()]
         .into_iter()
         .map(|f| StoredFunction::Native(f))
         .collect()

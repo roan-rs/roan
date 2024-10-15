@@ -37,3 +37,20 @@ pub fn exit(code: number) -> void {
 pub fn abort() -> void {
     __abort();
 }
+
+/// Returns the process ID of the current process.
+///
+/// The process ID is a unique identifier assigned to the current process by the operating system.
+///
+/// # Examples
+///
+/// ```roan
+/// use { pid } from "std::process";
+/// use { println } from "std::io";
+///
+/// let id = pid();
+/// println("The process ID is {}.", id);
+/// ```
+pub fn pid() -> number {
+    __pid()
+}
