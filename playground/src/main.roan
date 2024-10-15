@@ -45,6 +45,7 @@ impl PersonTrait for Person {
         println("Hello! My name is {}.", self.get_name());
         println("I am {} years old.", self.get_age());
         println("I work as a {}.", self.get_occupation());
+        throw "Failed to create a new person.";
     }
 }
 

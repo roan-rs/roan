@@ -1,5 +1,6 @@
 use crate::TextSpan;
 use std::{fmt::Debug, path::PathBuf};
+use colored::Colorize;
 
 /// A frame represents a single function call.
 ///
@@ -53,8 +54,14 @@ impl Debug for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} at {}:{}:{}",
-            self.name, self.path, self.span.start.line, self.span.start.column
+            "   {} {} {}{}{}{}{}",
+            "at".dimmed(),
+            self.name.bold(),
+            self.path.cyan(),
+            ":".dimmed(),
+            self.span.start.line.to_string().yellow(),
+            ":".dimmed(),
+            self.span.start.column.to_string().dimmed().yellow()
         )
     }
 }

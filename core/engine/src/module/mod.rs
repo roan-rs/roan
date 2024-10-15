@@ -6,9 +6,7 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{
-    source::Source, Ast, Expr, Fn, Lexer, Parser, Struct, Token, TraitDef,
-};
+use roan_ast::{source::Source, Ast, Expr, Fn, Lexer, Parser, Struct, Token, TraitDef, Try};
 use roan_error::{error::PulseError::VariableNotFoundError, print_diagnostic, TextSpan};
 use std::{
     collections::HashMap,
@@ -46,8 +44,6 @@ pub struct Module {
     pub(crate) scopes: Vec<HashMap<String, Value>>,
     pub(crate) structs: Vec<Struct>,
     pub(crate) traits: Vec<TraitDef>,
-    // pub(crate) structs_impl: Vec<StructImpl>,
-    // pub(crate) traits_impl: Vec<TraitImpl>,
 }
 
 impl Module {
@@ -71,8 +67,6 @@ impl Module {
             ast: Ast::new(),
             structs: vec![],
             traits: vec![],
-            // structs_impl: vec![],
-            // traits_impl: vec![],
         };
 
         Arc::new(Mutex::new(module))
