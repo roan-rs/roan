@@ -50,6 +50,29 @@ impl Module {
             }
             Stmt::Try(try_stmt) => {
                 debug!("Interpreting try: {:?}", try_stmt);
+
+                let try_result = self.execute_block(try_stmt.try_block.clone(), ctx, vm);
+
+                match try_result {
+                    Ok(_) => {
+                        return Ok(())
+                    }
+                    Err(e) => {
+                        match e.downcast_ref::<PulseError>() {
+                            Some(PulseError::Throw(msg, _)) => {
+                                self.enter_scope();
+
+                                let var_name = try_stmt.error_ident.literal();
+                                self.declare_variable(var_name, Value::String(msg.clone()));
+                                let result = self.execute_block(try_stmt.catch_block, ctx, vm);
+                                self.exit_scope();
+
+                                result?
+                            }
+                            _ => return Err(e)
+                        }
+                    }
+                }
             }
             Stmt::Let(l) => {
                 debug!("Interpreting let: {:?}", l.ident);
@@ -94,7 +117,6 @@ impl Module {
                     *existing_struct = struct_def;
                 }
             }
-
             Stmt::TraitImpl(impl_stmt) => {
                 let for_name = impl_stmt.struct_name.literal();
                 let trait_name = impl_stmt.trait_name.literal();
@@ -113,7 +135,7 @@ impl Module {
                         trait_name,
                         impl_stmt.trait_name.span.clone(),
                     )
-                    .into());
+                        .into());
                 }
 
                 let missing_methods: Vec<String> = trait_def
@@ -129,7 +151,7 @@ impl Module {
                         missing_methods,
                         impl_stmt.trait_name.span.clone(),
                     )
-                    .into());
+                        .into());
                 }
 
                 struct_def.trait_impls.push(impl_stmt);
@@ -220,7 +242,7 @@ impl Module {
                         "While loop condition".into(),
                         while_stmt.condition.span(),
                     )
-                    .into())
+                        .into())
                 }
             };
 
@@ -300,9 +322,9 @@ impl Module {
         for (name, item) in imported_items {
             match loaded_module.find_function(&name) {
                 Some(StoredFunction::Function {
-                    function,
-                    defining_module,
-                }) => {
+                         function,
+                         defining_module,
+                     }) => {
                     self.functions.push(StoredFunction::Function {
                         function: function.clone(),
                         defining_module: Arc::clone(&defining_module),
@@ -338,7 +360,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                .into())
+                    .into())
             }
         };
 
@@ -357,7 +379,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                        .into())
+                            .into())
                     }
                 };
 

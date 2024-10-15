@@ -16,12 +16,11 @@ use roan_error::{
     error::{
         PulseError,
         PulseError::{
-            InvalidSpread, PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError,
+            InvalidSpread, PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError, StaticContext, StaticMemberAccess, StaticMemberAssignment,
         },
     },
     print_diagnostic,
 };
-use roan_error::error::PulseError::{StaticContext, StaticMemberAccess, StaticMemberAssignment};
 
 impl Module {
     /// Interpret an expression.
@@ -131,10 +130,8 @@ impl Module {
             Expr::Null(_) => Ok(Value::Null),
             _ => todo!("missing expr: {:?}", expr),
         };
-
-        vm.push(val?);
-
-        Ok(())
+        
+        Ok(vm.push(val?))
     }
 
     /// Interpret a vector expression.
