@@ -52,13 +52,7 @@ impl PersonTrait for Person {
 pub fn main() -> int {
     let person = Person::new("John Doe", 30, "Software Engineer");
 
-    try {
-        person.introduce();
-    } catch e {
-        println("Error: {}", e);
-    }
-
-    println("Program ended successfully.");
+    person.introduce();
 
     return 0;
 }
