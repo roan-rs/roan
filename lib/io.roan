@@ -53,3 +53,7 @@ pub fn eprintln(msg: string, ...args: string) -> void {
     eprint(msg, ...args);
     eprint("\n");
 }
+
+pub trait Debug {
+    pub fn fmt(self) -> string;
+}
