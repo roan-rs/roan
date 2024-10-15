@@ -10,3 +10,9 @@ native_function!(
         std::process::exit(status as i32);
     }
 );
+
+native_function!(
+    fn __abort() {
+        std::process::abort();
+    }
+);

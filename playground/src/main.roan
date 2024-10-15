@@ -1,5 +1,5 @@
 use { println, print } from "std::io";
-use { exit } from "std::process";
+use { abort } from "std::process";
 
 pub struct Person {
     name: string,
@@ -52,7 +52,7 @@ impl PersonTrait for Person {
 pub fn main() -> int {
     let person = Person::new("John Doe", 30, "Software Engineer");
 
-    exit(0);
+    abort(0);
 
     person.introduce();
 
