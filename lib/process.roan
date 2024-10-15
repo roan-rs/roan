@@ -1,0 +1,56 @@
+/// Terminates the current process with the specified exit code.
+///
+/// This function will never return and will immediately terminate the current
+/// process. The exit code is passed through to the underlying OS and will be
+/// available for consumption by another process.
+///
+/// # Examples
+///
+/// ```roan
+/// use { exit } from "std::process";
+///
+/// exit(1);
+/// ```
+pub fn exit(code: number) -> void {
+    __exit(code);
+}
+
+/// Aborts the current process.
+///
+/// This function will cause the current process to terminate immediately
+/// without running any active cleanup code, like destructors of any objects.
+/// The termination status will indicate unsuccessful termination.
+///
+/// # Examples
+///
+/// Basic usage:
+///
+/// ```roan
+/// use { abort } from "std::process";
+///
+/// abort();
+/// ```
+///
+/// # Note
+///
+/// This function will not return to the caller.
+pub fn abort() -> void {
+    __abort();
+}
+
+/// Returns the process ID of the current process.
+///
+/// The process ID is a unique identifier assigned to the current process by the operating system.
+///
+/// # Examples
+///
+/// ```roan
+/// use { pid } from "std::process";
+/// use { println } from "std::io";
+///
+/// let id = pid();
+/// println("The process ID is {}.", id);
+/// ```
+pub fn pid() -> number {
+    __pid()
+}

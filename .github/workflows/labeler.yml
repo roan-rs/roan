@@ -1,9 +1,11 @@
 name: "Pull Request Labeler"
 on:
-  - pull_request_target
+  issue_comment:
+    types: [ created ]
 
 jobs:
   labeler:
+    if: ${{ github.event.comment.body == '/label' && github.event.issue.pull_request }}
     permissions:
       contents: read
       pull-requests: write

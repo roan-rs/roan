@@ -57,7 +57,7 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-            .expect("Error writing level");
+        .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
@@ -161,7 +161,10 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             | PulseError::MultipleRestParameters(span)
             | PulseError::SelfParameterCannotBeRest(span)
             | PulseError::SelfParameterNotFirst(span)
-            | PulseError::MultipleSelfParameters(span)| PulseError::StaticContext(span) | PulseError::StaticMemberAccess(span) | PulseError::StaticMemberAssignment(span) => Diagnostic {
+            | PulseError::MultipleSelfParameters(span)
+            | PulseError::StaticContext(span)
+            | PulseError::StaticMemberAccess(span)
+            | PulseError::StaticMemberAssignment(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -175,8 +178,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             | PulseError::InvalidEscapeSequence(_, span)
             | PulseError::NonBooleanCondition(_, span)
             | PulseError::StructNotFoundError(_, span)
-            | PulseError::TraitNotFoundError(_, span)
-            => Diagnostic {
+            | PulseError::TraitNotFoundError(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,

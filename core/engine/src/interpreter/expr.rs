@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use crate::{
     context::Context,
     module::{Module, StoredFunction},
@@ -16,10 +14,15 @@ use roan_error::{
     error::{
         PulseError,
         PulseError::{
-            InvalidSpread, PropertyNotFoundError, UndefinedFunctionError, VariableNotFoundError, StaticContext, StaticMemberAccess, StaticMemberAssignment,
+            InvalidSpread, PropertyNotFoundError, StaticContext, StaticMemberAccess,
+            StaticMemberAssignment, UndefinedFunctionError, VariableNotFoundError,
         },
     },
     print_diagnostic,
+};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
 };
 
 impl Module {
@@ -92,17 +95,31 @@ impl Module {
                             let method = struct_def.find_static_method(&method_name);
 
                             if method.is_none() {
-                                return Err(UndefinedFunctionError(method_name, call.token.span.clone()).into());
+                                return Err(UndefinedFunctionError(
+                                    method_name,
+                                    call.token.span.clone(),
+                                )
+                                .into());
                             }
 
                             let method = method.unwrap();
 
-                            let args = call.args.iter().map(|arg| {
-                                self.interpret_expr(arg, ctx, vm).unwrap();
-                                vm.pop().unwrap()
-                            }).collect();
+                            let args = call
+                                .args
+                                .iter()
+                                .map(|arg| {
+                                    self.interpret_expr(arg, ctx, vm).unwrap();
+                                    vm.pop().unwrap()
+                                })
+                                .collect();
 
-                            self.execute_user_defined_function(method.clone(), Arc::new(Mutex::new(self.clone())), args, ctx, vm)?;
+                            self.execute_user_defined_function(
+                                method.clone(),
+                                Arc::new(Mutex::new(self.clone())),
+                                args,
+                                ctx,
+                                vm,
+                            )?;
 
                             Ok(vm.pop().unwrap())
                         }
@@ -111,7 +128,8 @@ impl Module {
                 }
             },
             Expr::StructConstructor(constructor) => {
-                let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
+                let struct_def =
+                    self.get_struct(&constructor.name, constructor.token.span.clone())?;
 
                 let mut fields = HashMap::new();
 
@@ -130,7 +148,7 @@ impl Module {
             Expr::Null(_) => Ok(Value::Null),
             _ => todo!("missing expr: {:?}", expr),
         };
-        
+
         Ok(vm.push(val?))
     }
 
@@ -353,7 +371,7 @@ impl Module {
                                 vec.len(),
                                 index_expr.span(),
                             )
-                                .into());
+                            .into());
                         }
 
                         vec[idx] = new_val.clone();
@@ -366,14 +384,14 @@ impl Module {
                                 "Unable to determine variable for assignment".into(),
                                 access.base.span(),
                             )
-                                .into())
+                            .into())
                         }
                     } else {
                         Err(PulseError::TypeMismatch(
                             "Left side of assignment must be a vector with integer index".into(),
                             access.base.span(),
                         )
-                            .into())
+                        .into())
                     }
                 }
                 AccessKind::StaticMethod(_) => Err(StaticMemberAssignment(access.span()).into()),
@@ -415,11 +433,16 @@ impl Module {
                         args.push(vm.pop().expect("Expected value on stack"));
                     }
 
-                    self.execute_user_defined_function(field.clone(), Arc::new(Mutex::new(self.clone())), args, ctx, vm)?;
+                    self.execute_user_defined_function(
+                        field.clone(),
+                        Arc::new(Mutex::new(self.clone())),
+                        args,
+                        ctx,
+                        vm,
+                    )?;
 
                     return Ok(vm.pop().expect("Expected value on stack"));
                 }
-
 
                 let methods = value.builtin_methods();
                 if let Some(method) = methods.get(&call.callee) {
@@ -440,9 +463,9 @@ impl Module {
                 let name = lit.ident.clone();
                 match value {
                     Value::Struct(_, fields) => {
-                        let field = fields
-                            .get(&name)
-                            .ok_or_else(|| PropertyNotFoundError(name.clone(), lit.token.span.clone()))?;
+                        let field = fields.get(&name).ok_or_else(|| {
+                            PropertyNotFoundError(name.clone(), lit.token.span.clone())
+                        })?;
 
                         Ok(field.clone())
                     }

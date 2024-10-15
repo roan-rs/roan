@@ -1,4 +1,5 @@
 use { println, print } from "std::io";
+use { pid } from "std::process";
 
 pub struct Person {
     name: string,
@@ -45,14 +46,11 @@ impl PersonTrait for Person {
         println("Hello! My name is {}.", self.get_name());
         println("I am {} years old.", self.get_age());
         println("I work as a {}.", self.get_occupation());
-        throw "Failed to create a new person.";
     }
 }
 
 pub fn main() -> int {
-    let person = Person::new("John Doe", 30, "Software Engineer");
-
-    person.introduce();
+    println("Current process ID: {}.", pid());
 
     return 0;
 }
