@@ -1,3 +1,4 @@
+use std::process::Command;
 use crate::{
     as_cast, native_function,
     value::Value,
@@ -18,7 +19,6 @@ native_function!(fn __eprint(
 ) {
     let msg = as_cast!(msg, String);
     eprint!("{}", msg);
-
     Value::Void
 });
 
