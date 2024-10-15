@@ -761,16 +761,16 @@ impl Expr {
             token,
         })
     }
-    
+
     /// Creates a new static method access expression.
-    /// 
+    ///
     /// # Arguments
     /// * `base` - The base expression being accessed.
     /// * `method` - The method expression.
     /// * `token` - The token representing the '::' operator.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new `Expr::Access` variant with `AccessKind::StaticMethod`.
     pub fn new_static_method_access(base: Expr, method: Expr, token: Token) -> Self {
         Expr::Access(AccessExpr {

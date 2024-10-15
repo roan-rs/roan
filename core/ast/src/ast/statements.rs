@@ -57,7 +57,11 @@ impl Struct {
         self.impls
             .iter()
             .flat_map(|impl_stmt| impl_stmt.methods.iter())
-            .chain(self.trait_impls.iter().flat_map(|impl_stmt| impl_stmt.methods.iter()))
+            .chain(
+                self.trait_impls
+                    .iter()
+                    .flat_map(|impl_stmt| impl_stmt.methods.iter()),
+            )
             .find(|method| method.name == name && method.is_static == is_static)
     }
 
@@ -69,7 +73,6 @@ impl Struct {
         self.find_method_internal(name, false)
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructField {

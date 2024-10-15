@@ -109,7 +109,7 @@ impl Parser {
 
                 if next_precedence > operator_precedence
                     || (next_precedence == operator_precedence
-                    && next_operator.associativity() == BinOpAssociativity::Right)
+                        && next_operator.associativity() == BinOpAssociativity::Right)
                 {
                     right = self.parse_binary_expression_recurse(right, next_precedence)?;
                 } else {
@@ -222,7 +222,11 @@ impl Parser {
 
         self.expect(TokenKind::RightBrace)?;
 
-        Ok(Expr::new_struct_constructor(identifier.literal(), fields, identifier))
+        Ok(Expr::new_struct_constructor(
+            identifier.literal(),
+            fields,
+            identifier,
+        ))
     }
 
     /// Parses a primary expression, such as literals, identifiers, or parenthesized expressions.

@@ -1,6 +1,6 @@
 use crate::TextSpan;
-use std::{fmt::Debug, path::PathBuf};
 use colored::Colorize;
+use std::{fmt::Debug, path::PathBuf};
 
 /// A frame represents a single function call.
 ///
