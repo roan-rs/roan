@@ -2,8 +2,10 @@ use crate::{
     module::StoredFunction,
     natives::io::{__eprint, __format, __print},
 };
+use crate::natives::process::__exit;
 
 pub mod io;
+mod process;
 
 #[macro_export]
 macro_rules! native_function {
@@ -59,7 +61,7 @@ macro_rules! as_cast {
 }
 
 pub fn get_stored_function() -> Vec<StoredFunction> {
-    vec![__print(), __format(), __eprint()]
+    vec![__print(), __format(), __eprint(), __exit()]
         .into_iter()
         .map(|f| StoredFunction::Native(f))
         .collect()

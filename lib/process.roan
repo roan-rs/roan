@@ -1,0 +1,16 @@
+/// Terminates the current process with the specified exit code.
+///
+/// This function will never return and will immediately terminate the current
+/// process. The exit code is passed through to the underlying OS and will be
+/// available for consumption by another process.
+///
+/// # Examples
+///
+/// ```roan
+/// use { exit } from "std::process";
+///
+/// exit(1);
+/// ```
+pub fn exit(code: number) -> void {
+    __exit(code);
+}
