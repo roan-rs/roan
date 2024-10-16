@@ -65,3 +65,32 @@ impl Debug for Frame {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Position;
+
+    #[test]
+    fn test_frame_new() {
+        let frame = Frame::new(
+            "main",
+            TextSpan::new(Position::new(1, 1, 1), Position::new(1, 1, 1), "main".into()),
+            ".\\src\\main.roan",
+        );
+
+        assert_eq!(frame.name, "main");
+        assert_eq!(frame.span.start.line, 1);
+        assert_eq!(frame.span.start.column, 1);
+        assert_eq!(frame.path, ".\\src\\main.roan");
+    }
+
+    #[test]
+    fn test_frame_path_or_unknown() {
+        let path = Some(PathBuf::from("tests\\test.roan"));
+        assert_eq!(Frame::path_or_unknown(path), "tests\\test.roan");
+
+        let path = None;
+        assert_eq!(Frame::path_or_unknown(path), "unknown");
+    }
+}

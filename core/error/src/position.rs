@@ -107,3 +107,46 @@ impl Default for Position {
         Self::new(1, 1, 0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_position_new() {
+        let pos = Position::new(1, 1, 0);
+        assert_eq!(pos.line(), 1);
+        assert_eq!(pos.column(), 1);
+        assert_eq!(pos.index(), 0);
+    }
+
+    #[test]
+    fn test_position_increment_line() {
+        let mut pos = Position::new(1, 1, 0);
+        pos.increment_line();
+        assert_eq!(pos.line(), 2);
+        assert_eq!(pos.column(), 1);
+        assert_eq!(pos.index(), 1);
+    }
+
+    #[test]
+    fn test_position_increment_column() {
+        let mut pos = Position::new(1, 1, 0);
+        pos.increment_column();
+        assert_eq!(pos.line(), 1);
+        assert_eq!(pos.column(), 2);
+        assert_eq!(pos.index(), 1);
+    }
+
+    #[test]
+    fn test_position_display() {
+        let pos = Position::new(1, 1, 0);
+        assert_eq!(format!("{}", pos), "1:1 (index: 0)");
+    }
+
+    #[test]
+    fn test_position_default() {
+        let default_pos = Position::default();
+        assert_eq!(default_pos, Position::new(1, 1, 0));
+    }
+}
