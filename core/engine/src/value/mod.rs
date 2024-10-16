@@ -251,3 +251,98 @@ impl Value {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_value_add() {
+        assert_eq!(Value::Int(1) + Value::Int(2), Value::Int(3));
+        assert_eq!(Value::Float(1.0) + Value::Float(2.0), Value::Float(3.0));
+        assert_eq!(Value::Int(1) + Value::Float(2.0), Value::Float(3.0));
+        assert_eq!(Value::Float(1.0) + Value::Int(2), Value::Float(3.0));
+        assert_eq!(
+            Value::String("Hello".to_string()) + Value::String("World".to_string()),
+            Value::String("HelloWorld".to_string())
+        );
+    }
+
+    #[test]
+    fn test_value_sub() {
+        assert_eq!(Value::Int(1) - Value::Int(2), Value::Int(-1));
+        assert_eq!(Value::Float(1.0) - Value::Float(2.0), Value::Float(-1.0));
+        assert_eq!(Value::Int(1) - Value::Float(2.0), Value::Float(-1.0));
+        assert_eq!(Value::Float(1.0) - Value::Int(2), Value::Float(-1.0));
+    }
+
+    #[test]
+    fn test_value_mul() {
+        assert_eq!(Value::Int(1) * Value::Int(2), Value::Int(2));
+        assert_eq!(Value::Float(1.0) * Value::Float(2.0), Value::Float(2.0));
+        assert_eq!(Value::Int(1) * Value::Float(2.0), Value::Float(2.0));
+        assert_eq!(Value::Float(1.0) * Value::Int(2), Value::Float(2.0));
+    }
+
+    #[test]
+    fn test_value_div() {
+        assert_eq!(Value::Int(1) / Value::Int(2), Value::Int(0));
+        assert_eq!(Value::Float(1.0) / Value::Float(2.0), Value::Float(0.5));
+        assert_eq!(Value::Int(1) / Value::Float(2.0), Value::Float(0.5));
+        assert_eq!(Value::Float(5.5) / Value::Int(2), Value::Float(2.75));
+    }
+
+    #[test]
+    fn test_value_rem() {
+        assert_eq!(Value::Int(1) % Value::Int(2), Value::Int(1));
+        assert_eq!(Value::Float(1.0) % Value::Float(2.0), Value::Float(1.0));
+        assert_eq!(Value::Int(1) % Value::Float(2.0), Value::Float(1.0));
+        assert_eq!(Value::Float(5.5) % Value::Int(2), Value::Float(1.5));
+    }
+
+    #[test]
+    fn test_value_pow() {
+        assert_eq!(Value::Int(2).pow(Value::Int(3)), Value::Int(8));
+        assert_eq!(Value::Float(2.0).pow(Value::Float(3.0)), Value::Float(8.0));
+        assert_eq!(Value::Int(2).pow(Value::Float(3.0)), Value::Float(8.0));
+        assert_eq!(Value::Float(2.0).pow(Value::Int(3)), Value::Float(8.0));
+    }
+
+    #[test]
+    fn test_value_access_index() {
+        assert_eq!(Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)]).access_index(Value::Int(1)), Value::Int(2));
+        assert_eq!(Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)]).access_index(Value::Int(3)), Value::Null);
+        assert_eq!(Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)]).access_index(Value::Float(1.0)), Value::Null);
+        assert_eq!(Value::Int(1).access_index(Value::Int(1)), Value::Null);
+    }
+
+    #[test]
+    fn test_value_eq() {
+        assert_eq!(Value::Int(1), Value::Int(1));
+        assert_eq!(Value::Float(1.0), Value::Float(1.0));
+        assert_eq!(Value::Bool(true), Value::Bool(true));
+        assert_eq!(Value::String("Hello".to_string()), Value::String("Hello".to_string()));
+        assert_eq!(Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)]), Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)]));
+        assert_eq!(Value::Null, Value::Null);
+        assert_eq!(Value::Void, Value::Void);
+    }
+
+    #[test]
+    fn test_value_partial_cmp() {
+        assert_eq!(Value::Int(1).partial_cmp(&Value::Int(2)), Some(std::cmp::Ordering::Less));
+        assert_eq!(Value::Float(1.0).partial_cmp(&Value::Float(2.0)), Some(std::cmp::Ordering::Less));
+        assert_eq!(Value::Int(1).partial_cmp(&Value::Float(2.0)), Some(std::cmp::Ordering::Less));
+        assert_eq!(Value::Float(1.0).partial_cmp(&Value::Int(2)), Some(std::cmp::Ordering::Less));
+    }
+
+    #[test]
+    fn test_value_display() {
+        assert_eq!(format!("{}", Value::Int(1)), "1");
+        assert_eq!(format!("{}", Value::Float(1.0)), "1");
+        assert_eq!(format!("{}", Value::Bool(true)), "true");
+        assert_eq!(format!("{}", Value::String("Hello".to_string())), "Hello");
+        assert_eq!(format!("{}", Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)])), "[1, 2, 3]");
+        assert_eq!(format!("{}", Value::Null), "null");
+        assert_eq!(format!("{}", Value::Void), "void");
+    }
+}

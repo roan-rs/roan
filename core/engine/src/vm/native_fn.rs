@@ -56,6 +56,57 @@ impl NativeFunction {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::{as_cast, native_function};
+    use super::*;
+    use crate::value::Value;
+    
+    native_function!(fn __add_str(str1, str2) {
+        let str1 = as_cast!(str1, String);
+        let str2 = as_cast!(str2, String);
+        
+        Value::String(format!("{}{}", str1, str2))
+    });
+
+    #[test]
+    fn test_native_function() {
+        assert_eq!(
+            __add_str().call(vec![Value::String("Hello".to_string()), Value::String("World".to_string())]).unwrap(),
+            Value::String("HelloWorld".to_string())
+        );
+    }
+
+    native_function!(fn __test1(a, b) {
+        assert_eq!(a, Value::Int(1));
+        assert_eq!(b, Value::Int(2));
+        Value::Null
+    });
+    
+    #[test]
+    fn test_native_function_with_params() {
+        assert_eq!(
+            __test1().call(vec![Value::Int(1), Value::Int(2)]).unwrap(),
+            Value::Null
+        );
+    }
+
+    native_function!(fn __test(a, b, ...rest) {
+        assert_eq!(a, Value::Int(1));
+        assert_eq!(b, Value::Int(2));
+        assert_eq!(rest[0], Value::Int(3));
+        Value::Null
+    });
+
+    #[test]
+    fn test_native_function_with_rest_param() {
+        assert_eq!(
+            __test().call(vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)]).unwrap(),
+            Value::Null
+        );
+    }
+}
+
 impl Display for NativeFunction {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "<native fn {}>", self.name)

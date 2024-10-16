@@ -21,3 +21,25 @@ native_function!(
         Value::Vec(vec)
     }
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_vec_len() {
+        let mut vec = vec![Value::Int(1), Value::Int(2), Value::Int(3)];
+        let result = __vec_len().call(vec![Value::Vec(vec.clone())]).unwrap();
+
+        assert_eq!(result, Value::Int(3));
+    }
+
+    #[test]
+    fn test_vec_next() {
+        let mut vec = vec![Value::Int(1), Value::Int(2), Value::Int(3)];
+        let result = __vec_next().call(vec![Value::Vec(vec.clone())]).unwrap();
+
+        assert_eq!(result, Value::Vec(vec![Value::Int(2), Value::Int(3)]));
+    }
+}

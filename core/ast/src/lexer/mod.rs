@@ -148,7 +148,7 @@ impl Lexer {
                                 next.to_string(),
                                 TextSpan::new(self.position, self.position, next.to_string()),
                             )
-                            .into())
+                                .into())
                         }
                     }
                     self.consume();
@@ -289,7 +289,7 @@ impl Lexer {
                         self.lex_potential_double('=', TokenKind::Equals, TokenKind::EqualsEquals)
                     }
                     '<' => self.lex_potential_double(
-                        '<',
+                        '=',
                         TokenKind::LessThan,
                         TokenKind::LessThanEquals,
                     ),
@@ -306,7 +306,7 @@ impl Lexer {
                             c.to_string(),
                             TextSpan::new(start_pos, self.position, c.to_string()),
                         )
-                        .into());
+                            .into());
                     }
                 };
 
@@ -426,53 +426,247 @@ mod tests {
     use super::*;
     use crate::source::Source;
 
-    #[test]
-    fn test_single_dot() {
-        let source = Source::from_string("arr.len();".to_string());
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.lex().unwrap();
-
-        let expected_kinds = vec![
-            TokenKind::Identifier, // arr
-            TokenKind::Dot,        // .
-            TokenKind::Identifier, // len
-            TokenKind::LeftParen,  // (
-            TokenKind::RightParen, // )
-            TokenKind::Semicolon,  // ;
-        ];
-
-        let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
-
-        assert_eq!(actual_kinds, expected_kinds);
+    macro_rules! test_tokens {
+        ($source:expr, $expected:expr) => {
+            {
+                let source = Source::from_string($source.to_string());
+                let mut lexer = Lexer::new(source);
+                let tokens = lexer.lex().expect("Lexing failed");
+                let expected_kinds = $expected;
+                let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
+                assert_eq!(
+                    actual_kinds,
+                    expected_kinds,
+                    "Source: {}\nExpected: {:?}\nActual: {:?}",
+                    $source,
+                    expected_kinds,
+                    actual_kinds
+                );
+            }
+        };
     }
 
     #[test]
-    fn test_double_dot() {
-        let source = Source::from_string("..".to_string());
-        let mut lexer = Lexer::new(source);
-        let tokens = lexer.lex().unwrap();
-
-        let expected_kinds = vec![
-            TokenKind::DoubleDot, // ..
+    fn test_lexer_tokens() {
+        let test_cases = vec![
+            // String Literal
+            (
+                r#""Hello, world!""#,
+                vec![TokenKind::String("Hello, world!".to_string())],
+            ),
+            // Integer Literal
+            (
+                "123",
+                vec![TokenKind::Integer(123)],
+            ),
+            // Float Literal
+            (
+                "123.45",
+                vec![TokenKind::Float(123.45)],
+            ),
+            // Identifier
+            (
+                "foo",
+                vec![TokenKind::Identifier],
+            ),
+            // Boolean Literals
+            (
+                "true; false",
+                vec![
+                    TokenKind::True,
+                    TokenKind::Semicolon,
+                    TokenKind::False,
+                ],
+            ),
+            // Arrow
+            (
+                "->",
+                vec![TokenKind::Arrow],
+            ),
+            // Single Dot
+            (
+                "arr.len();",
+                vec![
+                    TokenKind::Identifier, // arr
+                    TokenKind::Dot,        // .
+                    TokenKind::Identifier, // len
+                    TokenKind::LeftParen,  // (
+                    TokenKind::RightParen, // )
+                    TokenKind::Semicolon,  // ;
+                ],
+            ),
+            // Double Dot
+            (
+                "..",
+                vec![TokenKind::DoubleDot],
+            ),
+            // Triple Dot
+            (
+                "...",
+                vec![TokenKind::TripleDot],
+            ),
+            // Double Colon
+            (
+                "::",
+                vec![TokenKind::DoubleColon],
+            ),
+            // Comment
+            (
+                "// This is a comment\nlet x = 10;",
+                vec![
+                    TokenKind::Comment,
+                    TokenKind::Let,
+                    TokenKind::Identifier, // x
+                    TokenKind::Equals,
+                    TokenKind::Integer(10),
+                    TokenKind::Semicolon,
+                ],
+            ),
+            // Escape Sequences
+            (
+                r#""\n\r\t\\"#,
+                vec![TokenKind::String("\n\r\t\\".to_string())],
+            ),
+            // Mixed Tokens
+            (
+                r#"let x = 42; if (x > 10) { return x; }"#,
+                vec![
+                    TokenKind::Let,
+                    TokenKind::Identifier, // x
+                    TokenKind::Equals,
+                    TokenKind::Integer(42),
+                    TokenKind::Semicolon,
+                    TokenKind::If,
+                    TokenKind::LeftParen,
+                    TokenKind::Identifier, // x
+                    TokenKind::GreaterThan,
+                    TokenKind::Integer(10),
+                    TokenKind::RightParen,
+                    TokenKind::LeftBrace,
+                    TokenKind::Return,
+                    TokenKind::Identifier, // x
+                    TokenKind::Semicolon,
+                    TokenKind::RightBrace,
+                ],
+            ),
+            // All Single-Character Punctuations
+            (
+                "(){},.;",
+                vec![
+                    TokenKind::LeftParen,
+                    TokenKind::RightParen,
+                    TokenKind::LeftBrace,
+                    TokenKind::RightBrace,
+                    TokenKind::Comma,
+                    TokenKind::Dot,
+                    TokenKind::Semicolon,
+                ],
+            ),
+            // All Multi-Character Operators
+            (
+                "== != <= >= ++ -- += -= *= /= && || ::",
+                vec![
+                    TokenKind::EqualsEquals,
+                    TokenKind::BangEquals,
+                    TokenKind::LessThanEquals,
+                    TokenKind::GreaterThanEquals,
+                    TokenKind::Increment,
+                    TokenKind::Decrement,
+                    TokenKind::PlusEquals,
+                    TokenKind::MinusEquals,
+                    TokenKind::MultiplyEquals,
+                    TokenKind::DivideEquals,
+                    TokenKind::And,
+                    TokenKind::Or,
+                    TokenKind::DoubleColon,
+                ],
+            ),
+            // Unicode Identifiers
+            // (
+            //     "变量 = 100;",
+            //     vec![
+            //         TokenKind::Identifier, // 变量
+            //         TokenKind::Equals,
+            //         TokenKind::Integer(100),
+            //         TokenKind::Semicolon,
+            //     ],
+            // ),
+            (
+                "_privateVar = true;",
+                vec![
+                    TokenKind::Identifier, // _privateVar
+                    TokenKind::Equals,
+                    TokenKind::True,
+                    TokenKind::Semicolon,
+                ],
+            ),
+            // Number Edge Cases
+            (
+                "007",
+                vec![TokenKind::Integer(7)],
+            ),
+            (
+                "123.",
+                vec![TokenKind::Float(123.0)],
+            ),
+            // Complex Expressions
+            (
+                "fn add(a, b) -> a + b;",
+                vec![
+                    TokenKind::Fn,
+                    TokenKind::Identifier, // add
+                    TokenKind::LeftParen,
+                    TokenKind::Identifier, // a
+                    TokenKind::Comma,
+                    TokenKind::Identifier, // b
+                    TokenKind::RightParen,
+                    TokenKind::Arrow,
+                    TokenKind::Identifier, // a
+                    TokenKind::Plus,
+                    TokenKind::Identifier, // b
+                    TokenKind::Semicolon,
+                ],
+            ),
+            // Whitespace Variations
+            (
+                "   \n\t let    x   =   5   ;  ",
+                vec![
+                    TokenKind::Let,
+                    TokenKind::Identifier, // x
+                    TokenKind::Equals,
+                    TokenKind::Integer(5),
+                    TokenKind::Semicolon,
+                ],
+            ),
+            (
+                "let x = 10",
+                vec![
+                    TokenKind::Let,
+                    TokenKind::Identifier, // x
+                    TokenKind::Equals,
+                    TokenKind::Integer(10),
+                ],
+            ),
         ];
 
-        let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
-
-        assert_eq!(actual_kinds, expected_kinds);
+        for (source, expected) in test_cases {
+            test_tokens!(source, expected);
+        }
     }
 
     #[test]
-    fn test_triple_dot() {
-        let source = Source::from_string("...".to_string());
+    fn test_invalid_escape_sequence() {
+        let source = Source::from_string(r#""\z""#.to_string());
         let mut lexer = Lexer::new(source);
-        let tokens = lexer.lex().unwrap();
+        let result = lexer.lex();
+        assert!(result.is_err(), "Expected an error for invalid escape sequence");
+    }
 
-        let expected_kinds = vec![
-            TokenKind::TripleDot, // ...
-        ];
-
-        let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
-
-        assert_eq!(actual_kinds, expected_kinds);
+    #[test]
+    fn test_invalid_token() {
+        let source = Source::from_string(r#"@@"#.to_string());
+        let mut lexer = Lexer::new(source);
+        let result = lexer.lex();
+        assert!(result.is_err(), "Expected an error for invalid tokens");
     }
 }

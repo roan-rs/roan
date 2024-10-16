@@ -36,6 +36,12 @@ pub struct Literal {
     pub value: LiteralType,
 }
 
+impl Literal {
+    pub fn new(token: Token, value: LiteralType) -> Self {
+        Literal { token, value }
+    }
+}
+
 /// Enum representing the various binary operators in the language.
 /// Binary operators are used in binary expressions (e.g., `a + b`).
 #[derive(Debug, Copy, Clone, PartialEq)]

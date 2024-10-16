@@ -79,3 +79,53 @@ impl Source {
         self.content[start..end].to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_source_from_string() {
+        let source = Source::from_string("fn main() {}".to_string());
+
+        assert_eq!(source.content(), "fn main() {}");
+        assert_eq!(source.path(), None);
+    }
+
+    #[test]
+    fn test_source_from_bytes() {
+        let source = Source::from_bytes(b"fn main() {}");
+
+        assert_eq!(source.content(), "fn main() {}");
+        assert_eq!(source.path(), None);
+    }
+
+    #[test]
+    fn test_source_with_path() {
+        let source = Source::from_string("fn main() {}".to_string()).with_path(PathBuf::from("tests/test.roan"));
+
+        assert_eq!(source.content(), "fn main() {}");
+        assert_eq!(source.path(), Some(PathBuf::from("tests/test.roan")));
+    }
+
+    #[test]
+    fn test_source_len() {
+        let source = Source::from_string("fn main() {}".to_string());
+
+        assert_eq!(source.len(), 12);
+    }
+
+    #[test]
+    fn test_source_chars() {
+        let source = Source::from_string("fn main() {}".to_string());
+
+        assert_eq!(source.chars().collect::<String>(), "fn main() {}");
+    }
+
+    #[test]
+    fn test_source_get_between() {
+        let source = Source::from_string("fn main() {}".to_string());
+
+        assert_eq!(source.get_between(3, 7), "main");
+    }
+}

@@ -133,3 +133,61 @@ impl std::fmt::Debug for TextSpan {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let start = Position::new(1, 1, 0);
+        let end = Position::new(1, 5, 4);
+        let span = TextSpan::new(start, end, "test".to_string());
+        assert_eq!(span.start, start);
+        assert_eq!(span.end, end);
+        assert_eq!(span.literal, "test");
+    }
+
+    #[test]
+    fn test_combine() {
+        let span1 = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
+        let span2 = TextSpan::new(Position::new(1, 6, 5), Position::new(1, 10, 9), "span".to_string());
+        let combined = TextSpan::combine(vec![span1, span2]);
+        assert_eq!(combined.start, Position::new(1, 1, 0));
+        assert_eq!(combined.end, Position::new(1, 10, 9));
+        assert_eq!(combined.literal, "testspan");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_combine_empty() {
+        TextSpan::combine(vec![]);
+    }
+
+    #[test]
+    fn test_length() {
+        let span = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
+        assert_eq!(span.length(), 4);
+    }
+
+    #[test]
+    fn test_literal() {
+        let span = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
+        assert_eq!(span.literal("test string"), "test");
+    }
+
+    #[test]
+    fn test_default() {
+        let span = TextSpan::default();
+        assert_eq!(span.start, Position::default());
+        assert_eq!(span.end, Position::default());
+        assert_eq!(span.literal, "");
+    }
+
+    #[test]
+    fn test_debug() {
+        let span = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
+        
+        assert_eq!(format!("{:?}", span), "\"test\" (1:1)");
+    }
+}

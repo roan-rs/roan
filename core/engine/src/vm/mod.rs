@@ -56,3 +56,33 @@ impl VM {
         &self.stack
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use roan_error::TextSpan;
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_vm() {
+        let mut vm = VM::new();
+        assert_eq!(vm.frames().len(), 0);
+        assert_eq!(vm.stack().len(), 0);
+
+        let frame = Frame::new("test".to_string(), TextSpan::default(), ".\\test.roan".to_string());
+        vm.push_frame(frame.clone());
+        assert_eq!(vm.frames().len(), 1);
+
+        let value = Value::Int(42);
+        vm.push(value.clone());
+        assert_eq!(vm.stack().len(), 1);
+        assert_eq!(vm.peek(), Some(&value));
+
+        let popped = vm.pop().unwrap();
+        assert_eq!(popped, value);
+        assert_eq!(vm.stack().len(), 0);
+
+        let popped = vm.pop_frame().unwrap();
+        assert_eq!(vm.frames().len(), 0);
+    }
+}
