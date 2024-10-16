@@ -191,7 +191,7 @@ impl Module {
                     defining_module_guard.declare_variable(ident, Value::Vec(rest));
                 } else {
                     if let Some(_type) = param.type_annotation.as_ref() {
-                        if expr.is_none() || arg.is_null() {
+                        if arg.is_null() && !_type.is_nullable {
                             return Err(TypeMismatch(
                                 format!("Expected type {} but got null", _type.type_name.literal()),
                                 expr.unwrap().clone(),
@@ -224,7 +224,9 @@ impl Module {
                                 }
                             }
                         } else {
-                            arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
+                            if arg.is_null() && !_type.is_nullable {
+                                arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
+                            }
                             defining_module_guard.declare_variable(ident, arg.clone());
                         }
                     } else {

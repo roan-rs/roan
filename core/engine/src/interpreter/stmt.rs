@@ -78,7 +78,6 @@ impl Module {
                 if let Some(type_annotation) = &l.type_annotation {
                     let type_name = type_annotation.type_name.literal();
 
-                    println!("{:?}", type_annotation);
                     if type_annotation.is_array {
                         match val.clone() {
                             Value::Vec(v) => {
@@ -100,6 +99,11 @@ impl Module {
                             }
                         }
                     } else {
+                        if val.is_null() && type_annotation.is_nullable {
+                            self.declare_variable(ident.clone(), val);
+                            return Ok(());
+                        }
+
                         val.check_type(
                             &type_name,
                             TextSpan::combine(vec![
