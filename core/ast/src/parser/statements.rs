@@ -446,7 +446,19 @@ impl Parser {
         let colon = self.expect(TokenKind::Colon)?;
         let type_name = self.expect(TokenKind::Identifier)?;
 
-        Ok(TypeAnnotation { colon, type_name })
+        let is_array = if self.peek().kind == TokenKind::LeftBracket {
+            self.consume();
+            self.expect(TokenKind::RightBracket)?;
+            true
+        } else {
+            false
+        };
+
+        Ok(TypeAnnotation {
+            colon,
+            type_name,
+            is_array,
+        })
     }
 
     /// Parses the return type of function.
@@ -470,7 +482,19 @@ impl Parser {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
 
-            Ok(Some(FunctionType { arrow, type_name }))
+            let is_array = if self.peek().kind == TokenKind::LeftBracket {
+                self.consume();
+                self.expect(TokenKind::RightBracket)?;
+                true
+            } else {
+                false
+            };
+
+            Ok(Some(FunctionType {
+                arrow,
+                type_name,
+                is_array,
+            }))
         }
     }
 

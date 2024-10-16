@@ -1,8 +1,13 @@
-use { introduce_person } from "./test.roan";
 use { println } from "std::io";
 
+pub fn test(arr: string[]) -> string[] {
+    return arr
+}
+
 pub fn main() -> int {
-    let name: int = "Alice";
+    let name = "Alice";
+
+    let fail = test(["Alice", 32]);
 
     return 0;
 }

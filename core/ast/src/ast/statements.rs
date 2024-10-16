@@ -1,4 +1,5 @@
-use crate::{ast::expr::Expr, Token};
+use crate::{ast::expr::Expr, GetSpan, Token};
+use roan_error::TextSpan;
 use std::fmt::{Debug, Formatter};
 
 /// Represents a statement in the AST.
@@ -510,6 +511,18 @@ pub struct FnParam {
     pub is_rest: bool,
 }
 
+impl GetSpan for FnParam {
+    fn span(&self) -> TextSpan {
+        let mut span = vec![self.ident.span.clone()];
+
+        if let Some(type_annotation) = &self.type_annotation {
+            span.push(type_annotation.span());
+        }
+
+        TextSpan::combine(span)
+    }
+}
+
 impl FnParam {
     /// Creates a new function parameter.
     ///
@@ -540,6 +553,14 @@ pub struct TypeAnnotation {
     pub colon: Token,
     /// The token representing the type name.
     pub type_name: Token,
+    /// Is this type an array?
+    pub is_array: bool,
+}
+
+impl GetSpan for TypeAnnotation {
+    fn span(&self) -> TextSpan {
+        TextSpan::combine(vec![self.colon.span.clone(), self.type_name.span.clone()])
+    }
 }
 
 /// Represents a function type annotation in the AST.
@@ -551,6 +572,8 @@ pub struct FunctionType {
     pub arrow: Token,
     /// The token representing the return type.
     pub type_name: Token,
+    /// Is this type an array?
+    pub is_array: bool,
 }
 
 impl FunctionType {
@@ -564,8 +587,12 @@ impl FunctionType {
     /// # Returns
     ///
     /// A new `FunctionType` instance.
-    pub fn new(arrow: Token, type_name: Token) -> Self {
-        Self { arrow, type_name }
+    pub fn new(arrow: Token, type_name: Token, is_array: bool) -> Self {
+        Self {
+            arrow,
+            type_name,
+            is_array,
+        }
     }
 }
 

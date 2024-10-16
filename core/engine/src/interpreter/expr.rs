@@ -119,6 +119,7 @@ impl Module {
                                 args,
                                 ctx,
                                 vm,
+                                &call
                             )?;
 
                             Ok(vm.pop().unwrap())
@@ -259,6 +260,7 @@ impl Module {
                     args,
                     ctx,
                     vm,
+                    call
                 ) {
                     Ok(_) => Ok(vm.pop().unwrap_or(Value::Void)),
                     Err(e) => {
@@ -461,6 +463,7 @@ impl Module {
                         args,
                         ctx,
                         vm,
+                        call
                     )?;
 
                     return Ok(vm.pop().expect("Expected value on stack"));

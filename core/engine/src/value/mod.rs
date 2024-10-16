@@ -12,7 +12,9 @@ use crate::{
     },
     vm::native_fn::NativeFunction,
 };
-use roan_ast::{Literal, LiteralType, Struct};
+use anyhow::Result;
+use roan_ast::{Literal, LiteralType, Struct, TypeAnnotation};
+use roan_error::{error::PulseError::TypeMismatch, TextSpan};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
@@ -253,19 +255,84 @@ impl Value {
 }
 
 impl Value {
+    pub fn is_array(&self) -> bool {
+        matches!(self, Value::Vec(_))
+    }
+
+    pub fn is_bool(&self) -> bool {
+        matches!(self, Value::Bool(_))
+    }
+
+    pub fn is_float(&self) -> bool {
+        matches!(self, Value::Float(_))
+    }
+
+    pub fn is_int(&self) -> bool {
+        matches!(self, Value::Int(_))
+    }
+
+    pub fn is_null(&self) -> bool {
+        matches!(self, Value::Null)
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self, Value::String(_))
+    }
+
+    pub fn is_struct(&self) -> bool {
+        matches!(self, Value::Struct(_, _))
+    }
+
+    pub fn is_void(&self) -> bool {
+        matches!(self, Value::Void)
+    }
+}
+
+impl Value {
+    pub fn check_type(&self, expected_type: &str, span: TextSpan) -> Result<()> {
+        if self.is_type(expected_type) {
+            Ok(())
+        } else {
+            Err(TypeMismatch(
+                format!(
+                    "Expected type {} but got {}",
+                    expected_type,
+                    self.type_name()
+                ),
+                span,
+            ).into())
+        }
+    }
+
     pub fn is_type(&self, type_name: &str) -> bool {
+        match type_name {
+            "int" => self.is_int(),
+            "float" => self.is_float(),
+            "bool" => self.is_bool(),
+            "string" => self.is_string(),
+            "null" => self.is_null(),
+            "void" => self.is_void(),
+            _ => false,
+        }
+    }
+
+    pub fn type_name(&self) -> String {
         match self {
-            Value::Int(_) => type_name == "int",
-            Value::Float(_) => type_name == "float",
-            Value::Bool(_) => type_name == "bool",
-            Value::String(_) => type_name == "string",
-            Value::Vec(_) => {
-                type_name.ends_with("[]") && self.is_type(&type_name[..type_name.len() - 2])
+            Value::Int(_) => "int".to_string(),
+            Value::Float(_) => "float".to_string(),
+            Value::Bool(_) => "bool".to_string(),
+            Value::String(_) => "string".to_string(),
+            // Type of vector is based on the type of its first element
+            Value::Vec(vals) => {
+                if vals.is_empty() {
+                    "void[]".to_string()
+                } else {
+                    format!("{}[]", vals[0].type_name())
+                }
             }
-            // TODO: Might not be perfect. For example, structs with the same but different module
-            Value::Struct(struct_def, _) => type_name == struct_def.name.literal(),
-            Value::Null => type_name == "null",
-            Value::Void => type_name == "void",
+            Value::Struct(struct_def, _) => struct_def.name.literal(),
+            Value::Null => "null".to_string(),
+            Value::Void => "void".to_string(),
         }
     }
 }
