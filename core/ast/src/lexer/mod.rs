@@ -148,7 +148,7 @@ impl Lexer {
                                 next.to_string(),
                                 TextSpan::new(self.position, self.position, next.to_string()),
                             )
-                                .into())
+                            .into())
                         }
                     }
                     self.consume();
@@ -288,16 +288,31 @@ impl Lexer {
                     '=' => {
                         self.lex_potential_double('=', TokenKind::Equals, TokenKind::EqualsEquals)
                     }
-                    '<' => self.lex_potential_double(
-                        '=',
-                        TokenKind::LessThan,
-                        TokenKind::LessThanEquals,
-                    ),
-                    '>' => self.lex_potential_double(
-                        '=',
-                        TokenKind::GreaterThan,
-                        TokenKind::GreaterThanEquals,
-                    ),
+                    '~' => TokenKind::Tilde,
+                    '<' => {
+                        if self.match_next('<') {
+                            self.consume();
+                            TokenKind::DoubleLessThan
+                        } else {
+                            self.lex_potential_double(
+                                '=',
+                                TokenKind::LessThan,
+                                TokenKind::LessThanEquals,
+                            )
+                        }
+                    }
+                    '>' => {
+                        if self.match_next('>') {
+                            self.consume();
+                            TokenKind::DoubleGreaterThan
+                        } else {
+                            self.lex_potential_double(
+                                '=',
+                                TokenKind::GreaterThan,
+                                TokenKind::GreaterThanEquals,
+                            )
+                        }
+                    }
                     '&' => self.lex_potential_double('&', TokenKind::Ampersand, TokenKind::And),
                     '|' => self.lex_potential_double('|', TokenKind::Pipe, TokenKind::Or),
                     _ => {
@@ -306,7 +321,7 @@ impl Lexer {
                             c.to_string(),
                             TextSpan::new(start_pos, self.position, c.to_string()),
                         )
-                            .into());
+                        .into());
                     }
                 };
 
@@ -427,23 +442,18 @@ mod tests {
     use crate::source::Source;
 
     macro_rules! test_tokens {
-        ($source:expr, $expected:expr) => {
-            {
-                let source = Source::from_string($source.to_string());
-                let mut lexer = Lexer::new(source);
-                let tokens = lexer.lex().expect("Lexing failed");
-                let expected_kinds = $expected;
-                let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
-                assert_eq!(
-                    actual_kinds,
-                    expected_kinds,
-                    "Source: {}\nExpected: {:?}\nActual: {:?}",
-                    $source,
-                    expected_kinds,
-                    actual_kinds
-                );
-            }
-        };
+        ($source:expr, $expected:expr) => {{
+            let source = Source::from_string($source.to_string());
+            let mut lexer = Lexer::new(source);
+            let tokens = lexer.lex().expect("Lexing failed");
+            let expected_kinds = $expected;
+            let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
+            assert_eq!(
+                actual_kinds, expected_kinds,
+                "Source: {}\nExpected: {:?}\nActual: {:?}",
+                $source, expected_kinds, actual_kinds
+            );
+        }};
     }
 
     #[test]
@@ -455,34 +465,18 @@ mod tests {
                 vec![TokenKind::String("Hello, world!".to_string())],
             ),
             // Integer Literal
-            (
-                "123",
-                vec![TokenKind::Integer(123)],
-            ),
+            ("123", vec![TokenKind::Integer(123)]),
             // Float Literal
-            (
-                "123.45",
-                vec![TokenKind::Float(123.45)],
-            ),
+            ("123.45", vec![TokenKind::Float(123.45)]),
             // Identifier
-            (
-                "foo",
-                vec![TokenKind::Identifier],
-            ),
+            ("foo", vec![TokenKind::Identifier]),
             // Boolean Literals
             (
                 "true; false",
-                vec![
-                    TokenKind::True,
-                    TokenKind::Semicolon,
-                    TokenKind::False,
-                ],
+                vec![TokenKind::True, TokenKind::Semicolon, TokenKind::False],
             ),
             // Arrow
-            (
-                "->",
-                vec![TokenKind::Arrow],
-            ),
+            ("->", vec![TokenKind::Arrow]),
             // Single Dot
             (
                 "arr.len();",
@@ -496,20 +490,11 @@ mod tests {
                 ],
             ),
             // Double Dot
-            (
-                "..",
-                vec![TokenKind::DoubleDot],
-            ),
+            ("..", vec![TokenKind::DoubleDot]),
             // Triple Dot
-            (
-                "...",
-                vec![TokenKind::TripleDot],
-            ),
+            ("...", vec![TokenKind::TripleDot]),
             // Double Colon
-            (
-                "::",
-                vec![TokenKind::DoubleColon],
-            ),
+            ("::", vec![TokenKind::DoubleColon]),
             // Comment
             (
                 "// This is a comment\nlet x = 10;",
@@ -601,14 +586,8 @@ mod tests {
                 ],
             ),
             // Number Edge Cases
-            (
-                "007",
-                vec![TokenKind::Integer(7)],
-            ),
-            (
-                "123.",
-                vec![TokenKind::Float(123.0)],
-            ),
+            ("007", vec![TokenKind::Integer(7)]),
+            ("123.", vec![TokenKind::Float(123.0)]),
             // Complex Expressions
             (
                 "fn add(a, b) -> a + b;",
@@ -647,6 +626,22 @@ mod tests {
                     TokenKind::Integer(10),
                 ],
             ),
+            (
+                "2 << 3",
+                vec![
+                    TokenKind::Integer(2),
+                    TokenKind::DoubleLessThan,
+                    TokenKind::Integer(3),
+                ],
+            ),
+            (
+                "2 >> 3",
+                vec![
+                    TokenKind::Integer(2),
+                    TokenKind::DoubleGreaterThan,
+                    TokenKind::Integer(3),
+                ],
+            ),
         ];
 
         for (source, expected) in test_cases {
@@ -659,7 +654,10 @@ mod tests {
         let source = Source::from_string(r#""\z""#.to_string());
         let mut lexer = Lexer::new(source);
         let result = lexer.lex();
-        assert!(result.is_err(), "Expected an error for invalid escape sequence");
+        assert!(
+            result.is_err(),
+            "Expected an error for invalid escape sequence"
+        );
     }
 
     #[test]

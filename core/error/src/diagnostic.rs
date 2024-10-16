@@ -235,7 +235,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             | PulseError::ImportError(_, span)
             | PulseError::PropertyNotFoundError(_, span)
             | PulseError::TypeMismatch(_, span)
-            | PulseError::InvalidAssignment(_, span) => Diagnostic {
+            | PulseError::InvalidAssignment(_, span) |  PulseError::InvalidUnaryOperation(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
