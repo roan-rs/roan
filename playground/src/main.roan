@@ -1,7 +1,10 @@
 use { introduce_person } from "./test.roan";
+use { println } from "std::io";
 
 pub fn main() -> int {
-    introduce_person("John Doe", 30, "Software Engineer");
+    // introduce_person("John Doe", 30, "Software Engineer");
+
+    println("{}", ~123);
 
     return 0;
 }

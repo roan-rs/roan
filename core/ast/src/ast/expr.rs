@@ -66,6 +66,10 @@ pub enum BinOpKind {
     BitwiseOr,
     /// Bitwise XOR operator (`^`).
     BitwiseXor,
+    /// Bitwise shift left operator (`<<`).
+    ShiftLeft,
+    /// Bitwise shift right operator (`>>`).
+    ShiftRight,
     // Relational operators
     /// Equality operator (`==`).
     Equals,
@@ -131,6 +135,13 @@ pub struct Unary {
     pub expr: Box<Expr>,
     /// The token representing the unary operation in the source code.
     pub token: Token,
+}
+
+impl GetSpan for Unary {
+    /// Returns the source span of the unary expression.
+    fn span(&self) -> TextSpan {
+        TextSpan::combine(vec![self.operator.token.span.clone(), self.expr.span()])
+    }
 }
 
 /// Represents a variable in the AST.
@@ -232,6 +243,8 @@ pub enum UnOpKind {
     Minus,
     /// Bitwise NOT operator (`~`).
     BitwiseNot,
+    /// Logical NOT operator (`!`).
+    LogicalNot,
 }
 
 impl Display for UnOpKind {
@@ -240,6 +253,7 @@ impl Display for UnOpKind {
         match self {
             UnOpKind::Minus => write!(f, "-"),
             UnOpKind::BitwiseNot => write!(f, "~"),
+            UnOpKind::LogicalNot => write!(f, "!"),
         }
     }
 }
@@ -306,23 +320,24 @@ impl BinOperator {
             BinOpKind::Power => 20,
             BinOpKind::Multiply | BinOpKind::Divide | BinOpKind::Modulo => 19,
             BinOpKind::Plus | BinOpKind::Minus => 18,
-            BinOpKind::BitwiseAnd => 17,
-            BinOpKind::BitwiseXor => 16,
-            BinOpKind::BitwiseOr => 15,
-            // Relational
+            BinOpKind::ShiftLeft | BinOpKind::ShiftRight => 17,
+            BinOpKind::BitwiseAnd => 16,
+            BinOpKind::BitwiseXor => 15,
+            BinOpKind::BitwiseOr => 14,
+            // Relational operators
             BinOpKind::LessThan
             | BinOpKind::LessThanOrEqual
             | BinOpKind::GreaterThan
-            | BinOpKind::GreaterThanOrEqual => 14,
-            // Equality
-            BinOpKind::Equals | BinOpKind::EqualsEquals | BinOpKind::BangEquals => 13,
-            // Logical
-            BinOpKind::And => 12,
-            BinOpKind::Or => 11,
-            // Increment/Decrement
-            BinOpKind::Increment | BinOpKind::Decrement => 10,
-            // Assignment
-            BinOpKind::MinusEquals | BinOpKind::PlusEquals => 9,
+            | BinOpKind::GreaterThanOrEqual => 13,
+            // Equality operators
+            BinOpKind::Equals | BinOpKind::EqualsEquals | BinOpKind::BangEquals => 12,
+            // Logical operators
+            BinOpKind::And => 11,
+            BinOpKind::Or => 10,
+            // Increment/Decrement operators
+            BinOpKind::Increment | BinOpKind::Decrement => 9,
+            // Assignment operators
+            BinOpKind::MinusEquals | BinOpKind::PlusEquals => 8,
         }
     }
 

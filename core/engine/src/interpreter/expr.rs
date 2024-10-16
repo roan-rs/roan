@@ -8,7 +8,7 @@ use anyhow::Result;
 use log::debug;
 use roan_ast::{
     AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType,
-    VecExpr,
+    UnOpKind, VecExpr,
 };
 use roan_error::{
     error::{
@@ -146,6 +146,26 @@ impl Module {
             // Spread operator are only supposed to be used in vectors and function calls
             Expr::Spread(s) => Err(InvalidSpread(s.expr.span()).into()),
             Expr::Null(_) => Ok(Value::Null),
+            Expr::Unary(u) => {
+                self.interpret_expr(&u.expr, ctx, vm)?;
+                let val = vm.pop().unwrap();
+
+                let val = match (u.operator.clone().kind, val) {
+                    (UnOpKind::Minus, Value::Int(i)) => Value::Int(-i),
+                    (UnOpKind::Minus, Value::Float(f)) => Value::Float(-f),
+                    (UnOpKind::LogicalNot, Value::Bool(b)) => Value::Bool(!b),
+                    (UnOpKind::BitwiseNot, Value::Int(i)) => Value::Int(!i),
+                    _ => {
+                        return Err(PulseError::InvalidUnaryOperation(
+                            u.operator.kind.to_string(),
+                            u.span(),
+                        )
+                        .into())
+                    }
+                };
+
+                Ok(val)
+            }
             _ => todo!("missing expr: {:?}", expr),
         };
 

@@ -288,6 +288,7 @@ impl Lexer {
                     '=' => {
                         self.lex_potential_double('=', TokenKind::Equals, TokenKind::EqualsEquals)
                     }
+                    '~' => TokenKind::Tilde,
                     '<' => self.lex_potential_double(
                         '=',
                         TokenKind::LessThan,

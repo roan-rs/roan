@@ -135,6 +135,7 @@ impl Parser {
         let kind = match token.kind {
             TokenKind::Minus => Some(UnOpKind::Minus),
             TokenKind::Tilde => Some(UnOpKind::BitwiseNot),
+            TokenKind::Bang => Some(UnOpKind::LogicalNot),
             _ => None,
         };
         kind.map(|kind| UnOperator::new(kind, token.clone()))

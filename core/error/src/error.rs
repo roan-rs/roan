@@ -75,4 +75,6 @@ pub enum PulseError {
     StaticMemberAccess(TextSpan),
     #[error("Only call expressions can be accessed in a static context")]
     StaticContext(TextSpan),
+    #[error("Invalid unary operator: {0}")]
+    InvalidUnaryOperation(String, TextSpan),
 }
