@@ -6,6 +6,7 @@ pub fn test(arr: string[]) -> string[] {
 
 pub fn main() -> int {
     let name = "Alice";
+    println("name is a {}", type_of(name));
 
     let fail = test(["Alice", 32]);
 
