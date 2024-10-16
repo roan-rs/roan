@@ -38,7 +38,7 @@ impl Lexer {
         Self {
             source,
             tokens: vec![],
-            position: Position::new(0, 0, 0),
+            position: Position::new(1, 0, 0),
         }
     }
 }

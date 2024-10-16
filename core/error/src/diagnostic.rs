@@ -57,15 +57,15 @@ impl Diagnostic {
             ": ".dimmed(),
             self.title
         )
-        .expect("Error writing level");
+            .expect("Error writing level");
 
         if let Some(location) = &self.location {
             if let Some(content) = &self.content {
+                let line_number = location.start.line;
                 let line = content
                     .lines()
-                    .nth(location.start.line as usize)
+                    .nth((line_number - 1) as usize)
                     .expect("Error getting line");
-                let line_number = location.start.line;
                 let column = location.start.column;
                 let line_content = line.trim_end();
                 let decoration =
