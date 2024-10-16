@@ -74,6 +74,47 @@ impl Module {
 
                 let val = vm.pop().unwrap();
                 let ident = l.ident.literal();
+
+                if let Some(type_annotation) = &l.type_annotation {
+                    let type_name = type_annotation.type_name.literal();
+
+                    if type_annotation.is_array {
+                        match val.clone() {
+                            Value::Vec(v) => {
+                                // TODO: actually display what part of the array is wrong
+                                for item in v.iter() {
+                                    item.check_type(&type_name, l.initializer.span())?
+                                }
+                            }
+                            _ => {
+                                return Err(PulseError::TypeMismatch(
+                                    format!(
+                                        "Expected array of type {} but got {}",
+                                        type_name,
+                                        val.type_name()
+                                    ),
+                                    l.initializer.span(),
+                                )
+                                .into());
+                            }
+                        }
+                    } else {
+                        if val.is_null() && type_annotation.is_nullable {
+                            self.declare_variable(ident.clone(), val);
+                            return Ok(());
+                        }
+
+                        val.check_type(
+                            &type_name,
+                            TextSpan::combine(vec![
+                                l.ident.span,
+                                type_annotation.type_name.span.clone(),
+                                l.initializer.span(),
+                            ]),
+                        )?
+                    }
+                }
+
                 self.declare_variable(ident.clone(), val);
             }
             Stmt::Expr(expr) => {
@@ -366,6 +407,7 @@ impl Module {
 
         let condition = match condition_value {
             Value::Bool(b) => b,
+            Value::Null => false,
             _ => {
                 return Err(NonBooleanCondition(
                     "If condition".into(),
@@ -385,6 +427,7 @@ impl Module {
 
                 let else_if_result = match else_if_condition {
                     Value::Bool(b) => b,
+                    Value::Null => false,
                     _ => {
                         return Err(NonBooleanCondition(
                             "Else if condition".into(),

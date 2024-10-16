@@ -119,6 +119,7 @@ impl Module {
                                 args,
                                 ctx,
                                 vm,
+                                &call,
                             )?;
 
                             Ok(vm.pop().unwrap())
@@ -155,6 +156,7 @@ impl Module {
                     (UnOpKind::Minus, Value::Float(f)) => Value::Float(-f),
                     (UnOpKind::LogicalNot, Value::Bool(b)) => Value::Bool(!b),
                     (UnOpKind::BitwiseNot, Value::Int(i)) => Value::Int(!i),
+                    (UnOpKind::LogicalNot, Value::Null) => Value::Bool(true),
                     _ => {
                         return Err(PulseError::InvalidUnaryOperation(
                             u.operator.kind.to_string(),
@@ -259,6 +261,7 @@ impl Module {
                     args,
                     ctx,
                     vm,
+                    call,
                 ) {
                     Ok(_) => Ok(vm.pop().unwrap_or(Value::Void)),
                     Err(e) => {
@@ -461,6 +464,7 @@ impl Module {
                         args,
                         ctx,
                         vm,
+                        call,
                     )?;
 
                     return Ok(vm.pop().expect("Expected value on stack"));

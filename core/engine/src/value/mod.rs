@@ -12,7 +12,9 @@ use crate::{
     },
     vm::native_fn::NativeFunction,
 };
-use roan_ast::{Literal, LiteralType, Struct};
+use anyhow::Result;
+use roan_ast::{Literal, LiteralType, Struct, TypeAnnotation};
+use roan_error::{error::PulseError::TypeMismatch, TextSpan};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
@@ -252,6 +254,90 @@ impl Value {
     }
 }
 
+impl Value {
+    pub fn is_array(&self) -> bool {
+        matches!(self, Value::Vec(_))
+    }
+
+    pub fn is_bool(&self) -> bool {
+        matches!(self, Value::Bool(_))
+    }
+
+    pub fn is_float(&self) -> bool {
+        matches!(self, Value::Float(_))
+    }
+
+    pub fn is_int(&self) -> bool {
+        matches!(self, Value::Int(_))
+    }
+
+    pub fn is_null(&self) -> bool {
+        matches!(self, Value::Null)
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self, Value::String(_))
+    }
+
+    pub fn is_struct(&self) -> bool {
+        matches!(self, Value::Struct(_, _))
+    }
+
+    pub fn is_void(&self) -> bool {
+        matches!(self, Value::Void)
+    }
+}
+
+impl Value {
+    pub fn check_type(&self, expected_type: &str, span: TextSpan) -> Result<()> {
+        if self.is_type(expected_type) {
+            Ok(())
+        } else {
+            Err(TypeMismatch(
+                format!(
+                    "Expected type {} but got {}",
+                    expected_type,
+                    self.type_name()
+                ),
+                span,
+            )
+            .into())
+        }
+    }
+
+    pub fn is_type(&self, type_name: &str) -> bool {
+        match type_name {
+            "int" => self.is_int(),
+            "float" => self.is_float(),
+            "bool" => self.is_bool(),
+            "string" => self.is_string(),
+            "null" => self.is_null(),
+            "void" => self.is_void(),
+            _ => false,
+        }
+    }
+
+    pub fn type_name(&self) -> String {
+        match self {
+            Value::Int(_) => "int".to_string(),
+            Value::Float(_) => "float".to_string(),
+            Value::Bool(_) => "bool".to_string(),
+            Value::String(_) => "string".to_string(),
+            // Type of vector is based on the type of its first element
+            Value::Vec(vals) => {
+                if vals.is_empty() {
+                    "void[]".to_string()
+                } else {
+                    format!("{}[]", vals[0].type_name())
+                }
+            }
+            Value::Struct(struct_def, _) => struct_def.name.literal(),
+            Value::Null => "null".to_string(),
+            Value::Void => "void".to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -380,5 +466,69 @@ mod tests {
         );
         assert_eq!(format!("{}", Value::Null), "null");
         assert_eq!(format!("{}", Value::Void), "void");
+    }
+
+    #[test]
+    fn test_value_type_name() {
+        assert_eq!(Value::Int(1).type_name(), "int");
+        assert_eq!(Value::Float(1.0).type_name(), "float");
+        assert_eq!(Value::Bool(true).type_name(), "bool");
+        assert_eq!(Value::String("Hello".to_string()).type_name(), "string");
+        assert_eq!(
+            Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)]).type_name(),
+            "int[]"
+        );
+        assert_eq!(Value::Null.type_name(), "null");
+        assert_eq!(Value::Void.type_name(), "void");
+    }
+
+    #[test]
+    fn test_value_is_type() {
+        assert!(Value::Int(1).is_type("int"));
+        assert!(Value::Float(1.0).is_type("float"));
+        assert!(Value::Bool(true).is_type("bool"));
+        assert!(Value::String("Hello".to_string()).is_type("string"));
+        // We check it outside the is_type method
+        // assert!(
+        //     Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)]).is_type("int[]")
+        // );
+        assert!(Value::Null.is_type("null"));
+        assert!(Value::Void.is_type("void"));
+    }
+
+    #[test]
+    fn test_value_is_array() {
+        assert!(Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)]).is_array());
+        assert!(!Value::Int(1).is_array());
+    }
+
+    #[test]
+    fn test_value_is_bool() {
+        assert!(Value::Bool(true).is_bool());
+        assert!(!Value::Int(1).is_bool());
+    }
+
+    #[test]
+    fn test_value_is_float() {
+        assert!(Value::Float(1.0).is_float());
+        assert!(!Value::Int(1).is_float());
+    }
+
+    #[test]
+    fn test_value_is_int() {
+        assert!(Value::Int(1).is_int());
+        assert!(!Value::Float(1.0).is_int());
+    }
+
+    #[test]
+    fn test_value_is_null() {
+        assert!(Value::Null.is_null());
+        assert!(!Value::Int(1).is_null());
+    }
+
+    #[test]
+    fn test_value_is_string() {
+        assert!(Value::String("Hello".to_string()).is_string());
+        assert!(!Value::Int(1).is_string());
     }
 }

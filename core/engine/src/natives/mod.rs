@@ -4,6 +4,8 @@ use crate::{
         io::{__eprint, __format, __print},
         process::{__abort, __exit, __pid},
     },
+    value::Value,
+    vm::native_fn::{NativeFunction, NativeFunctionParam},
 };
 
 pub mod io;
@@ -63,6 +65,12 @@ macro_rules! as_cast {
     };
 }
 
+native_function!(
+    fn type_of(value) {
+        Value::String(value.type_name())
+    }
+);
+
 pub fn get_stored_function() -> Vec<StoredFunction> {
     vec![
         __print(),
@@ -71,6 +79,7 @@ pub fn get_stored_function() -> Vec<StoredFunction> {
         __exit(),
         __abort(),
         __pid(),
+        type_of(),
     ]
     .into_iter()
     .map(|f| StoredFunction::Native(f))
