@@ -43,9 +43,9 @@ impl PersonTrait for Person {
     }
 
     fn introduce(self) -> void {
-        println("Hello! My name is {}.", self.get_name());
-        println("I am {} years old.", self.get_age());
-        println("I work as a {}.", self.get_occupation());
+        println("Introducing a new person: {}", self.fmt());
+
+        throw "This is an error!";
     }
 }
 
@@ -58,5 +58,5 @@ impl Debug for Person {
 pub fn introduce_person(name: string, age: int, occupation: string) -> void {
     let person = Person::new(name, age, occupation);
 
-    println("Introducing a new person: {}", person.fmt());
+    person.introduce();
 }
