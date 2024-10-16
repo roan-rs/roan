@@ -154,29 +154,6 @@ pub struct Variable {
     pub token: Token,
 }
 
-/// Enum representing logical operators such as `&&` and `||`.
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum LogicalOp {
-    /// Logical AND operator (`&&`).
-    And,
-    /// Logical OR operator (`||`).
-    Or,
-}
-
-/// Represents a logical expression in the AST.
-/// Logical expressions include operators like `&&` and `||` that work on boolean values.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Logical {
-    /// The left operand of the logical expression.
-    pub left: Box<Expr>,
-    /// The logical operator (`&&` or `||`).
-    pub operator: LogicalOp,
-    /// The right operand of the logical expression.
-    pub right: Box<Expr>,
-    /// The token representing the logical operation in the source code.
-    pub token: Token,
-}
-
 /// Represents a parenthesized expression in the AST.
 /// Parenthesized expressions are used to override operator precedence.
 #[derive(Debug, Clone, PartialEq)]
@@ -386,8 +363,6 @@ pub enum Expr {
     Unary(Unary),
     /// A variable reference.
     Variable(Variable),
-    /// A logical operation (e.g., `a && b`).
-    Logical(Logical),
     /// A parenthesized expression to override precedence.
     Parenthesized(Parenthesized),
     /// A function call expression.
@@ -471,7 +446,6 @@ impl GetSpan for Expr {
             }
             Expr::Unary(u) => u.clone().token.span,
             Expr::Variable(v) => v.clone().token.span,
-            Expr::Logical(l) => l.clone().token.span,
             Expr::Parenthesized(p) => p.expr.span(),
             Expr::Call(c) => c.clone().token.span,
             Expr::Assign(a) => {

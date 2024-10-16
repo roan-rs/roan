@@ -4,29 +4,9 @@ use { println } from "std::io";
 pub fn main() -> int {
     // introduce_person("John Doe", 30, "Software Engineer");
 
-    // Example from: https://www.tutorialspoint.com/rust/rust_bitwise_operators.htm
-       let a = 2;
-       let b = 3;
-
-       let result = null;
-
-       result = a & b;
-       println("(a & b) => {} ",result);
-
-       result = a | b;
-       println("(a | b) => {} ",result) ;
-
-       result = a ^ b;
-       println("(a ^ b) => {} ",result);
-
-       result = ~b;
-       println("(~b) => {} ",result);
-
-       result = a << b;
-       println("(a << b) => {}",result);
-
-       result = a >> b;
-       println("(a >> b) => {}",result);
+    if 1 == 1 && 2 == 2 {
+        println("1 == 1 && 2 == 2");
+    }
 
     return 0;
 }
