@@ -75,7 +75,11 @@ mod tests {
     fn test_frame_new() {
         let frame = Frame::new(
             "main",
-            TextSpan::new(Position::new(1, 1, 1), Position::new(1, 1, 1), "main".into()),
+            TextSpan::new(
+                Position::new(1, 1, 1),
+                Position::new(1, 1, 1),
+                "main".into(),
+            ),
             ".\\src\\main.roan",
         );
 

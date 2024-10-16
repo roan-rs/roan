@@ -138,7 +138,7 @@ impl Parser {
                 format!("Expected token of kind: {}", kind),
                 token.span.clone(),
             )
-                .into())
+            .into())
         }
     }
 }

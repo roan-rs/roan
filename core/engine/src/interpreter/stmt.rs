@@ -94,14 +94,20 @@ impl Module {
                 self.structs.push(struct_stmt.clone());
 
                 if struct_stmt.public {
-                    self.exports.push((struct_stmt.name.literal(), ExportType::Struct(struct_stmt.clone())));
+                    self.exports.push((
+                        struct_stmt.name.literal(),
+                        ExportType::Struct(struct_stmt.clone()),
+                    ));
                 }
             }
             Stmt::TraitDef(trait_stmt) => {
                 self.traits.push(trait_stmt.clone());
 
                 if trait_stmt.public {
-                    self.exports.push((trait_stmt.name.literal(), ExportType::Trait(trait_stmt.clone())));
+                    self.exports.push((
+                        trait_stmt.name.literal(),
+                        ExportType::Trait(trait_stmt.clone()),
+                    ));
                 }
             }
             Stmt::StructImpl(impl_stmt) => {
@@ -137,7 +143,7 @@ impl Module {
                         trait_name,
                         impl_stmt.trait_name.span.clone(),
                     )
-                        .into());
+                    .into());
                 }
 
                 let missing_methods: Vec<String> = trait_def
@@ -153,7 +159,7 @@ impl Module {
                         missing_methods,
                         impl_stmt.trait_name.span.clone(),
                     )
-                        .into());
+                    .into());
                 }
 
                 struct_def.trait_impls.push(impl_stmt);
@@ -244,7 +250,7 @@ impl Module {
                         "While loop condition".into(),
                         while_stmt.condition.span(),
                     )
-                        .into())
+                    .into())
                 }
             };
 
@@ -365,7 +371,7 @@ impl Module {
                     "If condition".into(),
                     TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
                 )
-                    .into())
+                .into())
             }
         };
 
@@ -384,7 +390,7 @@ impl Module {
                             "Else if condition".into(),
                             else_if.condition.span(),
                         )
-                            .into())
+                        .into())
                     }
                 };
 

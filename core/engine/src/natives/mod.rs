@@ -72,7 +72,7 @@ pub fn get_stored_function() -> Vec<StoredFunction> {
         __abort(),
         __pid(),
     ]
-        .into_iter()
-        .map(|f| StoredFunction::Native(f))
-        .collect()
+    .into_iter()
+    .map(|f| StoredFunction::Native(f))
+    .collect()
 }

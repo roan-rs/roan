@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use anyhow::Result;
+use std::path::PathBuf;
 
 fn remove_prefix(path: &PathBuf) -> PathBuf {
     let path_str = path.to_str().unwrap_or("");
