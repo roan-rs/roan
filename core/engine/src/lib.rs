@@ -7,9 +7,9 @@ pub mod interpreter;
 mod macros;
 pub mod module;
 pub mod natives;
+pub mod path;
 pub mod value;
 pub mod vm;
-pub mod path;
 
 pub use roan_ast::*;
 pub use roan_error::{diagnostic::*, error::PulseError::*, span::*};

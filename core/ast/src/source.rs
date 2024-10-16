@@ -102,7 +102,8 @@ mod tests {
 
     #[test]
     fn test_source_with_path() {
-        let source = Source::from_string("fn main() {}".to_string()).with_path(PathBuf::from("tests/test.roan"));
+        let source = Source::from_string("fn main() {}".to_string())
+            .with_path(PathBuf::from("tests/test.roan"));
 
         assert_eq!(source.content(), "fn main() {}");
         assert_eq!(source.path(), Some(PathBuf::from("tests/test.roan")));

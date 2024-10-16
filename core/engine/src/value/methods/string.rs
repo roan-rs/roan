@@ -277,7 +277,9 @@ mod tests {
 
     #[test]
     fn test_string_len() {
-        let result = __string_len().call(vec![Value::String("Hello".to_string())]).unwrap();
+        let result = __string_len()
+            .call(vec![Value::String("Hello".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::Int(5));
     }
@@ -285,18 +287,26 @@ mod tests {
     #[test]
     fn test_string_split() {
         let result = __string_split()
-            .call(vec![Value::String("Hello,World".to_string()), Value::String(",".to_string())])
+            .call(vec![
+                Value::String("Hello,World".to_string()),
+                Value::String(",".to_string()),
+            ])
             .unwrap();
 
         assert_eq!(
             result,
-            Value::Vec(vec![Value::String("Hello".to_string()), Value::String("World".to_string())])
+            Value::Vec(vec![
+                Value::String("Hello".to_string()),
+                Value::String("World".to_string())
+            ])
         );
     }
 
     #[test]
     fn test_string_chars() {
-        let result = __string_chars().call(vec![Value::String("Hello".to_string())]).unwrap();
+        let result = __string_chars()
+            .call(vec![Value::String("Hello".to_string())])
+            .unwrap();
 
         assert_eq!(
             result,
@@ -313,7 +323,10 @@ mod tests {
     #[test]
     fn test_string_contains() {
         let result = __string_contains()
-            .call(vec![Value::String("Hello".to_string()), Value::String("ell".to_string())])
+            .call(vec![
+                Value::String("Hello".to_string()),
+                Value::String("ell".to_string()),
+            ])
             .unwrap();
 
         assert_eq!(result, Value::Bool(true));
@@ -322,7 +335,10 @@ mod tests {
     #[test]
     fn test_string_starts_with() {
         let result = __string_starts_with()
-            .call(vec![Value::String("Hello".to_string()), Value::String("Hel".to_string())])
+            .call(vec![
+                Value::String("Hello".to_string()),
+                Value::String("Hel".to_string()),
+            ])
             .unwrap();
 
         assert_eq!(result, Value::Bool(true));
@@ -331,7 +347,10 @@ mod tests {
     #[test]
     fn test_string_ends_with() {
         let result = __string_ends_with()
-            .call(vec![Value::String("Hello".to_string()), Value::String("lo".to_string())])
+            .call(vec![
+                Value::String("Hello".to_string()),
+                Value::String("lo".to_string()),
+            ])
             .unwrap();
 
         assert_eq!(result, Value::Bool(true));
@@ -352,56 +371,72 @@ mod tests {
 
     #[test]
     fn test_string_trim() {
-        let result = __string_trim().call(vec![Value::String("  Hello  ".to_string())]).unwrap();
+        let result = __string_trim()
+            .call(vec![Value::String("  Hello  ".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::String("Hello".to_string()));
     }
 
     #[test]
     fn test_string_trim_start() {
-        let result = __string_trim_start().call(vec![Value::String("  Hello".to_string())]).unwrap();
+        let result = __string_trim_start()
+            .call(vec![Value::String("  Hello".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::String("Hello".to_string()));
     }
 
     #[test]
     fn test_string_trim_end() {
-        let result = __string_trim_end().call(vec![Value::String("Hello  ".to_string())]).unwrap();
+        let result = __string_trim_end()
+            .call(vec![Value::String("Hello  ".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::String("Hello".to_string()));
     }
 
     #[test]
     fn test_string_to_uppercase() {
-        let result = __string_to_uppercase().call(vec![Value::String("Hello".to_string())]).unwrap();
+        let result = __string_to_uppercase()
+            .call(vec![Value::String("Hello".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::String("HELLO".to_string()));
     }
 
     #[test]
     fn test_string_to_lowercase() {
-        let result = __string_to_lowercase().call(vec![Value::String("Hello".to_string())]).unwrap();
+        let result = __string_to_lowercase()
+            .call(vec![Value::String("Hello".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::String("hello".to_string()));
     }
 
     #[test]
     fn test_string_reverse() {
-        let result = __string_reverse().call(vec![Value::String("Hello".to_string())]).unwrap();
+        let result = __string_reverse()
+            .call(vec![Value::String("Hello".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::String("olleH".to_string()));
     }
 
     #[test]
     fn test_string_char_at() {
-        let result = __string_char_at().call(vec![Value::String("Hello".to_string()), Value::Int(1)]).unwrap();
+        let result = __string_char_at()
+            .call(vec![Value::String("Hello".to_string()), Value::Int(1)])
+            .unwrap();
 
         assert_eq!(result, Value::String("e".to_string()));
     }
 
     #[test]
     fn test_string_char_code_at() {
-        let result = __string_char_code_at().call(vec![Value::String("Hello".to_string()), Value::Int(1)]).unwrap();
+        let result = __string_char_code_at()
+            .call(vec![Value::String("Hello".to_string()), Value::Int(1)])
+            .unwrap();
 
         assert_eq!(result, Value::Int(101));
     }
@@ -409,7 +444,11 @@ mod tests {
     #[test]
     fn test_string_slice() {
         let result = __string_slice()
-            .call(vec![Value::String("Hello".to_string()), Value::Int(1), Value::Int(3)])
+            .call(vec![
+                Value::String("Hello".to_string()),
+                Value::Int(1),
+                Value::Int(3),
+            ])
             .unwrap();
 
         assert_eq!(result, Value::String("el".to_string()));
@@ -418,7 +457,10 @@ mod tests {
     #[test]
     fn test_string_index_of() {
         let result = __string_index_of()
-            .call(vec![Value::String("Hello".to_string()), Value::String("l".to_string())])
+            .call(vec![
+                Value::String("Hello".to_string()),
+                Value::String("l".to_string()),
+            ])
             .unwrap();
 
         assert_eq!(result, Value::Int(2));
@@ -427,7 +469,10 @@ mod tests {
     #[test]
     fn test_string_last_index_of() {
         let result = __string_last_index_of()
-            .call(vec![Value::String("Hello".to_string()), Value::String("l".to_string())])
+            .call(vec![
+                Value::String("Hello".to_string()),
+                Value::String("l".to_string()),
+            ])
             .unwrap();
 
         assert_eq!(result, Value::Int(3));
@@ -435,21 +480,27 @@ mod tests {
 
     #[test]
     fn test_string_to_int() {
-        let result = __string_to_int().call(vec![Value::String("42".to_string())]).unwrap();
+        let result = __string_to_int()
+            .call(vec![Value::String("42".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::Int(42));
     }
 
     #[test]
     fn test_string_to_float() {
-        let result = __string_to_float().call(vec![Value::String("42.5".to_string())]).unwrap();
+        let result = __string_to_float()
+            .call(vec![Value::String("42.5".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::Float(42.5));
     }
 
     #[test]
     fn test_string_to_bool() {
-        let result = __string_to_bool().call(vec![Value::String("true".to_string())]).unwrap();
+        let result = __string_to_bool()
+            .call(vec![Value::String("true".to_string())])
+            .unwrap();
 
         assert_eq!(result, Value::Bool(true));
     }

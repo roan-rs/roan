@@ -1,5 +1,5 @@
+use git2::{IndexAddOption, Repository, Signature};
 use std::env;
-use git2::{Repository, IndexAddOption, Signature};
 
 fn main() -> anyhow::Result<()> {
     let args = env::args().collect::<Vec<String>>();

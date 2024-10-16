@@ -7,8 +7,8 @@ use crate::{
 use anyhow::Result;
 use log::debug;
 use roan_ast::{
-    AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, LiteralType,
-    UnOpKind, VecExpr,
+    AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, UnOpKind,
+    VecExpr,
 };
 use roan_error::{
     error::{

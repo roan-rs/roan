@@ -59,9 +59,9 @@ impl VM {
 
 #[cfg(test)]
 mod tests {
-    use roan_error::TextSpan;
     use super::*;
     use crate::value::Value;
+    use roan_error::TextSpan;
 
     #[test]
     fn test_vm() {
@@ -69,7 +69,11 @@ mod tests {
         assert_eq!(vm.frames().len(), 0);
         assert_eq!(vm.stack().len(), 0);
 
-        let frame = Frame::new("test".to_string(), TextSpan::default(), ".\\test.roan".to_string());
+        let frame = Frame::new(
+            "test".to_string(),
+            TextSpan::default(),
+            ".\\test.roan".to_string(),
+        );
         vm.push_frame(frame.clone());
         assert_eq!(vm.frames().len(), 1);
 

@@ -150,8 +150,16 @@ mod tests {
 
     #[test]
     fn test_combine() {
-        let span1 = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
-        let span2 = TextSpan::new(Position::new(1, 6, 5), Position::new(1, 10, 9), "span".to_string());
+        let span1 = TextSpan::new(
+            Position::new(1, 1, 0),
+            Position::new(1, 5, 4),
+            "test".to_string(),
+        );
+        let span2 = TextSpan::new(
+            Position::new(1, 6, 5),
+            Position::new(1, 10, 9),
+            "span".to_string(),
+        );
         let combined = TextSpan::combine(vec![span1, span2]);
         assert_eq!(combined.start, Position::new(1, 1, 0));
         assert_eq!(combined.end, Position::new(1, 10, 9));
@@ -166,13 +174,21 @@ mod tests {
 
     #[test]
     fn test_length() {
-        let span = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
+        let span = TextSpan::new(
+            Position::new(1, 1, 0),
+            Position::new(1, 5, 4),
+            "test".to_string(),
+        );
         assert_eq!(span.length(), 4);
     }
 
     #[test]
     fn test_literal() {
-        let span = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
+        let span = TextSpan::new(
+            Position::new(1, 1, 0),
+            Position::new(1, 5, 4),
+            "test".to_string(),
+        );
         assert_eq!(span.literal("test string"), "test");
     }
 
@@ -186,8 +202,12 @@ mod tests {
 
     #[test]
     fn test_debug() {
-        let span = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
-        
+        let span = TextSpan::new(
+            Position::new(1, 1, 0),
+            Position::new(1, 5, 4),
+            "test".to_string(),
+        );
+
         assert_eq!(format!("{:?}", span), "\"test\" (1:1)");
     }
 }

@@ -1,8 +1,14 @@
 use crate::std::ensure_lib_dir;
 use anyhow::Result;
-use roan_engine::{context::Context, module::Module, print_diagnostic, source::Source, vm::VM};
+use roan_engine::{
+    context::Context,
+    module::Module,
+    path::{canonicalize_path, normalize_path},
+    print_diagnostic,
+    source::Source,
+    vm::VM,
+};
 use std::{fs::read_to_string, path::PathBuf};
-use roan_engine::path::{canonicalize_path, normalize_path};
 
 pub fn run_command(file: String) -> Result<()> {
     let (lib_dir, modules) = ensure_lib_dir()?;
@@ -19,9 +25,7 @@ pub fn run_command(file: String) -> Result<()> {
         let path = lib_dir.join(&mod_name).with_extension("roan");
 
         let content = read_to_string(&path)?;
-        let source = Source::from_string(content.clone()).with_path(
-            canonicalize_path(path)?
-        );
+        let source = Source::from_string(content.clone()).with_path(canonicalize_path(path)?);
         let module = Module::new(source);
 
         let module_name = format!("std::{}", mod_name);

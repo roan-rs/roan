@@ -121,11 +121,7 @@ impl Context {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::module::Module;
-    use crate::source::Source;
-    use crate::value::Value;
-    use crate::vm::VM;
-    use std::sync::Arc;
+    use crate::{module::Module, source::Source, value::Value, vm::VM};
 
     #[test]
     fn test_eval() {
@@ -143,7 +139,6 @@ main();
 
         let mut vm = VM::new();
         let result = ctx.eval(module, &mut vm);
-
 
         assert_eq!(vm.pop(), Some(Value::Int(3)));
     }

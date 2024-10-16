@@ -1,4 +1,3 @@
-use std::process::Command;
 use crate::{
     as_cast, native_function,
     value::Value,
