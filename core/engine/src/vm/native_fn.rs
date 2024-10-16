@@ -179,16 +179,15 @@ impl Module {
 
                     if expr.is_none() {
                         defining_module_guard.declare_variable(ident, Value::Vec(rest));
-                        return Ok(());
-                    }
-
-                    if let Some(_type) = param.type_annotation.as_ref() {
-                        for arg in &rest {
-                            arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
+                    } else {
+                        if let Some(_type) = param.type_annotation.as_ref() {
+                            for arg in &rest {
+                                arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
+                            }
                         }
-                    }
 
-                    defining_module_guard.declare_variable(ident, Value::Vec(rest));
+                        defining_module_guard.declare_variable(ident, Value::Vec(rest));
+                    }
                 } else {
                     if let Some(_type) = param.type_annotation.as_ref() {
                         if arg.is_null() && !_type.is_nullable {

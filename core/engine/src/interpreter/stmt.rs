@@ -407,6 +407,7 @@ impl Module {
 
         let condition = match condition_value {
             Value::Bool(b) => b,
+            Value::Null => false,
             _ => {
                 return Err(NonBooleanCondition(
                     "If condition".into(),
@@ -426,6 +427,7 @@ impl Module {
 
                 let else_if_result = match else_if_condition {
                     Value::Bool(b) => b,
+                    Value::Null => false,
                     _ => {
                         return Err(NonBooleanCondition(
                             "Else if condition".into(),
