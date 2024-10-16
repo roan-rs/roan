@@ -2,11 +2,7 @@ use { introduce_person } from "./test.roan";
 use { println } from "std::io";
 
 pub fn main() -> int {
-    // introduce_person("John Doe", 30, "Software Engineer");
-
-    if 1 == 1 && 2 == 2 {
-        println("1 == 1 && 2 == 2");
-    }
+    let name: int = "Alice";
 
     return 0;
 }

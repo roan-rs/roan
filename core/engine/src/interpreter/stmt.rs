@@ -74,6 +74,19 @@ impl Module {
 
                 let val = vm.pop().unwrap();
                 let ident = l.ident.literal();
+                
+                if let Some(type_annotation) = &l.type_annotation {
+                    let type_name = type_annotation.type_name.literal();
+                    
+                    if !val.is_type(&type_name) {
+                        return Err(PulseError::TypeMismatch(
+                            format!("Expected type '{}'", type_name),
+                            TextSpan::combine(vec![l.ident.span, type_annotation.type_name.span.clone(), l.initializer.span()]),
+                        )
+                        .into());
+                    }
+                }
+                
                 self.declare_variable(ident.clone(), val);
             }
             Stmt::Expr(expr) => {

@@ -252,6 +252,24 @@ impl Value {
     }
 }
 
+impl Value {
+    pub fn is_type(&self, type_name: &str) -> bool {
+        match self {
+            Value::Int(_) => type_name == "int",
+            Value::Float(_) => type_name == "float",
+            Value::Bool(_) => type_name == "bool",
+            Value::String(_) => type_name == "string",
+            Value::Vec(_) => {
+                type_name.ends_with("[]") && self.is_type(&type_name[..type_name.len() - 2])
+            }
+            // TODO: Might not be perfect. For example, structs with the same but different module
+            Value::Struct(struct_def, _) => type_name == struct_def.name.literal(),
+            Value::Null => type_name == "null",
+            Value::Void => type_name == "void",
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
