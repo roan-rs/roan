@@ -1,14 +1,11 @@
 use { println } from "std::io";
 
-pub fn test(arr: string[]) -> string[] {
-    return arr
+pub fn test(test: string) -> string[] {
+    return test
 }
 
 pub fn main() -> int {
-    let name = "Alice";
-    println("name is a {}", type_of(name));
-
-    let fail = test(["Alice", 32]);
+    println("Hello, world!");
 
     return 0;
 }

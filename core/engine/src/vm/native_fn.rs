@@ -156,12 +156,19 @@ impl Module {
         {
             let mut defining_module_guard = defining_module.lock().unwrap();
 
-            for ((param, arg), expr) in function
+            let exprs = call
+                .args
+                .iter()
+                .map(|arg| arg.span())
+                .collect::<Vec<TextSpan>>();
+
+            for (i, (param, arg)) in function
                 .params
                 .iter()
                 .zip(args.iter().chain(std::iter::repeat(&Value::Null)))
-                .zip(call.args.iter())
+                .enumerate()
             {
+                let expr = exprs.get(i);
                 let ident = param.ident.literal();
                 if param.is_rest {
                     let rest: Vec<Value> = args
@@ -170,20 +177,36 @@ impl Module {
                         .cloned()
                         .collect();
 
+                    if expr.is_none() {
+                        defining_module_guard.declare_variable(ident, Value::Vec(rest));
+                        return Ok(());
+                    }
+
                     if let Some(_type) = param.type_annotation.as_ref() {
                         for arg in &rest {
-                            arg.check_type(&_type.type_name.literal(), expr.span())?;
+                            arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
                         }
                     }
 
                     defining_module_guard.declare_variable(ident, Value::Vec(rest));
                 } else {
                     if let Some(_type) = param.type_annotation.as_ref() {
+                        if expr.is_none() || arg.is_null() {
+                            return Err(TypeMismatch(
+                                format!("Expected type {} but got null", _type.type_name.literal()),
+                                expr.unwrap().clone(),
+                            )
+                            .into());
+                        }
+
                         if _type.is_array {
                             match arg {
                                 Value::Vec(vec) => {
                                     for arg in vec {
-                                        arg.check_type(&_type.type_name.literal(), expr.span())?;
+                                        arg.check_type(
+                                            &_type.type_name.literal(),
+                                            expr.unwrap().clone(),
+                                        )?;
                                     }
                                     defining_module_guard
                                         .declare_variable(ident.clone(), arg.clone());
@@ -195,15 +218,17 @@ impl Module {
                                             _type.type_name.literal(),
                                             arg.type_name()
                                         ),
-                                        expr.span(),
+                                        expr.unwrap().clone(),
                                     )
                                     .into());
                                 }
                             }
                         } else {
-                            arg.check_type(&_type.type_name.literal(), expr.span())?;
+                            arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
                             defining_module_guard.declare_variable(ident, arg.clone());
                         }
+                    } else {
+                        defining_module_guard.declare_variable(ident, arg.clone());
                     }
                 }
             }
