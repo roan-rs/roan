@@ -115,6 +115,8 @@ impl Display for TokenKind {
             TokenKind::PlusEquals => write!(f, "+="),
             TokenKind::MultiplyEquals => write!(f, "*="),
             TokenKind::DivideEquals => write!(f, "/="),
+            TokenKind::DoubleLessThan => write!(f, "<<"),
+            TokenKind::DoubleGreaterThan => write!(f, ">>"),
 
             // Others
             TokenKind::EOF => write!(f, "EOF"),
@@ -201,6 +203,8 @@ pub enum TokenKind {
     PlusEquals,        // +=
     MultiplyEquals,    // *=
     DivideEquals,      // /=
+    DoubleLessThan,    // <<,
+    DoubleGreaterThan, // >>,
 
     EOF,
     Whitespace,

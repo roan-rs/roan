@@ -4,7 +4,7 @@ use { println } from "std::io";
 pub fn main() -> int {
     // introduce_person("John Doe", 30, "Software Engineer");
 
-    println("{}", ~123);
+    println("{}", 123 << 5);
 
     return 0;
 }

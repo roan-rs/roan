@@ -313,6 +313,8 @@ impl Module {
             (Value::Int(a), BinOpKind::BitwiseAnd, Value::Int(b)) => Value::Int(a & b),
             (Value::Int(a), BinOpKind::BitwiseOr, Value::Int(b)) => Value::Int(a | b),
             (Value::Int(a), BinOpKind::BitwiseXor, Value::Int(b)) => Value::Int(a ^ b),
+            (Value::Int(a), BinOpKind::ShiftLeft, Value::Int(b)) => Value::Int(a << b),
+            (Value::Int(a), BinOpKind::ShiftRight, Value::Int(b)) => Value::Int(a >> b),
 
             _ => todo!("missing binary operator: {:?}", binary_expr.operator),
         };
