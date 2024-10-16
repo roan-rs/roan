@@ -117,6 +117,7 @@ impl Display for TokenKind {
             TokenKind::DivideEquals => write!(f, "/="),
             TokenKind::DoubleLessThan => write!(f, "<<"),
             TokenKind::DoubleGreaterThan => write!(f, ">>"),
+            TokenKind::QuestionMark => write!(f, "?"),
 
             // Others
             TokenKind::EOF => write!(f, "EOF"),
@@ -205,6 +206,7 @@ pub enum TokenKind {
     DivideEquals,      // /=
     DoubleLessThan,    // <<,
     DoubleGreaterThan, // >>,
+    QuestionMark,      // ?
 
     EOF,
     Whitespace,

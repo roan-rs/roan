@@ -313,6 +313,7 @@ impl Lexer {
                             )
                         }
                     }
+                    '?' => TokenKind::QuestionMark,
                     '&' => self.lex_potential_double('&', TokenKind::Ampersand, TokenKind::And),
                     '|' => self.lex_potential_double('|', TokenKind::Pipe, TokenKind::Or),
                     _ => {

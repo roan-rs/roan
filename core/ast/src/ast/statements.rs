@@ -555,6 +555,8 @@ pub struct TypeAnnotation {
     pub type_name: Token,
     /// Is this type an array?
     pub is_array: bool,
+    /// Is nullable?
+    pub is_nullable: bool,
 }
 
 impl GetSpan for TypeAnnotation {
@@ -574,6 +576,8 @@ pub struct FunctionType {
     pub type_name: Token,
     /// Is this type an array?
     pub is_array: bool,
+    /// Is nullable?
+    pub is_nullable: bool,
 }
 
 impl FunctionType {
@@ -587,11 +591,12 @@ impl FunctionType {
     /// # Returns
     ///
     /// A new `FunctionType` instance.
-    pub fn new(arrow: Token, type_name: Token, is_array: bool) -> Self {
+    pub fn new(arrow: Token, type_name: Token, is_array: bool, is_nullable: bool) -> Self {
         Self {
             arrow,
             type_name,
             is_array,
+            is_nullable,
         }
     }
 }

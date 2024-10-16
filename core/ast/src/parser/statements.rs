@@ -453,12 +453,23 @@ impl Parser {
         } else {
             false
         };
-
+        
         Ok(TypeAnnotation {
             colon,
             type_name,
             is_array,
+            is_nullable: self.is_nullable()
         })
+    }
+    
+    /// Checks if the next token is a question mark and consumes it.
+    pub fn is_nullable(&mut self) -> bool {
+        if self.peek().kind == TokenKind::QuestionMark {
+            self.consume();
+            true
+        } else {
+            false
+        }
     }
 
     /// Parses the return type of function.
@@ -494,6 +505,7 @@ impl Parser {
                 arrow,
                 type_name,
                 is_array,
+                is_nullable: self.is_nullable()
             }))
         }
     }

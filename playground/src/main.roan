@@ -1,10 +1,11 @@
 use { println } from "std::io";
 
-pub fn test(test: string) -> string[] {
+pub fn test(test: string?) -> string[] {
     return test
 }
 
 pub fn main() -> int {
+    let x: string = "Hello, world!";
     println("Hello, world!");
 
     return 0;

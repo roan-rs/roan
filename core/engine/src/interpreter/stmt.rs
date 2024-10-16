@@ -78,6 +78,7 @@ impl Module {
                 if let Some(type_annotation) = &l.type_annotation {
                     let type_name = type_annotation.type_name.literal();
 
+                    println!("{:?}", type_annotation);
                     if type_annotation.is_array {
                         match val.clone() {
                             Value::Vec(v) => {
@@ -88,18 +89,25 @@ impl Module {
                             }
                             _ => {
                                 return Err(PulseError::TypeMismatch(
-                                    format!("Expected array of type {} but got {}", type_name, val.type_name()),
+                                    format!(
+                                        "Expected array of type {} but got {}",
+                                        type_name,
+                                        val.type_name()
+                                    ),
                                     l.initializer.span(),
                                 )
-                                    .into());
+                                .into());
                             }
                         }
                     } else {
-                        val.check_type(&type_name, TextSpan::combine(vec![
-                            l.ident.span,
-                            type_annotation.type_name.span.clone(),
-                            l.initializer.span(),
-                        ]))?
+                        val.check_type(
+                            &type_name,
+                            TextSpan::combine(vec![
+                                l.ident.span,
+                                type_annotation.type_name.span.clone(),
+                                l.initializer.span(),
+                            ]),
+                        )?
                     }
                 }
 
