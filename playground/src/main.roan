@@ -1,15 +1,13 @@
 use { println } from "std::io";
 
-pub fn test(test: string?) -> string[] {
-    println("{}", type_of(test));
-
-    return test
-}
-
 pub fn main() -> int {
-    let x: string = "daw";
+    let test = null;
 
-    let y = test(x);
+    if test {
+        println("1 + 1 is 2!");
+    } else {
+        println("1 + 1 is not 2!");
+    }
 
     return 0;
 }

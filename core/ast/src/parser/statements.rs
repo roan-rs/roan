@@ -1,6 +1,6 @@
 use crate::{
-    Block, ElseBlock, FnParam, FunctionType, Parser, Stmt, StructField, Token, TokenKind,
-    TypeAnnotation,
+    Block, ElseBlock, FnParam, FunctionType, ParseContext, Parser, Stmt, StructField, Token,
+    TokenKind, TypeAnnotation,
 };
 use anyhow::Result;
 use log::debug;
@@ -234,7 +234,10 @@ impl Parser {
     pub fn parse_while(&mut self) -> Result<Option<Stmt>> {
         debug!("Parsing while statement");
         let while_token = self.consume();
+
+        self.push_context(ParseContext::WhileCondition);
         let condition = self.parse_expr()?;
+        self.pop_context();
 
         self.expect(TokenKind::LeftBrace)?;
         let block = self.parse_block()?;
@@ -340,7 +343,11 @@ impl Parser {
         debug!("Parsing if statement");
         let if_token = self.consume();
 
+        self.push_context(ParseContext::IfCondition);
+
         let condition = self.parse_expr()?;
+
+        self.pop_context();
 
         self.expect(TokenKind::LeftBrace)?;
 
@@ -357,26 +364,29 @@ impl Parser {
                 self.consume();
                 self.possible_check(TokenKind::LeftParen);
 
-                let condition = self.parse_expr()?;
+                self.push_context(ParseContext::IfCondition);
+                let elseif_condition = self.parse_expr()?;
+                self.pop_context();
+
                 self.possible_check(TokenKind::RightParen);
 
                 self.expect(TokenKind::LeftBrace)?;
-                let body = self.parse_block()?;
+                let elseif_body = self.parse_block()?;
                 self.expect(TokenKind::RightBrace)?;
 
                 elseif_blocks.push(ElseBlock {
-                    condition: Box::new(condition),
-                    block: body,
+                    condition: Box::new(elseif_condition),
+                    block: elseif_body,
                     else_if: true,
                 });
             } else {
                 self.expect(TokenKind::LeftBrace)?;
-                let body = self.parse_block()?;
+                let else_body = self.parse_block()?;
                 self.expect(TokenKind::RightBrace)?;
 
                 else_block = Some(ElseBlock {
                     condition: Box::new(condition.clone()),
-                    block: body,
+                    block: else_body,
                     else_if: false,
                 });
             }
@@ -453,15 +463,15 @@ impl Parser {
         } else {
             false
         };
-        
+
         Ok(TypeAnnotation {
             colon,
             type_name,
             is_array,
-            is_nullable: self.is_nullable()
+            is_nullable: self.is_nullable(),
         })
     }
-    
+
     /// Checks if the next token is a question mark and consumes it.
     pub fn is_nullable(&mut self) -> bool {
         if self.peek().kind == TokenKind::QuestionMark {
@@ -505,7 +515,7 @@ impl Parser {
                 arrow,
                 type_name,
                 is_array,
-                is_nullable: self.is_nullable()
+                is_nullable: self.is_nullable(),
             }))
         }
     }

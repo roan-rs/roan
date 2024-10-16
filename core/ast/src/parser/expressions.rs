@@ -1,7 +1,4 @@
-use crate::{
-    AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, Parser, Stmt, Token,
-    TokenKind, TypeAnnotation, UnOpKind, UnOperator,
-};
+use crate::{AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, ParseContext, Parser, Stmt, Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator};
 use log::debug;
 use roan_error::error::PulseError::UnexpectedToken;
 
@@ -153,8 +150,8 @@ impl Parser {
     pub fn parse_unary_expression(&mut self) -> anyhow::Result<Expr> {
         if let Some(operator) = self.parse_unary_operator() {
             let token = self.consume();
-            let operand = self.parse_unary_expression();
-            return Ok(Expr::new_unary(operator, operand?, token));
+            let operand = self.parse_unary_expression()?;
+            return Ok(Expr::new_unary(operator, operand, token));
         }
         self.parse_access_expression()
     }
@@ -240,9 +237,9 @@ impl Parser {
     pub fn parse_primary_expression(&mut self) -> anyhow::Result<Expr> {
         let token = self.consume();
 
-        match &token.kind.clone() {
-            TokenKind::Integer(int) => Ok(Expr::new_integer(token, *int)),
-            TokenKind::Float(float) => Ok(Expr::new_float(token, *float)),
+        match &token.kind {
+            TokenKind::Integer(int) => Ok(Expr::new_integer(token.clone(), *int)),
+            TokenKind::Float(float) => Ok(Expr::new_float(token.clone(), *float)),
             TokenKind::Null => Ok(Expr::new_null(token)),
             TokenKind::True | TokenKind::False => {
                 Ok(Expr::new_bool(token.clone(), token.as_bool().unwrap()))
@@ -251,10 +248,16 @@ impl Parser {
             TokenKind::LeftBracket => self.parse_vector(),
             TokenKind::Identifier => {
                 log::debug!("Parsing identifier: {}", token.literal());
+
                 if self.peek().kind == TokenKind::LeftParen {
                     self.parse_call_expr(token)
                 } else if self.peek().kind == TokenKind::LeftBrace {
-                    self.parse_struct_constructor(token)
+                    if self.is_context(&ParseContext::Normal)
+                    {
+                        self.parse_struct_constructor(token)
+                    } else {
+                        Ok(Expr::new_variable(token.clone(), token.literal()))
+                    }
                 } else {
                     Ok(Expr::new_variable(token.clone(), token.literal()))
                 }
