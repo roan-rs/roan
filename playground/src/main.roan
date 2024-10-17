@@ -1,4 +1,4 @@
-use { println } from "std::io";
+use { println } from "std::debug";
 
 pub fn main() -> int {
     let str: string? = null;

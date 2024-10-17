@@ -1,0 +1,26 @@
+pub fn format(msg: string, ...args: string) -> string {
+    let str = "";
+    let chars = msg.chars();
+    let last = 0;
+
+    let i = 0;
+    while i < chars.len() {
+        if chars[i] == "{" && chars[i + 1] == "}" {
+            chars = chars.next();
+
+            if args[last] == null {
+                str += "{}";
+            } else {
+                str += __format(args[last]);
+                last += 1;
+            }
+        } else {
+            str += chars[i];
+        }
+
+        i += 1;
+    }
+
+    return str;
+}
+
