@@ -121,7 +121,7 @@ impl GetSpan for Binary {
         let left = self.left.span();
         let right = self.right.span();
 
-        TextSpan::combine(vec![left, right])
+        TextSpan::combine(vec![left, right]).unwrap()
     }
 }
 
@@ -140,7 +140,7 @@ pub struct Unary {
 impl GetSpan for Unary {
     /// Returns the source span of the unary expression.
     fn span(&self) -> TextSpan {
-        TextSpan::combine(vec![self.operator.token.span.clone(), self.expr.span()])
+        TextSpan::combine(vec![self.operator.token.span.clone(), self.expr.span()]).unwrap()
     }
 }
 
@@ -172,6 +172,24 @@ pub struct CallExpr {
     pub args: Vec<Expr>,
     /// The token representing the function call in the source code.
     pub token: Token,
+}
+
+impl GetSpan for CallExpr {
+    /// Returns the source span of the function call expression.
+    fn span(&self) -> TextSpan {
+        // TODO: get the span of the closing parenthesis
+        let callee_span = self.token.span.clone();
+        let args_span: Vec<TextSpan> = self.args.iter().map(|arg| arg.span()).collect();
+        let args_span = TextSpan::combine(args_span);
+
+        let mut spans = vec![callee_span];
+
+        if args_span.is_some() {
+            spans.push(args_span.unwrap());
+        }
+
+        TextSpan::combine(spans).unwrap()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -424,13 +442,13 @@ impl GetSpan for AccessExpr {
         let access_span = match &self.access {
             AccessKind::Field(_) => self.token.span.clone(), // Span includes the '.' and the field name
             AccessKind::Index(index_expr) => {
-                TextSpan::combine(vec![self.token.span.clone(), index_expr.span()])
+                TextSpan::combine(vec![self.token.span.clone(), index_expr.span()]).unwrap()
             } // Span includes '[' , index, and ']'
             AccessKind::StaticMethod(method) => {
-                TextSpan::combine(vec![self.token.span.clone(), method.span()])
+                TextSpan::combine(vec![self.token.span.clone(), method.span()]).unwrap()
             }
         };
-        TextSpan::combine(vec![base_span, access_span])
+        TextSpan::combine(vec![base_span, access_span]).unwrap()
     }
 }
 
@@ -442,7 +460,7 @@ impl GetSpan for Expr {
             Expr::Binary(b) => {
                 let left = b.left.span();
                 let right = b.right.span();
-                TextSpan::combine(vec![left, right])
+                TextSpan::combine(vec![left, right]).unwrap()
             }
             Expr::Unary(u) => u.clone().token.span,
             Expr::Variable(v) => v.clone().token.span,
@@ -451,14 +469,16 @@ impl GetSpan for Expr {
             Expr::Assign(a) => {
                 let left = a.left.span();
                 let right = a.right.span();
-                TextSpan::combine(vec![left, right])
+                TextSpan::combine(vec![left, right]).unwrap()
             }
             Expr::Vec(v) => {
                 let spans: Vec<TextSpan> = v.exprs.iter().map(|e| e.span()).collect();
-                TextSpan::combine(spans)
+                TextSpan::combine(spans).unwrap()
             }
             Expr::Access(a) => a.span(),
-            Expr::Spread(s) => TextSpan::combine(vec![s.token.span.clone(), s.expr.span()]),
+            Expr::Spread(s) => {
+                TextSpan::combine(vec![s.token.span.clone(), s.expr.span()]).unwrap()
+            }
             Expr::Null(t) => t.span.clone(),
             Expr::StructConstructor(s) => s.token.span.clone(),
         }

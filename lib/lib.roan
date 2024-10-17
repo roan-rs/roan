@@ -3,3 +3,17 @@ use { format } from "./format.roan";
 pub fn panic(msg: string, ...args: string) -> void {
     __panic(format(msg, ...args));
 }
+
+pub fn unreachable(msg: string?, ...args: string) -> void {
+    if msg == null  {
+        msg = "entered unreachable code";
+    } else {
+        msg = format("entered unreachable code: {}", msg, ...args);
+    }
+
+    panic(msg);
+}
+
+pub fn todo() -> void {
+    panic("not yet implemented");
+}

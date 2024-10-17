@@ -74,9 +74,15 @@ pub trait Debug {
 /// - `msg`: The message to print if the condition is false.
 ///
 /// If the condition is false, the message is printed to the standard error output and the program is aborted.
-pub fn assert(cond: bool, msg: string, ...args: string) -> void {
+pub fn assert(cond: bool, msg: string?, ...args: string) -> void {
+    if msg == null {
+        msg = "assertion failed";
+    } else {
+        msg = format("assertion failed: {}", msg, ...args);
+    }
+
     if !cond {
-        panic("Assertion failed: {}", format(msg, ...args));
+        panic(msg);
     }
 
     return;

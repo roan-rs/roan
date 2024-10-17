@@ -519,7 +519,7 @@ impl GetSpan for FnParam {
             span.push(type_annotation.span());
         }
 
-        TextSpan::combine(span)
+        TextSpan::combine(span).unwrap()
     }
 }
 
@@ -561,7 +561,7 @@ pub struct TypeAnnotation {
 
 impl GetSpan for TypeAnnotation {
     fn span(&self) -> TextSpan {
-        TextSpan::combine(vec![self.colon.span.clone(), self.type_name.span.clone()])
+        TextSpan::combine(vec![self.colon.span.clone(), self.type_name.span.clone()]).unwrap()
     }
 }
 

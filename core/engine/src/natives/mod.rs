@@ -81,7 +81,8 @@ native_function!(
 
         panic::set_hook(Box::new(|panic_info| {
             let payload = panic_info.payload().downcast_ref::<String>().unwrap();
-            eprintln!("Panic: {}", payload);
+            eprintln!("program panicked");
+            eprintln!("{}", payload);
         }));
 
         panic_any(msg);
