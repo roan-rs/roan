@@ -1,4 +1,5 @@
 use { format } from "./format.roan";
+use { panic } from "./lib.roan";
 
 /// Prints the given message to the standard output.
 ///
@@ -64,4 +65,19 @@ pub fn eprintln(msg: string, ...args: string) -> void {
 /// - A string representation of the value for debugging purposes.
 pub trait Debug {
     pub fn fmt(self) -> string;
+}
+
+/// Asserts that a condition is true.
+///
+/// # Parameters
+/// - `cond`: The condition to check.
+/// - `msg`: The message to print if the condition is false.
+///
+/// If the condition is false, the message is printed to the standard error output and the program is aborted.
+pub fn assert(cond: bool, msg: string, ...args: string) -> void {
+    if !cond {
+        panic("Assertion failed: {}", format(msg, ...args));
+    }
+
+    return;
 }

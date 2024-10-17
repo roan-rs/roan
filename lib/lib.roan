@@ -1,0 +1,5 @@
+use { format } from "./format.roan";
+
+pub fn panic(msg: string, ...args: string) -> void {
+    __panic(format(msg, ...args));
+}

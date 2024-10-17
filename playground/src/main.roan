@@ -1,12 +1,9 @@
-use { println } from "std::debug";
+use { println, assert } from "std::debug";
 
 pub fn main() -> int {
-    let str: string? = null;
-    if str {
-        println("1 == 1");
-    } else {
-        println("1 != 1");
-    }
+    assert(1 == 2, "1 is not equal to 1");
+
+    println("Hello, world!");
 
     return 0;
 }
