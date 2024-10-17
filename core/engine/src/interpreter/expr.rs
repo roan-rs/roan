@@ -119,12 +119,17 @@ impl Module {
         self.interpret_expr(&u.expr, ctx, vm)?;
         let val = vm.pop().unwrap();
 
-        let val = match (u.operator.clone().kind, val) {
+        let val = match (u.operator.clone().kind, val.clone()) {
             (UnOpKind::Minus, Value::Int(i)) => Value::Int(-i),
             (UnOpKind::Minus, Value::Float(f)) => Value::Float(-f),
             (UnOpKind::LogicalNot, Value::Bool(b)) => Value::Bool(!b),
             (UnOpKind::BitwiseNot, Value::Int(i)) => Value::Int(!i),
             (UnOpKind::LogicalNot, Value::Null) => Value::Bool(true),
+            (UnOpKind::LogicalNot, _) => {
+                let b = val.is_truthy();
+                
+                Value::Bool(!b)
+            },
             _ => {
                 return Err(PulseError::InvalidUnaryOperation(
                     u.operator.kind.to_string(),
