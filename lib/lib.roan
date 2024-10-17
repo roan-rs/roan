@@ -5,11 +5,7 @@ pub fn panic(msg: string, ...args: string) -> void {
 }
 
 pub fn unreachable(msg: string?, ...args: string) -> void {
-    if msg == null  {
-        msg = "entered unreachable code";
-    } else {
-        msg = format("entered unreachable code: {}", msg, ...args);
-    }
+    let msg = msg then format("entered unreachable code: {}", msg, ...args) else "entered unreachable code";
 
     panic(msg);
 }
