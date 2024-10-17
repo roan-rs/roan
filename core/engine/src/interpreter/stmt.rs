@@ -157,7 +157,7 @@ impl Module {
 
                 let mut struct_def =
                     self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
-                struct_def.impls.push(impl_stmt);
+                struct_def.impls.push(impl_stmt.clone());
 
                 if let Some(existing_struct) = self
                     .structs
@@ -165,6 +165,12 @@ impl Module {
                     .find(|s| s.name.literal() == struct_name)
                 {
                     *existing_struct = struct_def;
+                
+                    let export = self.exports.iter_mut().find(|(n, _)| n == &struct_name).unwrap();
+                    
+                    if let ExportType::Struct(s) = &mut export.1 {
+                        s.impls.push(impl_stmt);
+                    }
                 }
             }
             Stmt::TraitImpl(impl_stmt) => {
@@ -204,7 +210,7 @@ impl Module {
                     .into());
                 }
 
-                struct_def.trait_impls.push(impl_stmt);
+                struct_def.trait_impls.push(impl_stmt.clone());
 
                 if let Some(existing_struct) = self
                     .structs
@@ -212,6 +218,12 @@ impl Module {
                     .find(|s| s.name.literal() == for_name)
                 {
                     *existing_struct = struct_def;
+                    
+                    let export = self.exports.iter_mut().find(|(n, _)| n == &for_name).unwrap();
+                    
+                    if let ExportType::Struct(s) = &mut export.1 {
+                        s.trait_impls.push(impl_stmt);
+                    }
                 }
             }
         }
@@ -373,6 +385,7 @@ impl Module {
             let export = loaded_module.exports.iter().find(|(n, _)| n == &name);
 
             if let Some((name, value)) = export {
+                debug!("Importing {} from {}", name, u.from.literal());
                 match value {
                     ExportType::Function(f) => {
                         self.functions.push(StoredFunction::Function {
