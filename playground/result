@@ -1,0 +1,132 @@
+cli/src/main.rs:19 debug vit_logger: Parsed clap arguments
+cli/src/std.rs:61 debug vit_logger: Extracted std library to "C:\\dev\\roan\\lang\\playground\\build\\std"
+core/engine/src/context.rs:74 debug vit_logger: Creating default context
+core/engine/src/module/loaders/basic.rs:25 debug vit_logger: Creating new BasicModuleLoader
+core/ast/src/source.rs:19 debug vit_logger: Creating source from string
+core/ast/src/source.rs:19 debug vit_logger: Creating source from string
+core/engine/src/module/loaders/basic.rs:95 debug vit_logger: Inserting module into cache: std::string
+core/ast/src/source.rs:19 debug vit_logger: Creating source from string
+core/engine/src/module/loaders/basic.rs:95 debug vit_logger: Inserting module into cache: std::process
+core/ast/src/source.rs:19 debug vit_logger: Creating source from string
+core/engine/src/module/loaders/basic.rs:95 debug vit_logger: Inserting module into cache: std::lib
+core/ast/src/source.rs:19 debug vit_logger: Creating source from string
+core/engine/src/module/loaders/basic.rs:95 debug vit_logger: Inserting module into cache: std::format
+core/ast/src/source.rs:19 debug vit_logger: Creating source from string
+core/engine/src/module/loaders/basic.rs:95 debug vit_logger: Inserting module into cache: std::debug
+core/engine/src/context.rs:90 debug vit_logger: Evaluating module: Mutex { data: Module { source: Source { content: "use { String } from \"std::string\"\r\n\r\npub fn main() -> int {\r\n    let x = String::to_int(\"123\");\r\n\r\n    println(\"{}\", x);\r\n\r\n    return 0;\r\n}\r\n\r\nmain();\r\n", path: Some("C:\\dev\\roan\\lang\\playground\\src\\main.roan") }, path: Some("C:\\dev\\roan\\lang\\playground\\src\\main.roan"), tokens: [], ast: Ast { stmts: [] }, functions: [Native(NativeFunction { name: "__print", func: 0x7ff6b2dd61c0, params: [NativeFunctionParam { name: "msg", ty: "Value", is_rest: false }] }), Native(NativeFunction { name: "__format", func: 0x7ff6b2dd6230, params: [NativeFunctionParam { name: "msg", ty: "Value", is_rest: false }] }), Native(NativeFunction { name: "__eprint", func: 0x7ff6b2dd6310, params: [NativeFunctionParam { name: "msg", ty: "Value", is_rest: false }] }), Native(NativeFunction { name: "__exit", func: 0x7ff6b2dd6760, params: [NativeFunctionParam { name: "status", ty: "Value", is_rest: false }] }), Native(NativeFunction { name: "__abort", func: 0x7ff6b2dd6bf0, params: [] }), Native(NativeFunction { name: "__pid", func: 0x7ff6b2dd67d0, params: [] }), Native(NativeFunction { name: "type_of", func: 0x7ff6b2dd5e60, params: [NativeFunctionParam { name: "value", ty: "Value", is_rest: false }] }), Native(NativeFunction { name: "__panic", func: 0x7ff6b2dd6450, params: [NativeFunctionParam { name: "msg", ty: "Value", is_rest: false }] })], exports: [], scopes: [{}], structs: [], traits: [] }, poisoned: false, .. }
+core/engine/src/module/mod.rs:95 debug vit_logger: Parsing module from source
+core/engine/src/module/mod.rs:99 debug vit_logger: Parsed 39 tokens
+core/engine/src/module/mod.rs:104 debug vit_logger: Parsing tokens into AST
+core/ast/src/parser/statements.rs:412 debug vit_logger: Parsing use statement
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftBrace, found: LeftBrace
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Identifier, found: Identifier
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightBrace, found: RightBrace
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: From, found: From
+core/ast/src/parser/statements.rs:554 debug vit_logger: Parsing function
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Identifier, found: Identifier
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftParen, found: LeftParen
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightParen, found: RightParen
+core/ast/src/parser/statements.rs:494 debug vit_logger: Parsing return type
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Identifier, found: Identifier
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftBrace, found: LeftBrace
+core/ast/src/parser/statements.rs:531 debug vit_logger: Parsing block
+core/ast/src/parser/statements.rs:326 debug vit_logger: Parsing let statement
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Let, found: Let
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Identifier, found: Identifier
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Equals, found: Equals
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/expressions.rs:253 debug vit_logger: Parsing identifier: String
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/expressions.rs:253 debug vit_logger: Parsing identifier: to_int
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftParen, found: LeftParen
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightParen, found: RightParen
+core/ast/src/parser/statements.rs:538 debug vit_logger: Adding statement to block
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/expressions.rs:253 debug vit_logger: Parsing identifier: println
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftParen, found: LeftParen
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Comma, found: Comma
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/expressions.rs:253 debug vit_logger: Parsing identifier: x
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightParen, found: RightParen
+core/ast/src/parser/statements.rs:538 debug vit_logger: Adding statement to block
+core/ast/src/parser/statements.rs:305 debug vit_logger: Parsing return statement
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/statements.rs:538 debug vit_logger: Adding statement to block
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightBrace, found: RightBrace
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/expressions.rs:253 debug vit_logger: Parsing identifier: main
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftParen, found: LeftParen
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightParen, found: RightParen
+core/engine/src/interpreter/stmt.rs:353 debug vit_logger: Interpreting use: "std::string"
+core/engine/src/module/loaders/basic.rs:54 debug vit_logger: Loading module: "std::string"
+core/engine/src/module/loaders/basic.rs:61 debug vit_logger: Module found in cache: std::string
+core/engine/src/module/mod.rs:95 debug vit_logger: Parsing module from source
+core/engine/src/module/mod.rs:99 debug vit_logger: Parsed 34 tokens
+core/engine/src/module/mod.rs:104 debug vit_logger: Parsing tokens into AST
+core/ast/src/parser/statements.rs:201 debug vit_logger: Parsing struct
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Identifier, found: Identifier
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftBrace, found: LeftBrace
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightBrace, found: RightBrace
+core/ast/src/parser/statements.rs:102 debug vit_logger: Parsing impl block
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftBrace, found: LeftBrace
+core/ast/src/parser/statements.rs:554 debug vit_logger: Parsing function
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Identifier, found: Identifier
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftParen, found: LeftParen
+core/ast/src/parser/statements.rs:455 debug vit_logger: Parsing type annotation
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Colon, found: Colon
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Identifier, found: Identifier
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightParen, found: RightParen
+core/ast/src/parser/statements.rs:494 debug vit_logger: Parsing return type
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: Identifier, found: Identifier
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftBrace, found: LeftBrace
+core/ast/src/parser/statements.rs:531 debug vit_logger: Parsing block
+core/ast/src/parser/statements.rs:343 debug vit_logger: Parsing if statement
+core/ast/src/parser/mod.rs:67 debug vit_logger: Pushing context: IfCondition
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/expressions.rs:253 debug vit_logger: Parsing identifier: s
+core/ast/src/parser/mod.rs:87 debug vit_logger: Checking context: IfCondition == Normal
+core/ast/src/parser/mod.rs:73 debug vit_logger: Popping context: IfCondition
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: LeftBrace, found: LeftBrace
+core/ast/src/parser/statements.rs:531 debug vit_logger: Parsing block
+core/ast/src/parser/statements.rs:257 debug vit_logger: Parsing throw statement
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/statements.rs:538 debug vit_logger: Adding statement to block
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightBrace, found: RightBrace
+core/ast/src/parser/statements.rs:538 debug vit_logger: Adding statement to block
+core/ast/src/parser/statements.rs:305 debug vit_logger: Parsing return statement
+core/ast/src/parser/expressions.rs:386 debug vit_logger: Parsing assignment
+core/ast/src/parser/expressions.rs:164 debug vit_logger: Parsing access expression
+core/ast/src/parser/statements.rs:538 debug vit_logger: Adding statement to block
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightBrace, found: RightBrace
+core/ast/src/parser/mod.rs:191 debug vit_logger: Expected token: RightBrace, found: RightBrace
+core/engine/src/interpreter/stmt.rs:388 debug vit_logger: Importing String from "std::string"
+core/engine/src/interpreter/stmt.rs:331 debug vit_logger: Interpreting function: main
+core/engine/src/interpreter/stmt.rs:122 debug vit_logger: Interpreting expression: Call(CallExpr { callee: "main", args: [], token: Token { kind: Identifier, span: "main" (11:0) } })
+core/engine/src/interpreter/expr.rs:304 debug vit_logger: Interpreting call: CallExpr { callee: "main", args: [], token: Token { kind: Identifier, span: "main" (11:0) } }
+core/engine/src/module/mod.rs:189 debug vit_logger: Looking for function: main
+core/engine/src/vm/native_fn.rs:156 debug vit_logger: Executing user-defined function: main
+core/engine/src/module/mod.rs:127 debug vit_logger: Entering new scope
+core/engine/src/interpreter/stmt.rs:72 debug vit_logger: Interpreting let: Token { kind: Identifier, span: "x" (4:8) }
+core/engine/src/interpreter/expr.rs:51 debug vit_logger: Interpreting literal: Literal { token: Token { kind: String("123"), span: ""123"" (4:27) }, value: String("123") }
+core/engine/src/vm/native_fn.rs:156 debug vit_logger: Executing user-defined function: to_int
+core/engine/src/module/mod.rs:127 debug vit_logger: Entering new scope
+core/engine/src/module/mod.rs:139 debug vit_logger: Declaring variable 's' in current scope
+core/engine/src/interpreter/stmt.rs:417 debug vit_logger: Interpreting if statement
+core/engine/src/interpreter/expr.rs:42 debug vit_logger: Interpreting variable: s
+core/engine/src/module/mod.rs:162 debug vit_logger: Found variable 's' with value String("123")
+core/engine/src/interpreter/stmt.rs:477 debug vit_logger: Interpreting block statement
+core/engine/src/module/mod.rs:127 debug vit_logger: Entering new scope
+core/engine/src/interpreter/stmt.rs:42 debug vit_logger: Interpreting throw: Throw { value: Literal(Literal { token: Token { kind: String("Cannot convert empty string to int"), span: ""Cannot convert empty string to int"" (7:18) }, value: String("Cannot convert empty string to int") }), token: Token { kind: Throw, span: "throw" (7:12) } }
+core/engine/src/interpreter/expr.rs:51 debug vit_logger: Interpreting literal: Literal { token: Token { kind: String("Cannot convert empty string to int"), span: ""Cannot convert empty string to int"" (7:18) }, value: String("Cannot convert empty string to int") }

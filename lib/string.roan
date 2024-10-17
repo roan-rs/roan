@@ -1,0 +1,15 @@
+/// Struct for string manipulation
+pub struct String {};
+
+impl String {
+    // TODO: refactor this to use match in future
+    pub fn to_bool(s: string) -> bool? {
+        if s == "true" {
+            return true;
+        } else if s == "false" {
+            return false;
+        } else {
+            return null;
+        }
+    }
+}

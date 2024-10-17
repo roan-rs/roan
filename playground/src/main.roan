@@ -1,7 +1,10 @@
-pub fn main() -> int {
-    let x = null;
+use { String } from "std::string"
+use { println } from "std::debug"
 
-    let w = x then 1 else 2;
+pub fn main() -> int {
+    let x = String::to_bool("true");
+
+    println("{}", x);
 
     return 0;
 }
