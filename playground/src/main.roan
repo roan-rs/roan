@@ -1,8 +1,7 @@
-use { println, assert } from "std::debug";
-use { panic, unreachable } from "std::lib";
-
 pub fn main() -> int {
-    assert(1 != 1, "1 != 1");
+    let x = null;
+
+    let w = x then 1 else 2;
 
     return 0;
 }

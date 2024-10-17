@@ -605,6 +605,28 @@ impl Expr {
             token,
         })
     }
+    
+    /// Creates a new then-else expression.
+    /// 
+    /// # Arguments
+    /// * `condition` - The condition expression.
+    /// * `then_expr` - The expression to evaluate if the condition is true.
+    /// * `else_expr` - The expression to evaluate if the condition is false.
+    /// * `then_token` - The token representing the `then` keyword.
+    /// * `else_token` - The token representing the `else` keyword.
+    /// 
+    /// # Returns
+    /// 
+    /// A new `Expr::ThenElse` variant.
+    pub fn new_then_else(condition: Expr, then_expr: Expr, else_expr: Expr, then_token: Token, else_token: Token) -> Self {
+        Expr::ThenElse(ThenElse {
+            condition: Box::new(condition),
+            then_expr: Box::new(then_expr),
+            else_expr: Box::new(else_expr),
+            then_token,
+            else_token,
+        })
+    }
 
     /// Creates a new unary expression.
     ///
