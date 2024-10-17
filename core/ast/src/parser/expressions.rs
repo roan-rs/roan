@@ -1,4 +1,7 @@
-use crate::{AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, ParseContext, Parser, Stmt, Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator};
+use crate::{
+    AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, ParseContext, Parser, Stmt,
+    Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
+};
 use log::debug;
 use roan_error::error::PulseError::UnexpectedToken;
 
@@ -252,8 +255,7 @@ impl Parser {
                 if self.peek().kind == TokenKind::LeftParen {
                     self.parse_call_expr(token)
                 } else if self.peek().kind == TokenKind::LeftBrace {
-                    if self.is_context(&ParseContext::Normal)
-                    {
+                    if self.is_context(&ParseContext::Normal) {
                         self.parse_struct_constructor(token)
                     } else {
                         Ok(Expr::new_variable(token.clone(), token.literal()))
@@ -272,6 +274,30 @@ impl Parser {
             TokenKind::String(s) => Ok(Expr::new_string(token.clone(), s.clone())),
             _ => Err(UnexpectedToken(token.kind.to_string(), token.span.clone()).into()),
         }
+    }
+
+    /// Parses a then-else expression.
+    ///
+    /// This method expects an identifier followed by a then keyword and two expressions.
+    ///
+    /// # Parameters
+    /// - `identifier`: The token representing the identifier.
+    ///
+    /// # Returns
+    /// - `Ok(Expr)`: The parsed then-else expression if successful.
+    /// - `Err(anyhow::Error)`: An error if parsing fails.
+    pub fn parse_then_else_expr(&mut self, condition: Expr) -> anyhow::Result<Expr> {
+        debug!("Parsing then-else expression");
+        let then_token = self.expect(TokenKind::Then)?;
+
+        let then_expr = self.parse_expr()?;
+        let else_token = self.expect(TokenKind::Else)?;
+
+        let else_expr = self.parse_expr()?;
+
+        Ok(Expr::new_then_else(
+            condition, then_expr, else_expr, then_token, else_token,
+        ))
     }
 
     /// Parses a function call expression.
@@ -366,6 +392,8 @@ impl Parser {
 
             let operator = AssignOperator::from_token_kind(assign_op);
             return Ok(Expr::new_assign(expr, operator, right));
+        } else if self.peek().kind == TokenKind::Then {
+            return self.parse_then_else_expr(expr);
         }
 
         Ok(expr)

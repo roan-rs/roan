@@ -65,7 +65,7 @@ impl TextSpan {
         if spans.is_empty() {
             return None;
         }
-        
+
         spans.sort_by(|a, b| a.start.index.cmp(&b.start.index));
 
         let start = spans.first().unwrap().start;
@@ -161,7 +161,7 @@ mod tests {
             Position::new(1, 10, 9),
             "span".to_string(),
         );
-        let combined = TextSpan::combine(vec![span1, span2]);
+        let combined = TextSpan::combine(vec![span1, span2]).unwrap();
         assert_eq!(combined.start, Position::new(1, 1, 0));
         assert_eq!(combined.end, Position::new(1, 10, 9));
         assert_eq!(combined.literal, "testspan");

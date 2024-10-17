@@ -13,7 +13,7 @@ use crate::{
     vm::native_fn::NativeFunction,
 };
 use anyhow::Result;
-use roan_ast::{Literal, LiteralType, Struct, TypeAnnotation};
+use roan_ast::{Literal, LiteralType, Struct};
 use roan_error::{error::PulseError::TypeMismatch, TextSpan};
 use std::{
     collections::HashMap,
@@ -334,6 +334,21 @@ impl Value {
             Value::Struct(struct_def, _) => struct_def.name.literal(),
             Value::Null => "null".to_string(),
             Value::Void => "void".to_string(),
+        }
+    }
+}
+
+impl Value {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Value::Int(i) => *i != 0,
+            Value::Float(f) => *f != 0.0,
+            Value::Bool(b) => *b,
+            Value::String(s) => !s.is_empty(),
+            Value::Vec(v) => !v.is_empty(),
+            Value::Null => false,
+            Value::Void => false,
+            Value::Struct(_, _) => true,
         }
     }
 }

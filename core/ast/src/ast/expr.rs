@@ -397,6 +397,41 @@ pub enum Expr {
     Null(Token),
     /// Struct constructor. (e.g., `MyStruct { field: value }`)
     StructConstructor(StructConstructor),
+    /// Then-else expression. (e.g., `if condition then value else other`)
+    ThenElse(ThenElse),
+}
+
+/// Represents a then-else expression in the AST.
+///
+/// A then-else expression is used to conditionally evaluate one of two expressions.
+///
+/// # Examples
+/// ```roan
+/// let value = if condition then 42 else 0
+/// ```
+#[derive(Debug, Clone, PartialEq)]
+pub struct ThenElse {
+    /// The condition expression.
+    pub condition: Box<Expr>,
+    /// The expression to evaluate if the condition is true.
+    pub then_expr: Box<Expr>,
+    /// The expression to evaluate if the condition is false.
+    pub else_expr: Box<Expr>,
+    /// The token representing the `then` keyword.
+    pub then_token: Token,
+    /// The token representing the `else` keyword.
+    pub else_token: Token,
+}
+
+impl GetSpan for ThenElse {
+    /// Returns the combined source span of the condition, then expression, and else expression.
+    fn span(&self) -> TextSpan {
+        let condition_span = self.condition.span();
+        let then_span = self.then_expr.span();
+        let else_span = self.else_expr.span();
+
+        TextSpan::combine(vec![condition_span, then_span, else_span]).unwrap()
+    }
 }
 
 /// Represents a struct constructor expression in the AST.
@@ -481,6 +516,7 @@ impl GetSpan for Expr {
             }
             Expr::Null(t) => t.span.clone(),
             Expr::StructConstructor(s) => s.token.span.clone(),
+            Expr::ThenElse(t) => t.span(),
         }
     }
 }
@@ -567,6 +603,34 @@ impl Expr {
             base: Box::new(base),
             access: AccessKind::Index(Box::new(index)),
             token,
+        })
+    }
+
+    /// Creates a new then-else expression.
+    ///
+    /// # Arguments
+    /// * `condition` - The condition expression.
+    /// * `then_expr` - The expression to evaluate if the condition is true.
+    /// * `else_expr` - The expression to evaluate if the condition is false.
+    /// * `then_token` - The token representing the `then` keyword.
+    /// * `else_token` - The token representing the `else` keyword.
+    ///
+    /// # Returns
+    ///
+    /// A new `Expr::ThenElse` variant.
+    pub fn new_then_else(
+        condition: Expr,
+        then_expr: Expr,
+        else_expr: Expr,
+        then_token: Token,
+        else_token: Token,
+    ) -> Self {
+        Expr::ThenElse(ThenElse {
+            condition: Box::new(condition),
+            then_expr: Box::new(then_expr),
+            else_expr: Box::new(else_expr),
+            then_token,
+            else_token,
         })
     }
 

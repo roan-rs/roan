@@ -7,8 +7,8 @@ use crate::{
 use anyhow::Result;
 use log::debug;
 use roan_ast::{
-    AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, UnOpKind,
-    VecExpr,
+    AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan,
+    UnOpKind, Unary, VecExpr,
 };
 use roan_error::{
     error::{
@@ -60,86 +60,9 @@ impl Module {
 
                 Ok(vm.pop().unwrap())
             }
-            Expr::Access(access) => match access.access.clone() {
-                AccessKind::Field(field_expr) => {
-                    let base = access.base.clone();
-
-                    self.interpret_expr(&base, ctx, vm)?;
-                    let base = vm.pop().unwrap();
-
-                    Ok(self.access_field(base, &field_expr, ctx, vm)?)
-                }
-                AccessKind::Index(index_expr) => {
-                    self.interpret_expr(&index_expr, ctx, vm)?;
-                    let index = vm.pop().unwrap();
-
-                    self.interpret_expr(&access.base, ctx, vm)?;
-                    let base = vm.pop().unwrap();
-
-                    Ok(base.access_index(index))
-                }
-                AccessKind::StaticMethod(expr) => {
-                    let base = access.base.as_ref().clone();
-
-                    let (struct_name, span) = match base {
-                        Expr::Variable(v) => (v.ident.clone(), v.token.span.clone()),
-                        _ => return Err(StaticMemberAccess(access.span()).into()),
-                    };
-
-                    let struct_def = self.get_struct(&struct_name, span)?;
-
-                    let expr = expr.as_ref().clone();
-                    match expr {
-                        Expr::Call(call) => {
-                            let method_name = call.callee.clone();
-                            let method = struct_def.find_static_method(&method_name);
-
-                            if method.is_none() {
-                                return Err(UndefinedFunctionError(
-                                    method_name,
-                                    call.token.span.clone(),
-                                )
-                                .into());
-                            }
-
-                            let method = method.unwrap();
-
-                            let args = call
-                                .args
-                                .iter()
-                                .map(|arg| {
-                                    self.interpret_expr(arg, ctx, vm).unwrap();
-                                    vm.pop().unwrap()
-                                })
-                                .collect();
-
-                            self.execute_user_defined_function(
-                                method.clone(),
-                                Arc::new(Mutex::new(self.clone())),
-                                args,
-                                ctx,
-                                vm,
-                                &call,
-                            )?;
-
-                            Ok(vm.pop().unwrap())
-                        }
-                        _ => return Err(StaticContext(expr.span()).into()),
-                    }
-                }
-            },
+            Expr::Access(access) => self.interpret_access(access.clone(), ctx, vm),
             Expr::StructConstructor(constructor) => {
-                let struct_def =
-                    self.get_struct(&constructor.name, constructor.token.span.clone())?;
-
-                let mut fields = HashMap::new();
-
-                for (field_name, expr) in constructor.fields.iter() {
-                    self.interpret_expr(expr, ctx, vm)?;
-                    fields.insert(field_name.clone(), vm.pop().unwrap());
-                }
-
-                Ok(Value::Struct(struct_def, fields))
+                self.interpret_struct_constructor(constructor.clone(), ctx, vm)
             }
             Expr::Assign(assign) => self.interpret_assignment(assign.clone(), ctx, vm),
             Expr::Vec(vec) => self.interpret_vec(vec.clone(), ctx, vm),
@@ -147,31 +70,190 @@ impl Module {
             // Spread operator are only supposed to be used in vectors and function calls
             Expr::Spread(s) => Err(InvalidSpread(s.expr.span()).into()),
             Expr::Null(_) => Ok(Value::Null),
-            Expr::Unary(u) => {
-                self.interpret_expr(&u.expr, ctx, vm)?;
-                let val = vm.pop().unwrap();
-
-                let val = match (u.operator.clone().kind, val) {
-                    (UnOpKind::Minus, Value::Int(i)) => Value::Int(-i),
-                    (UnOpKind::Minus, Value::Float(f)) => Value::Float(-f),
-                    (UnOpKind::LogicalNot, Value::Bool(b)) => Value::Bool(!b),
-                    (UnOpKind::BitwiseNot, Value::Int(i)) => Value::Int(!i),
-                    (UnOpKind::LogicalNot, Value::Null) => Value::Bool(true),
-                    _ => {
-                        return Err(PulseError::InvalidUnaryOperation(
-                            u.operator.kind.to_string(),
-                            u.span(),
-                        )
-                        .into())
-                    }
-                };
-
-                Ok(val)
-            }
+            Expr::Unary(u) => self.interpret_unary(u.clone(), ctx, vm),
+            Expr::ThenElse(then_else) => self.interpret_then_else(then_else.clone(), ctx, vm),
             _ => todo!("missing expr: {:?}", expr),
         };
 
         Ok(vm.push(val?))
+    }
+
+    /// Interpret a struct constructor expression.
+    ///
+    /// # Arguments
+    /// * `constructor` - [StructConstructor] expression to interpret.
+    /// * `ctx` - The context in which to interpret the struct constructor expression.
+    /// * `vm` - The virtual machine to use.
+    ///
+    /// # Returns
+    /// The result of the struct constructor expression.
+    pub fn interpret_struct_constructor(
+        &mut self,
+        constructor: roan_ast::StructConstructor,
+        ctx: &Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
+        debug!("Interpreting struct constructor: {:?}", constructor);
+        let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
+
+        let mut fields = HashMap::new();
+
+        for (field_name, expr) in constructor.fields.iter() {
+            self.interpret_expr(expr, ctx, vm)?;
+            fields.insert(field_name.clone(), vm.pop().unwrap());
+        }
+
+        Ok(Value::Struct(struct_def, fields))
+    }
+
+    /// Interpret a unary expression.
+    ///
+    /// # Arguments
+    /// * `unary` - [Unary] expression to interpret.
+    /// * `ctx` - The context in which to interpret the unary expression.
+    /// * `vm` - The virtual machine to use.
+    ///
+    /// # Returns
+    /// The result of the unary expression.
+    pub fn interpret_unary(&mut self, u: Unary, ctx: &Context, vm: &mut VM) -> Result<Value> {
+        self.interpret_expr(&u.expr, ctx, vm)?;
+        let val = vm.pop().unwrap();
+
+        let val = match (u.operator.clone().kind, val) {
+            (UnOpKind::Minus, Value::Int(i)) => Value::Int(-i),
+            (UnOpKind::Minus, Value::Float(f)) => Value::Float(-f),
+            (UnOpKind::LogicalNot, Value::Bool(b)) => Value::Bool(!b),
+            (UnOpKind::BitwiseNot, Value::Int(i)) => Value::Int(!i),
+            (UnOpKind::LogicalNot, Value::Null) => Value::Bool(true),
+            _ => {
+                return Err(PulseError::InvalidUnaryOperation(
+                    u.operator.kind.to_string(),
+                    u.span(),
+                )
+                .into())
+            }
+        };
+
+        Ok(val)
+    }
+
+    /// Interpret an access expression.
+    ///
+    /// # Arguments
+    /// * `access` - [Access] expression to interpret.
+    /// * `ctx` - The context in which to interpret the access expression.
+    /// * `vm` - The virtual machine to use.
+    ///
+    /// # Returns
+    /// The result of the access expression.
+    pub fn interpret_access(
+        &mut self,
+        access: AccessExpr,
+        ctx: &Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
+        match access.access.clone() {
+            AccessKind::Field(field_expr) => {
+                let base = access.base.clone();
+
+                self.interpret_expr(&base, ctx, vm)?;
+                let base = vm.pop().unwrap();
+
+                Ok(self.access_field(base, &field_expr, ctx, vm)?)
+            }
+            AccessKind::Index(index_expr) => {
+                self.interpret_expr(&index_expr, ctx, vm)?;
+                let index = vm.pop().unwrap();
+
+                self.interpret_expr(&access.base, ctx, vm)?;
+                let base = vm.pop().unwrap();
+
+                Ok(base.access_index(index))
+            }
+            AccessKind::StaticMethod(expr) => {
+                let base = access.base.as_ref().clone();
+
+                let (struct_name, span) = match base {
+                    Expr::Variable(v) => (v.ident.clone(), v.token.span.clone()),
+                    _ => return Err(StaticMemberAccess(access.span()).into()),
+                };
+
+                let struct_def = self.get_struct(&struct_name, span)?;
+
+                let expr = expr.as_ref().clone();
+                match expr {
+                    Expr::Call(call) => {
+                        let method_name = call.callee.clone();
+                        let method = struct_def.find_static_method(&method_name);
+
+                        if method.is_none() {
+                            return Err(UndefinedFunctionError(
+                                method_name,
+                                call.token.span.clone(),
+                            )
+                            .into());
+                        }
+
+                        let method = method.unwrap();
+
+                        let args = call
+                            .args
+                            .iter()
+                            .map(|arg| {
+                                self.interpret_expr(arg, ctx, vm).unwrap();
+                                vm.pop().unwrap()
+                            })
+                            .collect();
+
+                        self.execute_user_defined_function(
+                            method.clone(),
+                            Arc::new(Mutex::new(self.clone())),
+                            args,
+                            ctx,
+                            vm,
+                            &call,
+                        )?;
+
+                        Ok(vm.pop().unwrap())
+                    }
+                    _ => return Err(StaticContext(expr.span()).into()),
+                }
+            }
+        }
+    }
+
+    /// Interpret a then-else expression.
+    ///
+    /// # Arguments
+    /// * `then_else` - [ThenElse] expression to interpret.
+    /// * `ctx` - The context in which to interpret the then-else expression.
+    /// * `vm` - The virtual machine to use.
+    ///
+    /// # Returns
+    /// The result of the then-else expression.
+    pub fn interpret_then_else(
+        &mut self,
+        then_else: roan_ast::ThenElse,
+        ctx: &Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
+        debug!("Interpreting then-else: {:?}", then_else);
+
+        self.interpret_expr(&then_else.condition, ctx, vm)?;
+        let condition = vm.pop().unwrap();
+
+        let b = match condition {
+            Value::Bool(b) => b,
+            _ => condition.is_truthy(),
+        };
+
+        if b {
+            self.interpret_expr(&then_else.then_expr, ctx, vm)?;
+        } else {
+            self.interpret_expr(&then_else.else_expr, ctx, vm)?;
+        }
+
+        Ok(vm.pop().expect("Expected value on stack"))
     }
 
     /// Interpret a vector expression.

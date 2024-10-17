@@ -2,13 +2,16 @@ use crate::{context::Context, module::Module, value::Value, vm::VM};
 use anyhow::Result;
 use log::debug;
 use roan_ast::{CallExpr, GetSpan};
-use roan_error::{error::PulseError::TypeMismatch, frame::Frame, TextSpan};
+use roan_error::{
+    error::PulseError::{MissingParameter, TypeMismatch},
+    frame::Frame,
+    TextSpan,
+};
 use std::{
     fmt,
     fmt::{Display, Formatter},
     sync::{Arc, Mutex},
 };
-use roan_error::error::PulseError::MissingParameter;
 
 #[derive(Debug, Clone)]
 pub struct NativeFunctionParam {
@@ -195,11 +198,11 @@ impl Module {
                             defining_module_guard.declare_variable(ident, Value::Null);
                             continue;
                         }
-                        
-                        if expr.is_none()  {
+
+                        if expr.is_none() {
                             return Err(MissingParameter(ident.clone(), call.span()).into());
                         }
-                        
+
                         if arg.is_null() && !_type.is_nullable {
                             return Err(TypeMismatch(
                                 format!("Expected type {} but got null", _type.type_name.literal()),
