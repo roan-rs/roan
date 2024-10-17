@@ -77,4 +77,6 @@ pub enum PulseError {
     StaticContext(TextSpan),
     #[error("Invalid unary operator: {0}")]
     InvalidUnaryOperation(String, TextSpan),
+    #[error("Missing non-nullable parameter: {0}")]
+    MissingParameter(String, TextSpan),
 }

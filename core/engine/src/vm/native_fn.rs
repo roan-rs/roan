@@ -8,6 +8,7 @@ use std::{
     fmt::{Display, Formatter},
     sync::{Arc, Mutex},
 };
+use roan_error::error::PulseError::MissingParameter;
 
 #[derive(Debug, Clone)]
 pub struct NativeFunctionParam {
@@ -190,6 +191,15 @@ impl Module {
                     }
                 } else {
                     if let Some(_type) = param.type_annotation.as_ref() {
+                        if arg.is_null() && _type.is_nullable {
+                            defining_module_guard.declare_variable(ident, Value::Null);
+                            continue;
+                        }
+                        
+                        if expr.is_none()  {
+                            return Err(MissingParameter(ident.clone(), call.span()).into());
+                        }
+                        
                         if arg.is_null() && !_type.is_nullable {
                             return Err(TypeMismatch(
                                 format!("Expected type {} but got null", _type.type_name.literal()),

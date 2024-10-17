@@ -110,7 +110,8 @@ impl Module {
                                 l.ident.span,
                                 type_annotation.type_name.span.clone(),
                                 l.initializer.span(),
-                            ]),
+                            ])
+                            .unwrap(),
                         )?
                     }
                 }
@@ -411,7 +412,8 @@ impl Module {
             _ => {
                 return Err(NonBooleanCondition(
                     "If condition".into(),
-                    TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()]),
+                    TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()])
+                        .unwrap(),
                 )
                 .into())
             }

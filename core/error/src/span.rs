@@ -59,22 +59,23 @@ impl TextSpan {
     /// let span1 = TextSpan::new(Position::new(1, 1, 0), Position::new(1, 5, 4), "test".to_string());
     /// let span2 = TextSpan::new(Position::new(1, 6, 5), Position::new(1, 10, 9), "span".to_string());
     /// let combined = TextSpan::combine(vec![span1, span2]);
-    /// assert_eq!(combined.literal, "testspan");
+    /// assert_eq!(combined.unwrap().literal, "testspan");
     /// ```
-    pub fn combine(mut spans: Vec<TextSpan>) -> TextSpan {
+    pub fn combine(mut spans: Vec<TextSpan>) -> Option<TextSpan> {
         if spans.is_empty() {
-            panic!("Cannot combine empty spans")
+            return None;
         }
+        
         spans.sort_by(|a, b| a.start.index.cmp(&b.start.index));
 
         let start = spans.first().unwrap().start;
         let end = spans.last().unwrap().end;
 
-        TextSpan::new(
+        Some(TextSpan::new(
             start,
             end,
             spans.into_iter().map(|span| span.literal).collect(),
-        )
+        ))
     }
 
     /// Returns the length of the span, calculated as the difference between the end and start indices.

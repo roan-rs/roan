@@ -7,6 +7,7 @@ use crate::{
     value::Value,
     vm::native_fn::{NativeFunction, NativeFunctionParam},
 };
+use std::{panic, panic::panic_any};
 
 pub mod io;
 mod process;
@@ -71,6 +72,28 @@ native_function!(
     }
 );
 
+native_function!(
+    fn __panic(msg) {
+        let msg = as_cast!(msg, String);
+
+        // Save panic hook to restore it later
+        let old_hook = std::panic::take_hook();
+
+        panic::set_hook(Box::new(|panic_info| {
+            let payload = panic_info.payload().downcast_ref::<String>().unwrap();
+            eprintln!("program panicked");
+            eprintln!("{}", payload);
+        }));
+
+        panic_any(msg);
+
+        // Restore the original hook afterward if needed.
+        panic::set_hook(old_hook);
+
+        Value::Void
+    }
+);
+
 pub fn get_stored_function() -> Vec<StoredFunction> {
     vec![
         __print(),
@@ -80,6 +103,7 @@ pub fn get_stored_function() -> Vec<StoredFunction> {
         __abort(),
         __pid(),
         type_of(),
+        __panic(),
     ]
     .into_iter()
     .map(|f| StoredFunction::Native(f))
