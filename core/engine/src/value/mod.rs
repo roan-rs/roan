@@ -338,6 +338,21 @@ impl Value {
     }
 }
 
+impl Value {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Value::Int(i) => *i != 0,
+            Value::Float(f) => *f != 0.0,
+            Value::Bool(b) => *b,
+            Value::String(s) => !s.is_empty(),
+            Value::Vec(v) => !v.is_empty(),
+            Value::Null => false,
+            Value::Void => false,
+            Value::Struct(_, _) => true,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

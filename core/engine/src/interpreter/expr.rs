@@ -168,10 +168,45 @@ impl Module {
 
                 Ok(val)
             }
+            Expr::ThenElse(then_else) => self.interpret_then_else(then_else.clone(), ctx, vm),
             _ => todo!("missing expr: {:?}", expr),
         };
 
         Ok(vm.push(val?))
+    }
+
+    /// Interpret a then-else expression.
+    ///
+    /// # Arguments
+    /// * `then_else` - [ThenElse] expression to interpret.
+    /// * `ctx` - The context in which to interpret the then-else expression.
+    /// * `vm` - The virtual machine to use.
+    ///
+    /// # Returns
+    /// The result of the then-else expression.
+    pub fn interpret_then_else(
+        &mut self,
+        then_else: roan_ast::ThenElse,
+        ctx: &Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
+        debug!("Interpreting then-else: {:?}", then_else);
+
+        self.interpret_expr(&then_else.condition, ctx, vm)?;
+        let condition = vm.pop().unwrap();
+
+        let b = match condition {
+            Value::Bool(b) => b,
+            _ => condition.is_truthy(),
+        };
+
+        if b {
+            self.interpret_expr(&then_else.then_expr, ctx, vm)?;
+        } else {
+            self.interpret_expr(&then_else.else_expr, ctx, vm)?;
+        }
+
+        Ok(vm.pop().expect("Expected value on stack"))
     }
 
     /// Interpret a vector expression.
