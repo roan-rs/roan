@@ -6,7 +6,10 @@ use crate::{
 };
 use anyhow::Result;
 use log::debug;
-use roan_ast::{AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan, UnOpKind, Unary, VecExpr};
+use roan_ast::{
+    AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan,
+    UnOpKind, Unary, VecExpr,
+};
 use roan_error::{
     error::{
         PulseError,
@@ -58,7 +61,9 @@ impl Module {
                 Ok(vm.pop().unwrap())
             }
             Expr::Access(access) => self.interpret_access(access.clone(), ctx, vm),
-            Expr::StructConstructor(constructor) => self.interpret_struct_constructor(constructor.clone(), ctx, vm),
+            Expr::StructConstructor(constructor) => {
+                self.interpret_struct_constructor(constructor.clone(), ctx, vm)
+            }
             Expr::Assign(assign) => self.interpret_assignment(assign.clone(), ctx, vm),
             Expr::Vec(vec) => self.interpret_vec(vec.clone(), ctx, vm),
             Expr::Binary(b) => self.interpret_binary(b.clone(), ctx, vm),
@@ -72,20 +77,24 @@ impl Module {
 
         Ok(vm.push(val?))
     }
-    
+
     /// Interpret a struct constructor expression.
-    /// 
+    ///
     /// # Arguments
     /// * `constructor` - [StructConstructor] expression to interpret.
     /// * `ctx` - The context in which to interpret the struct constructor expression.
     /// * `vm` - The virtual machine to use.
-    /// 
+    ///
     /// # Returns
     /// The result of the struct constructor expression.
-    pub fn interpret_struct_constructor(&mut self, constructor: roan_ast::StructConstructor, ctx: &Context, vm: &mut VM) -> Result<Value> {
+    pub fn interpret_struct_constructor(
+        &mut self,
+        constructor: roan_ast::StructConstructor,
+        ctx: &Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
         debug!("Interpreting struct constructor: {:?}", constructor);
-        let struct_def =
-            self.get_struct(&constructor.name, constructor.token.span.clone())?;
+        let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
 
         let mut fields = HashMap::new();
 
@@ -96,14 +105,14 @@ impl Module {
 
         Ok(Value::Struct(struct_def, fields))
     }
-    
+
     /// Interpret a unary expression.
-    /// 
+    ///
     /// # Arguments
     /// * `unary` - [Unary] expression to interpret.
     /// * `ctx` - The context in which to interpret the unary expression.
     /// * `vm` - The virtual machine to use.
-    /// 
+    ///
     /// # Returns
     /// The result of the unary expression.
     pub fn interpret_unary(&mut self, u: Unary, ctx: &Context, vm: &mut VM) -> Result<Value> {
@@ -121,23 +130,28 @@ impl Module {
                     u.operator.kind.to_string(),
                     u.span(),
                 )
-                    .into())
+                .into())
             }
         };
 
         Ok(val)
     }
-    
+
     /// Interpret an access expression.
-    /// 
+    ///
     /// # Arguments
     /// * `access` - [Access] expression to interpret.
     /// * `ctx` - The context in which to interpret the access expression.
     /// * `vm` - The virtual machine to use.
-    /// 
+    ///
     /// # Returns
     /// The result of the access expression.
-    pub fn interpret_access(&mut self, access: AccessExpr, ctx: &Context, vm: &mut VM) -> Result<Value> {
+    pub fn interpret_access(
+        &mut self,
+        access: AccessExpr,
+        ctx: &Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
         match access.access.clone() {
             AccessKind::Field(field_expr) => {
                 let base = access.base.clone();
@@ -177,7 +191,7 @@ impl Module {
                                 method_name,
                                 call.token.span.clone(),
                             )
-                                .into());
+                            .into());
                         }
 
                         let method = method.unwrap();

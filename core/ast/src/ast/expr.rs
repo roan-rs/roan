@@ -402,9 +402,9 @@ pub enum Expr {
 }
 
 /// Represents a then-else expression in the AST.
-/// 
+///
 /// A then-else expression is used to conditionally evaluate one of two expressions.
-/// 
+///
 /// # Examples
 /// ```roan
 /// let value = if condition then 42 else 0
@@ -605,20 +605,26 @@ impl Expr {
             token,
         })
     }
-    
+
     /// Creates a new then-else expression.
-    /// 
+    ///
     /// # Arguments
     /// * `condition` - The condition expression.
     /// * `then_expr` - The expression to evaluate if the condition is true.
     /// * `else_expr` - The expression to evaluate if the condition is false.
     /// * `then_token` - The token representing the `then` keyword.
     /// * `else_token` - The token representing the `else` keyword.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new `Expr::ThenElse` variant.
-    pub fn new_then_else(condition: Expr, then_expr: Expr, else_expr: Expr, then_token: Token, else_token: Token) -> Self {
+    pub fn new_then_else(
+        condition: Expr,
+        then_expr: Expr,
+        else_expr: Expr,
+        then_token: Token,
+        else_token: Token,
+    ) -> Self {
         Expr::ThenElse(ThenElse {
             condition: Box::new(condition),
             then_expr: Box::new(then_expr),

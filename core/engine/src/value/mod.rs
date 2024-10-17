@@ -13,7 +13,7 @@ use crate::{
     vm::native_fn::NativeFunction,
 };
 use anyhow::Result;
-use roan_ast::{Literal, LiteralType, Struct, TypeAnnotation};
+use roan_ast::{Literal, LiteralType, Struct};
 use roan_error::{error::PulseError::TypeMismatch, TextSpan};
 use std::{
     collections::HashMap,
