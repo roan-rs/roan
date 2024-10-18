@@ -18,6 +18,7 @@ pub struct ProjectConfig {
     pub repository: Option<String>,
     pub homepage: Option<String>,
     pub keywords: Option<Vec<String>>,
+    pub r#type: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

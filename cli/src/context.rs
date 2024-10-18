@@ -1,5 +1,5 @@
 use crate::{config_file::RoanConfig, fs::walk_for_file};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use std::{fs::read_to_string, path::PathBuf};
 
 #[derive(Debug)]
@@ -27,6 +27,19 @@ impl GlobalContext {
         let config: RoanConfig = toml::from_str(&content)?;
 
         self.config = Some(config.clone());
+
+        if config.project.r#type.is_none() {
+            return Err(anyhow!(
+                "Project type is not specified in [project] in roan.toml. Available types: 'lib', 'bin'"
+            ));
+        }
+
+        let r#type = config.project.r#type.as_ref().unwrap();
+        if r#type != "lib" && r#type != "bin" {
+            return Err(anyhow!(
+                "Invalid project type in [project] in roan.toml. Available types: 'lib', 'bin'"
+            ));
+        }
 
         Ok(config)
     }
