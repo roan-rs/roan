@@ -2,14 +2,10 @@ use crate::{context::GlobalContext, stds::ensure_lib_dir};
 use anyhow::{anyhow, Result};
 use clap::Command;
 use roan_engine::{
-    context::Context,
-    module::Module,
-    path::{canonicalize_path, normalize_path},
-    print_diagnostic,
-    source::Source,
+    context::Context, module::Module, path::canonicalize_path, print_diagnostic, source::Source,
     vm::VM,
 };
-use std::{fs::read_to_string, path::PathBuf};
+use std::fs::read_to_string;
 
 pub fn run_cmd() -> Command {
     Command::new("run").about("Run a project")

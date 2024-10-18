@@ -1,4 +1,4 @@
-use std::{io, io::Write};
+use std::io;
 use tracing::subscriber;
 use tracing_subscriber::{fmt, fmt::time::ChronoLocal, prelude::*};
 
@@ -15,7 +15,7 @@ pub fn setup_logger(verbose: bool) {
     let console_layer = fmt::Layer::new()
         .with_writer(io::stderr)
         .with_timer(ChronoLocal::new(time_format.into()))
-        .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
+        .with_ansi(std::io::IsTerminal::is_terminal(&io::stderr()))
         .with_target(verbose);
 
     if verbose {

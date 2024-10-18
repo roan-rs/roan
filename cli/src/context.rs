@@ -1,10 +1,7 @@
 use crate::{config_file::RoanConfig, fs::walk_for_file};
 use anyhow::{anyhow, Context, Result};
 use roan_engine::path::normalize_path;
-use std::{
-    fs::read_to_string,
-    path::{Path, PathBuf},
-};
+use std::{fs::read_to_string, path::PathBuf};
 
 #[derive(Debug)]
 pub struct GlobalContext {

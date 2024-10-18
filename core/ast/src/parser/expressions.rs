@@ -2,8 +2,8 @@ use crate::{
     AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, ParseContext, Parser, Stmt,
     Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
 };
-use tracing::debug;
 use roan_error::error::PulseError::UnexpectedToken;
+use tracing::debug;
 
 impl Parser {
     /// Parses any expression, starting with an assignment.

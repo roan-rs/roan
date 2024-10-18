@@ -1,10 +1,10 @@
 use crate::{context::Context, module::Module};
-use tracing::debug;
 use std::{
     fmt::Debug,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
+use tracing::debug;
 
 pub mod basic;
 

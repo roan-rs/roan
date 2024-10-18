@@ -15,7 +15,6 @@ pub mod logger;
 pub mod panic_handler;
 mod stds;
 pub mod style;
-use tracing_attributes::instrument;
 
 fn main() -> Result<()> {
     setup_panic_handler();
@@ -54,7 +53,6 @@ fn main() -> Result<()> {
         }
         _ok => {}
     }
-    tracing::info!("Success");
 
     Ok(())
 }
