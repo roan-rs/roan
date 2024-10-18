@@ -165,11 +165,11 @@ impl Module {
                     .find(|s| s.name.literal() == struct_name)
                 {
                     *existing_struct = struct_def;
-                
-                    let export = self.exports.iter_mut().find(|(n, _)| n == &struct_name).unwrap();
-                    
-                    if let ExportType::Struct(s) = &mut export.1 {
-                        s.impls.push(impl_stmt);
+
+                    if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &struct_name) {
+                        if let ExportType::Struct(s) = &mut export.1 {
+                            s.impls.push(impl_stmt);
+                        }
                     }
                 }
             }
@@ -218,11 +218,11 @@ impl Module {
                     .find(|s| s.name.literal() == for_name)
                 {
                     *existing_struct = struct_def;
-                    
-                    let export = self.exports.iter_mut().find(|(n, _)| n == &for_name).unwrap();
-                    
-                    if let ExportType::Struct(s) = &mut export.1 {
-                        s.trait_impls.push(impl_stmt);
+
+                    if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &for_name) {
+                        if let ExportType::Struct(s) = &mut export.1 {
+                            s.trait_impls.push(impl_stmt);
+                        }
                     }
                 }
             }

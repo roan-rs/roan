@@ -552,6 +552,8 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_fn(&mut self) -> Result<Stmt> {
         debug!("Parsing function");
+        self.possible_check(TokenKind::Comment);
+
         let (fn_token, public) = self.parse_pub(TokenKind::Fn)?;
 
         let name = self.expect(TokenKind::Identifier)?;
