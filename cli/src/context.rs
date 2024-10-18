@@ -38,7 +38,7 @@ impl GlobalContext {
             ));
         }
 
-        let r#type = config.project.r#type.as_ref().unwrap();
+        let r#type = self.project_type()?;
         if r#type != "lib" && r#type != "bin" {
             return Err(anyhow!(
                 "Invalid project type in [project] in roan.toml. Available types: 'lib', 'bin'"
@@ -64,7 +64,7 @@ impl GlobalContext {
         let config = self.get_config()?.clone();
 
         // We unwrap here because we have already checked that project type is specified in config
-        let file: PathBuf = match config.project.r#type.unwrap().as_str() {
+        let file: PathBuf = match self.project_type()? {
             "lib" => config
                 .project
                 .lib
@@ -84,5 +84,9 @@ impl GlobalContext {
         }
 
         Ok(path)
+    }
+
+    pub fn project_type(&self) -> Result<&str> {
+        Ok(self.get_config()?.project.r#type.as_ref().unwrap())
     }
 }

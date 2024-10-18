@@ -1,5 +1,5 @@
 use crate::{context::GlobalContext, std::ensure_lib_dir};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Command;
 use roan_engine::{
     context::Context,
@@ -18,6 +18,10 @@ pub fn run_cmd() -> Command {
 pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
     ctx.load_config()?;
     let path = ctx.get_main_file()?;
+
+    if ctx.project_type()? == "lib" {
+        return Err(anyhow!("Cannot run a library project."));
+    }
 
     let (lib_dir, modules) = ensure_lib_dir()?;
     let content = read_to_string(&path)?;
@@ -42,6 +46,6 @@ pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
         Ok(_) => Ok(()),
         Err(e) => Ok({
             print_diagnostic(e, Some(content));
-        })
+        }),
     }
 }
