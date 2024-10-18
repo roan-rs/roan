@@ -9,3 +9,5 @@ roan-ast = { workspace = true }
 bon = { workspace = true }
 anyhow = { workspace = true }
 log = { workspace = true }
+tracing = { workspace = true }
+tracing-attributes = { workspace = true }

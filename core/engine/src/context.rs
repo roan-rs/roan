@@ -7,13 +7,13 @@ use crate::{
 };
 use anyhow::Result;
 use bon::bon;
-use log::debug;
 use roan_error::print_diagnostic;
 use std::{
     fmt::Debug,
     rc::Rc,
     sync::{Arc, Mutex},
 };
+use tracing::debug;
 
 /// Struct to interact with the runtime.
 ///
@@ -71,7 +71,7 @@ impl Context {
 
 impl Default for Context {
     fn default() -> Self {
-        log::debug!("Creating default context");
+        tracing::debug!("Creating default context");
         Self::builder().build()
     }
 }
@@ -87,9 +87,9 @@ impl Context {
     ///
     /// The result of the evaluation.
     pub fn eval(&self, module: Arc<Mutex<Module>>, vm: &mut VM) -> Result<()> {
-        debug!("Evaluating module: {:?}", module);
         {
             let mut main_module_guard = module.lock().unwrap();
+            debug!("Evaluating module: {:?}", main_module_guard.source().path());
 
             match {
                 main_module_guard.parse()?;

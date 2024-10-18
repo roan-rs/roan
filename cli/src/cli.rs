@@ -1,9 +1,9 @@
+use crate::{commands::run::run_cmd, style};
 use clap::{
     builder::{styling, Styles},
     Arg, ArgAction, Command, Parser, Subcommand, ValueHint,
 };
-
-use crate::{commands::run::run_cmd, style};
+use tracing_attributes::instrument;
 
 pub fn opt(name: &'static str, help: &'static str) -> Arg {
     Arg::new(name).long(name).help(help).action(ArgAction::Set)
@@ -11,7 +11,7 @@ pub fn opt(name: &'static str, help: &'static str) -> Arg {
 
 pub fn cli() -> Command {
     let styles = {
-        clap::builder::styling::Styles::styled()
+        Styles::styled()
             .header(style::HEADER)
             .usage(style::USAGE)
             .literal(style::LITERAL)

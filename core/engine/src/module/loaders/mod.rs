@@ -1,5 +1,5 @@
 use crate::{context::Context, module::Module};
-use log::debug;
+use tracing::debug;
 use std::{
     fmt::Debug,
     path::PathBuf,

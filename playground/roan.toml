@@ -1,4 +1,4 @@
 [project]
 name = "roan"
 version = "0.1.0"
-type = "lib"
+type = "bin"

@@ -5,7 +5,7 @@ use crate::{
     vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
-use log::debug;
+use tracing::debug;
 use roan_ast::{source::Source, Ast, Expr, Fn, Lexer, Parser, Struct, Token, TraitDef};
 use roan_error::{error::PulseError::VariableNotFoundError, print_diagnostic, TextSpan};
 use std::{

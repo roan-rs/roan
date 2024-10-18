@@ -1,4 +1,4 @@
-use crate::{context::GlobalContext, std::ensure_lib_dir};
+use crate::{context::GlobalContext, stds::ensure_lib_dir};
 use anyhow::{anyhow, Result};
 use clap::Command;
 use roan_engine::{

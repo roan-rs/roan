@@ -1,6 +1,5 @@
 use crate::{context::Context, module::Module, value::Value, vm::VM};
 use anyhow::Result;
-use log::debug;
 use roan_ast::{CallExpr, GetSpan};
 use roan_error::{
     error::PulseError::{MissingParameter, TypeMismatch},
@@ -12,6 +11,7 @@ use std::{
     fmt::{Display, Formatter},
     sync::{Arc, Mutex},
 };
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 pub struct NativeFunctionParam {
@@ -42,8 +42,9 @@ impl NativeFunction {
 
     pub fn call(&mut self, args: Vec<Value>) -> Result<Value> {
         debug!(
-            "Executing native function: {} with args {:?}",
-            self.name, args
+            "Executing native function: {} with {:?} args",
+            self.name,
+            args.len()
         );
 
         let mut params = vec![];

@@ -6,12 +6,12 @@ use crate::{
     },
     path::canonicalize_path,
 };
-use log::debug;
 use roan_ast::source::Source;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
+use tracing::debug;
 
 /// A basic implementation of the `ModuleLoader` trait that caches modules in memory.
 #[derive(Debug)]
