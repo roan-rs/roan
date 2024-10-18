@@ -17,7 +17,8 @@ thiserror = "1.0.64"
 bon = "2.3.0"
 dirs = "5.0.1"
 tracing = { version = "0.1.40", default-features = false, features = ["std"] }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "chrono", "time"] }
+tracing-appender = "0.2"
 tracing-attributes = "0.1.27"
 backtrace = "0.3.74"
 clap = { version = "4.5.20", features = ["derive"] }

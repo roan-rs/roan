@@ -23,10 +23,9 @@ fn main() -> Result<()> {
     let verbose = args.get_flag("verbose");
 
     env::set_var("ROAN_LOG", if verbose { "trace" } else { "info" });
-    setup_logger();
+    setup_logger(verbose);
 
     tracing::debug!("Starting roan-cli");
-    tracing::debug!("Parsed clap arguments");
 
     let cmd = match args.subcommand() {
         Some((cmd, args)) => (cmd, args),
@@ -51,10 +50,11 @@ fn main() -> Result<()> {
 
     match result {
         Err(err) => {
-            log::error!("{:?}", err);
+            tracing::error!("{:?}", err);
         }
         _ok => {}
     }
+    tracing::info!("Success");
 
     Ok(())
 }
