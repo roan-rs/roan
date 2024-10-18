@@ -1,5 +1,5 @@
 [workspace]
-members = ["core/engine", "cli", "core/error", "core/ast", "tools/git"]
+members = ["core/engine", "cli", "core/error", "core/ast", "tools/git", "tools/logs"]
 resolver = "1"
 
 [workspace.dependencies]
