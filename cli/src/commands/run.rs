@@ -20,7 +20,8 @@ pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
 
     // let (lib_dir, modules) = ensure_lib_dir()?;
 
-    // let path = normalize_path(PathBuf::from(file), std::env::current_dir()?)?;
+    let path = ctx.get_main_file()?;
+
     // let content = read_to_string(&path)?;
 
     // let ctx = Context::default();

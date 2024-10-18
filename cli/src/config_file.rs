@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct RoanConfig {
@@ -19,6 +19,8 @@ pub struct ProjectConfig {
     pub homepage: Option<String>,
     pub keywords: Option<Vec<String>>,
     pub r#type: Option<String>,
+    pub lib: Option<PathBuf>,
+    pub bin: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

@@ -1,6 +1,10 @@
 use crate::{config_file::RoanConfig, fs::walk_for_file};
 use anyhow::{anyhow, Context, Result};
-use std::{fs::read_to_string, path::PathBuf};
+use roan_engine::path::normalize_path;
+use std::{
+    fs::read_to_string,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub struct GlobalContext {
@@ -42,5 +46,43 @@ impl GlobalContext {
         }
 
         Ok(config)
+    }
+
+    pub fn get_config(&self) -> Result<&RoanConfig> {
+        self.config
+            .as_ref()
+            .ok_or_else(|| anyhow!("Config is not loaded"))
+    }
+
+    pub fn get_config_mut(&mut self) -> Result<&mut RoanConfig> {
+        self.config
+            .as_mut()
+            .ok_or_else(|| anyhow!("Config is not loaded"))
+    }
+
+    pub fn get_main_file(&self) -> Result<PathBuf> {
+        let config = self.get_config()?.clone();
+
+        // We unwrap here because we have already checked that project type is specified in config
+        let file: PathBuf = match config.project.r#type.unwrap().as_str() {
+            "lib" => config
+                .project
+                .lib
+                .clone()
+                .unwrap_or_else(|| "src/lib.roan".into()),
+            "bin" => config
+                .project
+                .bin
+                .clone()
+                .unwrap_or_else(|| "src/main.roan".into()),
+            _ => unreachable!(),
+        };
+
+        let path = normalize_path(file, self.cwd.clone())?;
+        if !path.exists() {
+            return Err(anyhow!("Main file does not exist: {}", path.display()));
+        }
+
+        Ok(path)
     }
 }
