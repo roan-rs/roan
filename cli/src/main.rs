@@ -1,10 +1,10 @@
-use anyhow::Result;
-use clap::Parser;
-use cli::{Cli, Commands};
+use anyhow::{anyhow, Ok, Result};
+use cli::cli;
 use commands::run::run_command;
 use logger::setup_logger;
 use panic_handler::setup_panic_handler;
 
+pub mod style;
 pub mod cli;
 pub mod commands;
 pub mod logger;
@@ -13,17 +13,33 @@ mod std;
 
 fn main() -> Result<()> {
     setup_panic_handler();
-    let args = Cli::parse();
-    setup_logger(args.verbose);
+    let args = cli().try_get_matches()?;
+    let verbose = args.get_flag("verbose");
+    
+    setup_logger(verbose);
 
     log::debug!("Parsed clap arguments");
 
-    let result = match args.command {
-        Commands::Run { file } => run_command(file),
+    let cmd = match args.subcommand() {
+        Some((cmd, args)) => (cmd, args),
+        None => {
+            cli().print_help();
+
+            return Ok(())
+        }
+    };
+
+    let result = match cmd.0 {
+        "run" => {
+            print!("dwa");
+
+            Ok(())
+        }
+        _ => Err(anyhow!("Failed"))
     };
 
     match result {
-        Ok(_) => {
+        Ok => {
             log::debug!("Finished program")
         }
         Err(err) => {

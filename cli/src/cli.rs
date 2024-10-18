@@ -1,27 +1,38 @@
 use clap::{
-    builder::{styling, Styles},
-    Parser, Subcommand, ValueHint,
+    builder::{styling, Styles}, Arg, ArgAction, Command, Parser, Subcommand, ValueHint
 };
 
-#[derive(Debug, Parser)]
-#[command(author, version, about, name = "pulse",
-styles = Styles::styled()
-        .header(styling::AnsiColor::Yellow.on_default())
-        .usage(styling::AnsiColor::Yellow.on_default())
-        .literal(styling::AnsiColor::Green.on_default()))]
-pub struct Cli {
-    #[arg(global = true, short, long)]
-    pub verbose: bool,
+use crate::{commands::run::run_cmd, style};
 
-    #[command(subcommand)]
-    pub command: Commands,
+pub fn opt(name: &'static str, help: &'static str) -> Arg {
+    Arg::new(name).long(name).help(help).action(ArgAction::Set)
 }
 
-#[derive(Debug, Subcommand)]
-pub enum Commands {
-    #[command(about = "Run a file")]
-    Run {
-        #[arg( value_hint = ValueHint::FilePath)]
-        file: String,
-    },
+pub fn cli() -> Command {
+    let styles = {
+        clap::builder::styling::Styles::styled()
+            .header(style::HEADER)
+            .usage(style::USAGE)
+            .literal(style::LITERAL)
+            .placeholder(style::PLACEHOLDER)
+            .error(style::ERROR)
+            .valid(style::VALID)
+            .invalid(style::INVALID)
+    };
+    
+    Command::new("roan")
+        .allow_external_subcommands(true)
+        .styles(styles)
+        .arg(
+            opt(
+                "verbose",
+                "Use verbose output",
+            )
+            .short('v')
+            .action(ArgAction::Count)
+            .global(true)
+        )
+        .subcommand(
+            run_cmd()
+        )
 }
