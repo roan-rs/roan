@@ -698,6 +698,7 @@ dependencies = [
  "log",
  "project-root",
  "roan-engine",
+ "serde",
  "tar",
  "thiserror",
  "toml",

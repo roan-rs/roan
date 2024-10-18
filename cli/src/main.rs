@@ -1,3 +1,4 @@
+use crate::context::GlobalContext;
 use anyhow::{anyhow, Ok, Result};
 use cli::cli;
 use commands::run::run_command;
@@ -6,6 +7,9 @@ use panic_handler::setup_panic_handler;
 
 pub mod cli;
 pub mod commands;
+mod config_file;
+mod context;
+mod fs;
 pub mod logger;
 pub mod panic_handler;
 mod std;
@@ -29,18 +33,23 @@ fn main() -> Result<()> {
         }
     };
 
+    let mut ctx = GlobalContext::default()?;
+    ctx.verbose = verbose;
+
     let result = match cmd.0 {
-        "run" => run_command(),
-        _ => Err(anyhow!("Failed")),
+        "run" => run_command(&mut ctx),
+        _ => {
+            cli().print_help()?;
+            
+            Err(anyhow!("Unknown command"))
+        },
     };
 
     match result {
-        Ok => {
-            log::debug!("Finished program")
-        }
         Err(err) => {
             log::error!("{:?}", err);
         }
+        _ok => {},
     }
 
     Ok(())

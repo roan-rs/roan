@@ -1,4 +1,4 @@
-use crate::std::ensure_lib_dir;
+use crate::{context::GlobalContext, std::ensure_lib_dir};
 use anyhow::Result;
 use clap::Command;
 use roan_engine::{
@@ -12,11 +12,12 @@ use roan_engine::{
 use std::{fs::read_to_string, path::PathBuf};
 
 pub fn run_cmd() -> Command {
-    Command::new("run")
-        .about("Run a project")
+    Command::new("run").about("Run a project")
 }
 
-pub fn run_command() -> Result<()> {
+pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
+    ctx.load_config()?;
+
     // let (lib_dir, modules) = ensure_lib_dir()?;
 
     // let path = normalize_path(PathBuf::from(file), std::env::current_dir()?)?;

@@ -16,6 +16,7 @@ dirs = { workspace = true }
 anstyle = { workspace = true }
 tar = { workspace = true }
 toml = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 
 [build-dependencies]
 project-root = "0.2.2"
