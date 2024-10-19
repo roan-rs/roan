@@ -213,6 +213,14 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: Some(hint.clone()),
                 content,
             },
+            PulseError::InvalidType(_, _, span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: None,
+                content,
+            },
             PulseError::ResolverError(_) => Diagnostic {
                 title: err_str,
                 text: None,

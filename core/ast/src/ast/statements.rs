@@ -559,6 +559,12 @@ pub struct TypeAnnotation {
     pub is_nullable: bool,
 }
 
+impl TypeAnnotation {
+    pub fn is_any(&self) -> bool {
+        self.type_name.literal() == "anytype"
+    }
+}
+
 impl GetSpan for TypeAnnotation {
     fn span(&self) -> TextSpan {
         TextSpan::combine(vec![self.colon.span.clone(), self.type_name.span.clone()]).unwrap()

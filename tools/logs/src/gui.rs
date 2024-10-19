@@ -31,9 +31,8 @@ impl Application {
     }
 
     pub fn entries(&self) -> Vec<LogEntry> {
-        let mut entries = self.log_entries.clone();
+        let entries = self.log_entries.clone();
 
-        entries.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
         let search = self.search.to_lowercase();
 
         entries
@@ -59,8 +58,6 @@ impl Application {
                             let entry = LogEntry::from_string(line);
                             self.log_entries.push(entry);
                         }
-
-                        self.log_entries.reverse();
                     }
                 }
             }

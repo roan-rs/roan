@@ -11,7 +11,7 @@
 /// let result = format("Hello, {}!", "world"); // "Hello, world!"
 /// let escaped = format("This is a brace: {{}}"); // "This is a brace: {}"
 /// ```
-pub fn format(msg: string, ...args: string) -> string {
+pub fn format(msg: string, ...args: anytype) -> string {
     let str = "";
     let chars = msg.chars();
     let last = 0;

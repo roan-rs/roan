@@ -1,7 +1,7 @@
 use crate::{
     module::StoredFunction,
     natives::{
-        io::{__eprint, __format, __print},
+        debug::{__eprint, __format, __print},
         process::{__abort, __exit, __pid},
     },
     value::Value,
@@ -9,7 +9,7 @@ use crate::{
 };
 use std::{panic, panic::panic_any};
 
-pub mod io;
+pub mod debug;
 mod process;
 
 #[macro_export]
