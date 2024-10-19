@@ -1,8 +1,5 @@
-use clap::{
-    builder::{styling, Styles}, Arg, ArgAction, Command, Parser, Subcommand, ValueHint
-};
-
 use crate::{commands::run::run_cmd, style};
+use clap::{builder::Styles, Arg, ArgAction, Command};
 
 pub fn opt(name: &'static str, help: &'static str) -> Arg {
     Arg::new(name).long(name).help(help).action(ArgAction::Set)
@@ -10,7 +7,7 @@ pub fn opt(name: &'static str, help: &'static str) -> Arg {
 
 pub fn cli() -> Command {
     let styles = {
-        clap::builder::styling::Styles::styled()
+        Styles::styled()
             .header(style::HEADER)
             .usage(style::USAGE)
             .literal(style::LITERAL)
@@ -19,20 +16,15 @@ pub fn cli() -> Command {
             .valid(style::VALID)
             .invalid(style::INVALID)
     };
-    
+
     Command::new("roan")
         .allow_external_subcommands(true)
         .styles(styles)
         .arg(
-            opt(
-                "verbose",
-                "Use verbose output",
-            )
-            .short('v')
-            .action(ArgAction::Count)
-            .global(true)
+            opt("verbose", "Use verbose output")
+                .short('v')
+                .action(ArgAction::SetTrue)
+                .global(true),
         )
-        .subcommand(
-            run_cmd()
-        )
+        .subcommand(run_cmd())
 }

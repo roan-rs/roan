@@ -3,11 +3,11 @@ use crate::{
     TokenKind, TypeAnnotation,
 };
 use anyhow::Result;
-use log::debug;
 use roan_error::error::PulseError::{
     ExpectedToken, MultipleRestParameters, MultipleSelfParameters, RestParameterNotLastPosition,
     SelfParameterCannotBeRest, SelfParameterNotFirst,
 };
+use tracing::debug;
 
 impl Parser {
     /// Parses a statement from the tokens.

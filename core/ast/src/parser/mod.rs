@@ -6,8 +6,8 @@ use crate::{
     Ast,
 };
 use anyhow::Result;
-use log::debug;
 use roan_error::error::PulseError::ExpectedToken;
+use tracing::debug;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParseContext {

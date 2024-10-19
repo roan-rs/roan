@@ -1,50 +1,47 @@
-use crate::std::ensure_lib_dir;
-use anyhow::Result;
+use crate::{context::GlobalContext, stds::ensure_lib_dir};
+use anyhow::{anyhow, Result};
 use clap::Command;
 use roan_engine::{
-    context::Context,
-    module::Module,
-    path::{canonicalize_path, normalize_path},
-    print_diagnostic,
-    source::Source,
+    context::Context, module::Module, path::canonicalize_path, print_diagnostic, source::Source,
     vm::VM,
 };
-use std::{fs::read_to_string, path::PathBuf};
+use std::fs::read_to_string;
 
 pub fn run_cmd() -> Command {
-    Command::new("run")
-        .about("Run a project")
+    Command::new("run").about("Run a project")
 }
 
-pub fn run_command() -> Result<()> {
-    // let (lib_dir, modules) = ensure_lib_dir()?;
+pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
+    ctx.load_config()?;
+    let path = ctx.get_main_file()?;
 
-    // let path = normalize_path(PathBuf::from(file), std::env::current_dir()?)?;
-    // let content = read_to_string(&path)?;
+    if ctx.project_type()? == "lib" {
+        return Err(anyhow!("Cannot run a library project."));
+    }
 
-    // let ctx = Context::default();
-    // let source = Source::from_string(content.clone()).with_path(path);
-    // let vm = &mut VM::new();
-    // let module = Module::new(source);
+    let (lib_dir, modules) = ensure_lib_dir()?;
+    let content = read_to_string(&path)?;
 
-    // for mod_name in modules {
-    //     let path = lib_dir.join(&mod_name).with_extension("roan");
+    let ctx = Context::default();
+    let source = Source::from_string(content.clone()).with_path(path);
+    let vm = &mut VM::new();
+    let module = Module::new(source);
 
-    //     let content = read_to_string(&path)?;
-    //     let source = Source::from_string(content.clone()).with_path(canonicalize_path(path)?);
-    //     let module = Module::new(source);
+    for mod_name in modules {
+        let path = lib_dir.join(&mod_name).with_extension("roan");
 
-    //     let module_name = format!("std::{}", mod_name);
-    //     ctx.module_loader.insert(module_name, module);
-    // }
+        let content = read_to_string(&path)?;
+        let source = Source::from_string(content.clone()).with_path(canonicalize_path(path)?);
+        let module = Module::new(source);
 
-    // match ctx.eval(module, vm) {
-    //     Ok(_) => Ok(()),
-    //     Err(e) => {
-    //         print_diagnostic(e, Some(content));
-    //         Ok(())
-    //     }
-    // }
+        let module_name = format!("std::{}", mod_name);
+        ctx.module_loader.insert(module_name, module);
+    }
 
-    Ok(())
+    match ctx.eval(module, vm) {
+        Ok(_) => Ok(()),
+        Err(e) => Ok({
+            print_diagnostic(e, Some(content));
+        }),
+    }
 }

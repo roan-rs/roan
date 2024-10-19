@@ -2,8 +2,8 @@ use crate::{
     AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, ParseContext, Parser, Stmt,
     Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
 };
-use log::debug;
 use roan_error::error::PulseError::UnexpectedToken;
+use tracing::debug;
 
 impl Parser {
     /// Parses any expression, starting with an assignment.
@@ -250,7 +250,7 @@ impl Parser {
             TokenKind::TripleDot => Ok(Expr::new_spread(token.clone(), self.parse_expr()?)),
             TokenKind::LeftBracket => self.parse_vector(),
             TokenKind::Identifier => {
-                log::debug!("Parsing identifier: {}", token.literal());
+                tracing::debug!("Parsing identifier: {}", token.literal());
 
                 if self.peek().kind == TokenKind::LeftParen {
                     self.parse_call_expr(token)
@@ -383,7 +383,7 @@ impl Parser {
     /// - `Ok(Expr)`: The parsed assignment expression if successful.
     /// - `Err(anyhow::Error)`: An error if parsing fails.
     pub fn parse_assignment(&mut self) -> anyhow::Result<Expr> {
-        log::debug!("Parsing assignment");
+        tracing::debug!("Parsing assignment");
 
         let expr = self.parse_binary_expression()?;
         if let Some(assign_op) = self.parse_assignment_operator() {

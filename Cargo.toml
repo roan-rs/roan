@@ -1,5 +1,5 @@
 [workspace]
-members = ["core/engine", "cli", "core/error", "core/ast", "tools/git"]
+members = ["core/engine", "cli", "core/error", "core/ast", "tools/git", "tools/logs"]
 resolver = "1"
 
 [workspace.dependencies]
@@ -16,3 +16,14 @@ log = "0.4.22"
 thiserror = "1.0.64"
 bon = "2.3.0"
 dirs = "5.0.1"
+tracing = { version = "0.1.40", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "chrono", "time"] }
+tracing-appender = "0.2"
+tracing-attributes = "0.1.27"
+backtrace = "0.3.74"
+clap = { version = "4.5.20", features = ["derive"] }
+vit_logger = "0.1.6"
+anstyle = "1.0.8"
+tar = "0.4.42"
+toml = "0.8.19"
+serde = "1.0.210"

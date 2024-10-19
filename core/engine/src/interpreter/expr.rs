@@ -93,7 +93,7 @@ impl Module {
         ctx: &Context,
         vm: &mut VM,
     ) -> Result<Value> {
-        debug!("Interpreting struct constructor: {:?}", constructor);
+        debug!("Interpreting struct constructor");
         let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
 
         let mut fields = HashMap::new();
@@ -127,9 +127,9 @@ impl Module {
             (UnOpKind::LogicalNot, Value::Null) => Value::Bool(true),
             (UnOpKind::LogicalNot, _) => {
                 let b = val.is_truthy();
-                
+
                 Value::Bool(!b)
-            },
+            }
             _ => {
                 return Err(PulseError::InvalidUnaryOperation(
                     u.operator.kind.to_string(),
@@ -242,7 +242,7 @@ impl Module {
         ctx: &Context,
         vm: &mut VM,
     ) -> Result<Value> {
-        debug!("Interpreting then-else: {:?}", then_else);
+        debug!("Interpreting then-else");
 
         self.interpret_expr(&then_else.condition, ctx, vm)?;
         let condition = vm.pop().unwrap();
@@ -430,8 +430,6 @@ impl Module {
         let left = assign.left.as_ref();
         let right = assign.right.as_ref();
         let operator = assign.op.clone();
-
-        debug!("{:?} \n\n{:?}\n\n {:?}", left, operator, right);
 
         match left {
             Expr::Variable(v) => {

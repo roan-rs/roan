@@ -5,7 +5,6 @@ use crate::{
     vm::VM,
 };
 use anyhow::Result;
-use log::debug;
 use roan_ast::{Block, Fn, GetSpan, If, Loop, Stmt, Struct, Token, TraitDef, Use, While};
 use roan_error::{
     error::{
@@ -15,6 +14,7 @@ use roan_error::{
     print_diagnostic, TextSpan,
 };
 use std::sync::{Arc, Mutex};
+use tracing::debug;
 
 impl Module {
     /// Interpret statement from the module.
@@ -39,7 +39,7 @@ impl Module {
                 return Err(PulseError::LoopContinue(token.span).into());
             }
             Stmt::Throw(throw) => {
-                debug!("Interpreting throw: {:?}", throw);
+                debug!("Interpreting throw");
 
                 self.interpret_expr(&throw.value, ctx, vm)?;
                 let val = vm.pop().unwrap();
@@ -47,7 +47,7 @@ impl Module {
                 return Err(PulseError::Throw(val.to_string(), Vec::from(vm.frames())).into());
             }
             Stmt::Try(try_stmt) => {
-                debug!("Interpreting try: {:?}", try_stmt);
+                debug!("Interpreting try");
 
                 let try_result = self.execute_block(try_stmt.try_block.clone(), ctx, vm);
 
@@ -119,7 +119,7 @@ impl Module {
                 self.declare_variable(ident.clone(), val);
             }
             Stmt::Expr(expr) => {
-                debug!("Interpreting expression: {:?}", expr);
+                debug!("Interpreting expression");
 
                 self.interpret_expr(expr.as_ref(), ctx, vm)?;
             }

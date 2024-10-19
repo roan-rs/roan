@@ -1,20 +1,8 @@
 use anyhow::Result;
-use log::debug;
 use std::{env::current_dir, fs, fs::create_dir, io::Cursor, path::PathBuf};
+use tracing::debug;
 
 const TAR_BYTES: &'static [u8] = include_bytes!("../std.tar");
-
-// pub fn prepare_home_dir() -> Result<PathBuf> {
-//     let home_dir = home_dir().expect("Could not find home directory");
-//     let roan_dir = home_dir.join(".roan");
-//
-//     if !roan_dir.exists() {
-//         create_dir(&roan_dir)?;
-//         debug!("Created roan directory at {:?}", roan_dir);
-//     }
-//
-//     Ok(roan_dir)
-// }
 
 // Maybe simplify in the future
 pub fn ensure_lib_dir() -> Result<(PathBuf, Vec<String>)> {

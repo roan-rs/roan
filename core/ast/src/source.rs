@@ -1,10 +1,10 @@
-use log::debug;
 use std::{
     fs::File,
     io::{self, BufReader, Read},
     path::PathBuf,
     str::Chars,
 };
+use tracing::debug;
 
 /// A source of Roan code.
 #[derive(Clone, Debug)]
