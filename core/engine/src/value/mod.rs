@@ -1,6 +1,16 @@
 use crate::{
     entries,
     value::methods::{
+        char::{
+            __char_escape_default, __char_escape_unicode, __char_from_digit, __char_is_alphabetic,
+            __char_is_alphanumeric, __char_is_ascii, __char_is_ascii_alphabetic,
+            __char_is_ascii_alphanumeric, __char_is_ascii_control, __char_is_ascii_digit,
+            __char_is_ascii_graphic, __char_is_ascii_lowercase, __char_is_ascii_punctuation,
+            __char_is_ascii_uppercase, __char_is_ascii_whitespace, __char_is_control,
+            __char_is_digit, __char_is_digit_in_base, __char_is_lowercase, __char_is_numeric,
+            __char_is_uppercase, __char_is_whitespace, __char_len_utf8, __char_to_ascii_lowercase,
+            __char_to_ascii_uppercase, __char_to_lowercase, __char_to_string, __char_to_uppercase,
+        },
         string::{
             __string_char_at, __string_char_code_at, __string_chars, __string_contains,
             __string_ends_with, __string_index_of, __string_last_index_of, __string_len,
@@ -22,6 +32,7 @@ use std::{
 };
 
 pub mod methods {
+    pub mod char;
     pub mod string;
     pub mod vec;
 }
@@ -77,6 +88,38 @@ impl Value {
                     // "from_float" => __string_from_float(),
                     // "from_bool" => __string_from_bool(),
                     // "from_code" => __string_from_code()
+                )
+            }
+            Value::Char(_) => {
+                entries!(
+                    "is_alphabetic" => __char_is_alphabetic(),
+                    "is_alphanumeric" => __char_is_alphanumeric(),
+                    "is_ascii" => __char_is_ascii(),
+                    "is_ascii_alphabetic" => __char_is_ascii_alphabetic(),
+                    "is_ascii_alphanumeric" => __char_is_ascii_alphanumeric(),
+                    "is_ascii_control" => __char_is_ascii_control(),
+                    "is_ascii_digit" => __char_is_ascii_digit(),
+                    "is_ascii_graphic" => __char_is_ascii_graphic(),
+                    "is_ascii_lowercase" => __char_is_ascii_lowercase(),
+                    "is_ascii_punctuation" => __char_is_ascii_punctuation(),
+                    "is_ascii_uppercase" => __char_is_ascii_uppercase(),
+                    "is_ascii_whitespace" => __char_is_ascii_whitespace(),
+                    "is_control" => __char_is_control(),
+                    "is_digit" => __char_is_digit(),
+                    "is_lowercase" => __char_is_lowercase(),
+                    "is_numeric" => __char_is_numeric(),
+                    "is_uppercase" => __char_is_uppercase(),
+                    "is_whitespace" => __char_is_whitespace(),
+                    "to_ascii_lowercase" => __char_to_ascii_lowercase(),
+                    "to_ascii_uppercase" => __char_to_ascii_uppercase(),
+                    "to_lowercase" => __char_to_lowercase(),
+                    "to_uppercase" => __char_to_uppercase(),
+                    "is_digit_in_base" => __char_is_digit_in_base(),
+                    "escape_default" => __char_escape_default(),
+                    "escape_unicode" => __char_escape_unicode(),
+                    "from_digit" => __char_from_digit(),
+                    "len_utf8" => __char_len_utf8(),
+                    "to_string" => __char_to_string()
                 )
             }
             _ => HashMap::new(),

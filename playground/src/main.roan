@@ -6,7 +6,13 @@ fn print(text: string, ...args: anytype) -> void {
 }
 
 pub fn main() -> int {
-    let c = 'a';
+    let c = '5';
+
+    if c.is_digit() {
+        print("Is digit");
+    } else {
+        print("Is not digit");
+    }
 
     return 0;
 }
