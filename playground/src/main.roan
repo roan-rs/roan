@@ -6,9 +6,11 @@ fn print(text: string, ...args: anytype) -> void {
 }
 
 pub fn main() -> int {
-    let x = String::to_bool("true1");
+    let x = String::new();
 
-    print("Hello, world! {}", x);
+    x += "universe!";
+
+    print("Hello, {}", x);
 
     return 0;
 }

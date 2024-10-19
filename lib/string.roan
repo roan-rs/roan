@@ -12,4 +12,8 @@ impl String {
             throw "provided string is not a boolean";
         }
     }
+
+    pub fn new() -> string {
+        return "";
+    }
 }
