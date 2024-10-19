@@ -1,35 +1,27 @@
-use crate::entries::LogEntry;
+use crate::{entries::LogEntry, gui::Application};
 use egui::{RichText, TextStyle, TextWrapMode};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct LogsTable {
-    striped: bool,
-    resizable: bool,
-    clickable: bool,
     scroll_to_row_slider: usize,
     scroll_to_row: Option<usize>,
     selection: std::collections::HashSet<usize>,
-    checked: bool,
-    reversed: bool,
+    search: String,
 }
 
 impl Default for LogsTable {
     fn default() -> Self {
         Self {
-            striped: true,
-            resizable: true,
-            clickable: true,
             scroll_to_row_slider: 0,
             scroll_to_row: None,
             selection: Default::default(),
-            checked: false,
-            reversed: false,
+            search: Default::default(),
         }
     }
 }
 
 impl LogsTable {
-    pub(crate) fn ui(&mut self, ui: &mut egui::Ui, entries: Vec<LogEntry>) {
+    pub(crate) fn ui(&mut self, ui: &mut egui::Ui, app: &mut Application) {
         let reset = false;
 
         ui.separator();
@@ -41,6 +33,14 @@ impl LogsTable {
             .size(Size::exact(body_text_size))
             .vertical(|mut strip| {
                 strip.cell(|ui| {
+                    let entries = app.entries();
+
+                    ui.add(
+                        egui::TextEdit::singleline(&mut app.search)
+                            .hint_text("Write something here"),
+                    );
+                    ui.end_row();
+
                     if entries.is_empty() {
                         egui::ScrollArea::horizontal().show(ui, |ui| {
                             ui.with_layout(
@@ -55,28 +55,29 @@ impl LogsTable {
                             );
                         });
                     } else {
-                        self.table_ui(ui, reset, entries);
+                        self.table_ui(ui, reset, entries, app);
                     }
                 });
             });
     }
 
-    fn table_ui(&mut self, ui: &mut egui::Ui, reset: bool, entries: Vec<LogEntry>) {
+    fn table_ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        reset: bool,
+        entries: Vec<LogEntry>,
+        app: &mut Application,
+    ) {
         use egui_extras::{Column, TableBuilder};
 
-        let mut search = String::new();
-
-        ui.add(egui::TextEdit::singleline(&mut search).hint_text("Write something here"));
-        ui.end_row();
-
-        let text_height = egui::TextStyle::Body
+        let text_height = TextStyle::Body
             .resolve(ui.style())
             .size
             .max(ui.spacing().interact_size.y);
 
         let available_height = ui.available_height();
         let mut table = TableBuilder::new(ui)
-            .striped(self.striped)
+            .striped(true)
             .resizable(false)
             .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
             .column(Column::auto())
@@ -88,9 +89,7 @@ impl LogsTable {
             .min_scrolled_height(0.0)
             .max_scroll_height(available_height);
 
-        if self.clickable {
-            table = table.sense(egui::Sense::click());
-        }
+        table = table.sense(egui::Sense::click());
 
         if let Some(row_index) = self.scroll_to_row.take() {
             table = table.scroll_to_row(row_index, None);
@@ -110,8 +109,8 @@ impl LogsTable {
                             ui.strong("Row");
                         },
                         |ui| {
-                            self.reversed ^=
-                                ui.button(if self.reversed { "⬆" } else { "⬇" }).clicked();
+                            app.reversed ^=
+                                ui.button(if app.reversed { "⬆" } else { "⬇" }).clicked();
                         },
                     );
                 });
@@ -133,7 +132,7 @@ impl LogsTable {
             })
             .body(|body| {
                 body.rows(text_height, rows, |mut row| {
-                    let row_index = if self.reversed {
+                    let row_index = if app.reversed {
                         rows - 1 - row.index()
                     } else {
                         row.index()
