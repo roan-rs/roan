@@ -1,10 +1,14 @@
 use { String } from "std::string"
 use { println } from "std::debug"
 
+fn print(text: string, ...args: dw[]) -> void {
+    println(text, args);
+}
+
 pub fn main() -> int {
     let x = String::to_bool("true");
 
-    //println("{}", x);
+    print("Hello, world! {}", x);
 
     return 0;
 }

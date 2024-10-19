@@ -3,11 +3,14 @@ use crate::{
     TokenKind, TypeAnnotation,
 };
 use anyhow::Result;
+use colored::Colorize;
 use roan_error::error::PulseError::{
-    ExpectedToken, MultipleRestParameters, MultipleSelfParameters, RestParameterNotLastPosition,
-    SelfParameterCannotBeRest, SelfParameterNotFirst,
+    ExpectedToken, InvalidType, MultipleRestParameters, MultipleSelfParameters,
+    RestParameterNotLastPosition, SelfParameterCannotBeRest, SelfParameterNotFirst,
 };
 use tracing::debug;
+
+static VALID_TYPE_NAMES: [&str; 6] = ["bool", "int", "float", "string", "void", "anytype"];
 
 impl Parser {
     /// Parses a statement from the tokens.
@@ -456,6 +459,8 @@ impl Parser {
         let colon = self.expect(TokenKind::Colon)?;
         let type_name = self.expect(TokenKind::Identifier)?;
 
+        Parser::validate_type_name(type_name.clone())?;
+
         let is_array = if self.peek().kind == TokenKind::LeftBracket {
             self.consume();
             self.expect(TokenKind::RightBracket)?;
@@ -503,6 +508,8 @@ impl Parser {
             let arrow = self.consume();
             let type_name = self.expect(TokenKind::Identifier)?;
 
+            Parser::validate_type_name(type_name.clone())?;
+
             let is_array = if self.peek().kind == TokenKind::LeftBracket {
                 self.consume();
                 self.expect(TokenKind::RightBracket)?;
@@ -518,6 +525,29 @@ impl Parser {
                 is_nullable: self.is_nullable(),
             }))
         }
+    }
+
+    /// Validates if the provided string is valid type name.
+    ///
+    /// # Returns
+    /// - `Ok(())`: If the type name is valid.
+    /// - `Err`: If the type name is invalid.
+    pub fn validate_type_name(token: Token) -> Result<()> {
+        let name = token.literal();
+
+        debug!("Validating type name: {}", name);
+
+        if !VALID_TYPE_NAMES.contains(&&*name) {
+            debug!("Invalid type name: {}", name);
+            return Err(InvalidType(
+                name.cyan().to_string(),
+                VALID_TYPE_NAMES.join(", "),
+                token.span.clone(),
+            )
+            .into());
+        }
+
+        Ok(())
     }
 
     /// Parses a block of statements enclosed by curly braces `{}`.

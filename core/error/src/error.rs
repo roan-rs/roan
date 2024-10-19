@@ -79,4 +79,6 @@ pub enum PulseError {
     InvalidUnaryOperation(String, TextSpan),
     #[error("Missing non-nullable parameter: {0}")]
     MissingParameter(String, TextSpan),
+    #[error("Invalid type provided: {0}. Available types: {1}")]
+    InvalidType(String, String, TextSpan),
 }
