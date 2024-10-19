@@ -1,9 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use crate::{
-    entries::LogEntry,
-    table::{LogsTable, View},
-};
+use crate::{entries::LogEntry, table::LogsTable};
 use eframe::{egui, NativeOptions};
 use egui::Context;
 use std::{fs, path::PathBuf};
@@ -25,7 +22,7 @@ pub fn open_gui() -> eframe::Result {
 #[derive(Default)]
 struct Application {
     picked_path: Option<String>,
-    log_entries: Vec<LogEntry>, // Store parsed log entries
+    log_entries: Vec<LogEntry>,
 }
 
 impl Application {
@@ -61,7 +58,7 @@ impl Application {
                 }
             }
 
-            LogsTable::default().ui(ui);
+            LogsTable::default().ui(ui, self.log_entries.clone());
         });
 
         Ok(())

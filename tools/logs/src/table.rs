@@ -1,4 +1,5 @@
-use egui::{TextStyle, TextWrapMode};
+use crate::entries::LogEntry;
+use egui::{RichText, TextStyle, TextWrapMode};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct LogsTable {
@@ -29,36 +30,39 @@ impl Default for LogsTable {
     }
 }
 
-pub trait View {
-    fn ui(&mut self, ui: &mut egui::Ui);
-}
-
-const NUM_MANUAL_ROWS: usize = 2000;
-
-impl View for LogsTable {
-    fn ui(&mut self, ui: &mut egui::Ui) {
-        let mut reset = false;
+impl LogsTable {
+    pub(crate) fn ui(&mut self, ui: &mut egui::Ui, entries: Vec<LogEntry>) {
+        let reset = false;
 
         ui.separator();
 
-        // Leave room for the source code link after the table demo:
         let body_text_size = TextStyle::Body.resolve(ui.style()).size;
         use egui_extras::{Size, StripBuilder};
         StripBuilder::new(ui)
-            .size(Size::remainder().at_least(100.0)) // for the table
-            .size(Size::exact(body_text_size)) // for the source code link
+            .size(Size::remainder().at_least(100.0))
+            .size(Size::exact(body_text_size))
             .vertical(|mut strip| {
                 strip.cell(|ui| {
                     egui::ScrollArea::horizontal().show(ui, |ui| {
-                        self.table_ui(ui, reset);
+                        ui.with_layout(
+                            egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                            |ui| {
+                                if entries.is_empty() {
+                                    ui.label(
+                                        RichText::new("No logs to display")
+                                            .size(body_text_size + 10.0),
+                                    );
+                                    return;
+                                }
+                                self.table_ui(ui, reset, entries);
+                            },
+                        );
                     });
                 });
             });
     }
-}
 
-impl LogsTable {
-    fn table_ui(&mut self, ui: &mut egui::Ui, reset: bool) {
+    fn table_ui(&mut self, ui: &mut egui::Ui, reset: bool, entries: Vec<LogEntry>) {
         use egui_extras::{Column, TableBuilder};
 
         let text_height = egui::TextStyle::Body
@@ -78,6 +82,7 @@ impl LogsTable {
                     .clip(true)
                     .resizable(true),
             )
+            .column(Column::auto())
             .column(Column::auto())
             .column(Column::remainder())
             .column(Column::remainder())
@@ -111,16 +116,19 @@ impl LogsTable {
                     );
                 });
                 header.col(|ui| {
-                    ui.strong("Clipped text");
+                    ui.strong("Time");
                 });
                 header.col(|ui| {
-                    ui.strong("Expanding content");
+                    ui.strong("Level");
                 });
                 header.col(|ui| {
-                    ui.strong("Interaction");
+                    ui.strong("Module");
                 });
                 header.col(|ui| {
-                    ui.strong("Content");
+                    ui.strong("File");
+                });
+                header.col(|ui| {
+                    ui.strong("Message");
                 });
             })
             .body(|body| {
