@@ -1,10 +1,10 @@
 use { format } from "./format.roan";
 
-pub fn panic(msg: string, ...args: string) -> void {
+pub fn panic(msg: string, ...args: anytype) -> void {
     __panic(format(msg, ...args));
 }
 
-pub fn unreachable(msg: string?, ...args: string) -> void {
+pub fn unreachable(msg: string?, ...args: anytype) -> void {
     let msg = msg then format("entered unreachable code: {}", msg, ...args) else "entered unreachable code";
 
     panic(msg);

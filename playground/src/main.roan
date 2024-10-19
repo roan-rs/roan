@@ -1,8 +1,8 @@
 use { String } from "std::string"
 use { println } from "std::debug"
 
-fn print(text: string, ...args: anytype[]) -> void {
-    println(text, args);
+fn print(text: string, ...args: anytype) -> void {
+    println(text, ...args);
 }
 
 pub fn main() -> int {

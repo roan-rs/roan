@@ -187,6 +187,10 @@ impl Module {
                     } else {
                         if let Some(_type) = param.type_annotation.as_ref() {
                             for arg in &rest {
+                                if _type.is_any() {
+                                    continue
+                                };
+                                
                                 arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
                             }
                         }
@@ -216,6 +220,10 @@ impl Module {
                             match arg {
                                 Value::Vec(vec) => {
                                     for arg in vec {
+                                        if _type.is_any() {
+                                            continue
+                                        };
+                                        
                                         arg.check_type(
                                             &_type.type_name.literal(),
                                             expr.unwrap().clone(),
@@ -237,7 +245,7 @@ impl Module {
                                 }
                             }
                         } else {
-                            if arg.is_null() && !_type.is_nullable {
+                            if arg.is_null() && !_type.is_nullable && !_type.is_any() {
                                 arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
                             }
                             defining_module_guard.declare_variable(ident, arg.clone());
