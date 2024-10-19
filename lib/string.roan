@@ -9,7 +9,7 @@ impl String {
         } else if s == "false" {
             return false;
         } else {
-            return null;
+            throw "provided string is not a boolean";
         }
     }
 }
