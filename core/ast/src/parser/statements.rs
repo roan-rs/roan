@@ -447,36 +447,6 @@ impl Parser {
         Ok(Stmt::new_use(use_token, from, items))
     }
 
-    /// Parses a type annotation following a variable or parameter.
-    ///
-    /// A type annotation specifies the type of variable or function parameter.
-    ///
-    /// # Returns
-    /// - `Ok(TypeAnnotation)`: A parsed type annotation.
-    /// - `Err`: If there is a parsing error.
-    pub fn parse_type_annotation(&mut self) -> Result<TypeAnnotation> {
-        debug!("Parsing type annotation");
-        let colon = self.expect(TokenKind::Colon)?;
-        let type_name = self.expect(TokenKind::Identifier)?;
-
-        Parser::validate_type_name(type_name.clone())?;
-
-        let is_array = if self.peek().kind == TokenKind::LeftBracket {
-            self.consume();
-            self.expect(TokenKind::RightBracket)?;
-            true
-        } else {
-            false
-        };
-
-        Ok(TypeAnnotation {
-            colon,
-            type_name,
-            is_array,
-            is_nullable: self.is_nullable(),
-        })
-    }
-
     /// Checks if the next token is a question mark and consumes it.
     pub fn is_nullable(&mut self) -> bool {
         if self.peek().kind == TokenKind::QuestionMark {
@@ -487,9 +457,41 @@ impl Parser {
         }
     }
 
-    /// Parses the return type of function.
+    /// Helper method to parse a type with optional array and nullability.
+    fn parse_type(&mut self) -> Result<(Token, bool)> {
+        let type_name = self.expect(TokenKind::Identifier)?;
+        Parser::validate_type_name(type_name.clone())?;
+
+        let is_array = if self.peek().kind == TokenKind::LeftBracket {
+            self.consume();
+            self.expect(TokenKind::RightBracket)?;
+            true
+        } else {
+            false
+        };
+
+        Ok((type_name, is_array))
+    }
+
+    /// Parses a type annotation following a variable or parameter.
     ///
-    /// The return type indicates the type of value a function returns.
+    /// # Returns
+    /// - `Ok(TypeAnnotation)`: A parsed type annotation.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_type_annotation(&mut self) -> Result<TypeAnnotation> {
+        debug!("Parsing type annotation");
+        let colon = self.expect(TokenKind::Colon)?;
+        let (type_name, is_array) = self.parse_type()?;
+
+        Ok(TypeAnnotation {
+            type_name,
+            is_array,
+            is_nullable: self.is_nullable(),
+            colon
+        })
+    }
+
+    /// Parses the return type of function.
     ///
     /// # Returns
     /// - `Ok(Some(FunctionType))`: If the return type is parsed.
@@ -497,34 +499,20 @@ impl Parser {
     /// - `Err`: If the syntax is incorrect.
     pub fn parse_return_type(&mut self) -> Result<Option<FunctionType>> {
         debug!("Parsing return type");
-        if self.peek().kind == TokenKind::Identifier {
-            Err(ExpectedToken(
-                "arrow".to_string(),
-                "Expected arrow".to_string(),
-                self.peek().span.clone(),
-            )
-            .into())
-        } else {
-            let arrow = self.consume();
-            let type_name = self.expect(TokenKind::Identifier)?;
 
-            Parser::validate_type_name(type_name.clone())?;
-
-            let is_array = if self.peek().kind == TokenKind::LeftBracket {
-                self.consume();
-                self.expect(TokenKind::RightBracket)?;
-                true
-            } else {
-                false
-            };
-
-            Ok(Some(FunctionType {
-                arrow,
-                type_name,
-                is_array,
-                is_nullable: self.is_nullable(),
-            }))
+        if self.peek().kind != TokenKind::Arrow {
+            return Ok(None);
         }
+
+        let arrow = self.consume(); // consume the arrow
+        let (type_name, is_array) = self.parse_type()?;
+
+        Ok(Some(FunctionType {
+            type_name,
+            is_array,
+            is_nullable: self.is_nullable(),
+            arrow
+        }))
     }
 
     /// Validates if the provided string is valid type name.
