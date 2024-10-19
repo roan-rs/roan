@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    outputs:
+      release_body: ${{ steps.git-cliff.outputs.content }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
+        with:
+          config: cliff.toml
+          args: -vv --latest --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+  build:
+    name: Build for multiple platforms
+    needs: changelog
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-gnu
+          - x86_64-apple-darwin
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cross for multi-platform builds
+        run: cargo install cross
+
+      - name: Build project for ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Archive binaries
+        run: |
+          zip -j binary_${{ matrix.target }}.zip target/${{ matrix.target }}/release/my-binary
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: binary_${{ matrix.target }}
+          path: binary_${{ matrix.target }}.zip
+
+  upload:
+    name: Upload the release
+    needs: [ changelog, build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: binary_${{ matrix.target }}
+
+      - name: Create GitHub release and upload binaries
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          body: ${{ needs.changelog.outputs.release_body }}
+          file: binary_${{ matrix.target }}.zip
