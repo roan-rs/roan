@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'  # Triggers on tags like v1.0.0, v1.1.0, etc.
 
 jobs:
   changelog:
@@ -30,9 +30,10 @@ jobs:
   build:
     name: Build for multiple platforms
     needs: changelog
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
         target:
           - x86_64-unknown-linux-gnu
           - x86_64-pc-windows-gnu
@@ -41,17 +42,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Rust toolchain
+      - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      - name: Install cross for multi-platform builds
-        run: cargo install cross
-
       - name: Build project for ${{ matrix.target }}
-        run: cross build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Archive binaries
         run: |
@@ -65,9 +63,10 @@ jobs:
 
   upload:
     name: Upload the release
-    needs: [ changelog, build ]
+    needs: build
     runs-on: ubuntu-latest
     steps:
+      # Download all built artifacts
       - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
