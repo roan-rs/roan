@@ -4,7 +4,6 @@ mod table;
 
 use crate::gui::open_gui;
 use anyhow::{anyhow, bail, Result};
-use egui::{RichText, Theme};
 use std::{env, error::Error};
 
 fn main() -> Result<()> {

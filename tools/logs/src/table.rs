@@ -6,7 +6,6 @@ pub struct LogsTable {
     striped: bool,
     resizable: bool,
     clickable: bool,
-    num_rows: usize,
     scroll_to_row_slider: usize,
     scroll_to_row: Option<usize>,
     selection: std::collections::HashSet<usize>,
@@ -20,7 +19,6 @@ impl Default for LogsTable {
             striped: true,
             resizable: true,
             clickable: true,
-            num_rows: 10_000,
             scroll_to_row_slider: 0,
             scroll_to_row: None,
             selection: Default::default(),
@@ -43,27 +41,33 @@ impl LogsTable {
             .size(Size::exact(body_text_size))
             .vertical(|mut strip| {
                 strip.cell(|ui| {
-                    egui::ScrollArea::horizontal().show(ui, |ui| {
-                        ui.with_layout(
-                            egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
-                            |ui| {
-                                if entries.is_empty() {
+                    if entries.is_empty() {
+                        egui::ScrollArea::horizontal().show(ui, |ui| {
+                            ui.with_layout(
+                                egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                                |ui| {
                                     ui.label(
                                         RichText::new("No logs to display")
                                             .size(body_text_size + 10.0),
                                     );
                                     return;
-                                }
-                                self.table_ui(ui, reset, entries);
-                            },
-                        );
-                    });
+                                },
+                            );
+                        });
+                    } else {
+                        self.table_ui(ui, reset, entries);
+                    }
                 });
             });
     }
 
     fn table_ui(&mut self, ui: &mut egui::Ui, reset: bool, entries: Vec<LogEntry>) {
         use egui_extras::{Column, TableBuilder};
+
+        let mut search = String::new();
+
+        ui.add(egui::TextEdit::singleline(&mut search).hint_text("Write something here"));
+        ui.end_row();
 
         let text_height = egui::TextStyle::Body
             .resolve(ui.style())
@@ -73,18 +77,13 @@ impl LogsTable {
         let available_height = ui.available_height();
         let mut table = TableBuilder::new(ui)
             .striped(self.striped)
-            .resizable(self.resizable)
+            .resizable(false)
             .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
             .column(Column::auto())
-            .column(
-                Column::remainder()
-                    .at_least(40.0)
-                    .clip(true)
-                    .resizable(true),
-            )
             .column(Column::auto())
             .column(Column::auto())
-            .column(Column::remainder())
+            .column(Column::auto())
+            .column(Column::auto())
             .column(Column::remainder())
             .min_scrolled_height(0.0)
             .max_scroll_height(available_height);
@@ -101,6 +100,7 @@ impl LogsTable {
             table.reset();
         }
 
+        let rows = entries.len();
         table
             .header(20.0, |mut header| {
                 header.col(|ui| {
@@ -132,12 +132,14 @@ impl LogsTable {
                 });
             })
             .body(|body| {
-                body.rows(text_height, self.num_rows, |mut row| {
+                body.rows(text_height, rows, |mut row| {
                     let row_index = if self.reversed {
-                        self.num_rows - 1 - row.index()
+                        rows - 1 - row.index()
                     } else {
                         row.index()
                     };
+
+                    let entry = &entries[row_index];
 
                     row.set_selected(self.selection.contains(&row_index));
 
@@ -145,19 +147,27 @@ impl LogsTable {
                         ui.label(row_index.to_string());
                     });
                     row.col(|ui| {
-                        ui.label(long_text(row_index));
+                        ui.label(entry.timestamp.to_string());
                     });
                     row.col(|ui| {
-                        expanding_content(ui);
+                        let color = match entry.level {
+                            tracing::Level::ERROR => egui::Color32::RED,
+                            tracing::Level::WARN => egui::Color32::YELLOW,
+                            tracing::Level::INFO => egui::Color32::GREEN,
+                            tracing::Level::DEBUG => egui::Color32::BLUE,
+                            tracing::Level::TRACE => egui::Color32::GRAY,
+                        };
+
+                        ui.label(RichText::new(entry.level.to_string()).color(color));
                     });
                     row.col(|ui| {
-                        ui.checkbox(&mut self.checked, "Click me");
+                        ui.label(entry.module.clone());
                     });
                     row.col(|ui| {
-                        ui.add(
-                            egui::Label::new("Thousands of rows of even height")
-                                .wrap_mode(TextWrapMode::Extend),
-                        );
+                        ui.label(entry.file.clone());
+                    });
+                    row.col(|ui| {
+                        ui.label(entry.message.clone());
                     });
 
                     self.toggle_row_selection(row_index, &row.response());

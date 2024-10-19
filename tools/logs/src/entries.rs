@@ -30,7 +30,7 @@ impl LogEntry {
                 "INFO" => Level::INFO,
                 "WARN" => Level::WARN,
                 "ERROR" => Level::ERROR,
-                _ => Level::TRACE, // Default case for any non-standard level
+                _ => Level::TRACE,
             };
 
             let module = caps["module"].to_string();

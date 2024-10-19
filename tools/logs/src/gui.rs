@@ -1,5 +1,3 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 use crate::{entries::LogEntry, table::LogsTable};
 use eframe::{egui, NativeOptions};
 use egui::Context;
@@ -52,10 +50,6 @@ impl Application {
                     ui.label("Picked file:");
                     ui.monospace(picked_path);
                 });
-
-                for entry in &self.log_entries {
-                    ui.label(format!("{:?}", entry));
-                }
             }
 
             LogsTable::default().ui(ui, self.log_entries.clone());
