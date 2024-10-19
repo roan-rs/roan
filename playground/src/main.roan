@@ -6,11 +6,7 @@ fn print(text: string, ...args: anytype) -> void {
 }
 
 pub fn main() -> int {
-    let x = String::new();
-
-    x += "universe!";
-
-    print("Hello, {}", x);
+    let c = 'a';
 
     return 0;
 }

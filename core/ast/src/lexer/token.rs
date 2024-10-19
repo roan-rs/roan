@@ -62,6 +62,7 @@ impl Display for TokenKind {
             TokenKind::String(s) => write!(f, "{}", s),
             TokenKind::Float(r) => write!(f, "{}", r),
             TokenKind::Integer(i) => write!(f, "{}", i),
+            TokenKind::Char(c) => write!(f, "{}", c),
 
             // Keywords
             TokenKind::Fn => write!(f, "fn"),
@@ -152,6 +153,7 @@ pub enum TokenKind {
     String(String),
     Float(f64),
     Integer(i64),
+    Char(char),
 
     // Keywords
     Fn,

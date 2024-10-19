@@ -22,6 +22,8 @@ pub enum LiteralType {
     String(String),
     /// A boolean literal (`true` or `false`).
     Bool(bool),
+    /// A character literal (e.g., `'a'`).
+    Char(char),
     /// A `null` literal representing the absence of a value.
     Null,
 }
@@ -792,6 +794,22 @@ impl Expr {
         Expr::Literal(Literal {
             token,
             value: LiteralType::String(value),
+        })
+    }
+    
+    /// Creates a new character literal expression.
+    /// 
+    /// # Arguments
+    /// * `token` - The token representing the character literal.
+    /// * `value` - The character value.
+    /// 
+    /// # Returns
+    /// 
+    /// A new `Expr::Literal` variant with `LiteralType::Char`.
+    pub fn new_char(token: Token, value: char) -> Self {
+        Expr::Literal(Literal {
+            token,
+            value: LiteralType::Char(value),
         })
     }
 

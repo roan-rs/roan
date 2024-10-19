@@ -31,6 +31,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
+    Char(char),
     String(String),
     Vec(Vec<Value>),
     Struct(Struct, HashMap<String, Value>),
@@ -91,6 +92,7 @@ impl Value {
             LiteralType::Bool(b) => Value::Bool(b),
             LiteralType::String(s) => Value::String(s.clone()),
             LiteralType::Null => Value::Null,
+            LiteralType::Char(c) => Value::Char(c),
         }
     }
 }
@@ -131,6 +133,7 @@ impl Display for Value {
             Value::Void => write!(f, "void"),
             // TODO: improve formatting of structs
             Value::Struct(..) => write!(f, "struct"),
+            Value::Char(c) => write!(f, "{}", c),
         }
     }
 }
@@ -334,6 +337,7 @@ impl Value {
             Value::Struct(struct_def, _) => struct_def.name.literal(),
             Value::Null => "null".to_string(),
             Value::Void => "void".to_string(),
+            Value::Char(_) => "char".to_string(),
         }
     }
 }
@@ -349,6 +353,7 @@ impl Value {
             Value::Null => false,
             Value::Void => false,
             Value::Struct(_, _) => true,
+            Value::Char(_) => true,
         }
     }
 }

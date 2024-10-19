@@ -177,6 +177,9 @@ impl Lexer {
             } else if c == '"' {
                 let string = self.parse_string()?;
                 TokenKind::String(string)
+            } else if c == '\'' {
+                let char = self.parse_char()?;
+                TokenKind::Char(char)
             } else if c.is_numeric() {
                 let number = self.consume_number();
                 match number.0 {
@@ -339,6 +342,21 @@ impl Lexer {
             )))
         } else {
             Ok(None)
+        }
+    }
+
+    /// Parses a character literal. Throws an error if more than one character is found.
+    pub fn parse_char(&mut self) -> Result<char> {
+        self.consume();
+        let c = self.consume();
+        if self.consume() == Some('\'') {
+            Ok(c.unwrap())
+        } else {
+            Err(InvalidToken(
+                c.unwrap().to_string(),
+                TextSpan::new(self.position, self.position, c.unwrap().to_string()),
+            )
+            .into())
         }
     }
 

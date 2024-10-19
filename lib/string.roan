@@ -2,6 +2,10 @@
 pub struct String {};
 
 impl String {
+    pub fn new() -> string {
+        return "";
+    }
+
     // TODO: refactor this to use match in future
     pub fn to_bool(s: string) -> bool? {
         if s == "true" {
@@ -11,9 +15,5 @@ impl String {
         } else {
             throw "provided string is not a boolean";
         }
-    }
-
-    pub fn new() -> string {
-        return "";
     }
 }

@@ -272,7 +272,11 @@ impl Parser {
                 Ok(Expr::new_parenthesized(expr))
             }
             TokenKind::String(s) => Ok(Expr::new_string(token.clone(), s.clone())),
-            _ => Err(UnexpectedToken(token.kind.to_string(), token.span.clone()).into()),
+            TokenKind::Char(c) => Ok(Expr::new_char(token.clone(), *c)),
+            _ => {
+                debug!("Unexpected token: {:?}", token);
+                Err(UnexpectedToken(token.kind.to_string(), token.span.clone()).into())
+            },
         }
     }
 
