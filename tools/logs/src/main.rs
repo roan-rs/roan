@@ -1,5 +1,11 @@
+mod entries;
+mod gui;
+mod table;
+
+use crate::gui::open_gui;
 use anyhow::{anyhow, bail, Result};
-use std::env;
+use egui::{RichText, Theme};
+use std::{env, error::Error};
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -32,6 +38,9 @@ fn main() -> Result<()> {
                 let path = entry.path();
                 println!("{}", path.display());
             }
+        }
+        "view" => {
+            open_gui().expect("Failed to open GUI");
         }
         _ => {
             println!("Invalid command");
