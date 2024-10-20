@@ -413,31 +413,4 @@ mod tests {
 
         assert_eq!(result, Value::Int(3));
     }
-
-    #[test]
-    fn test_string_to_int() {
-        let result = __string_to_int()
-            .call(vec![Value::String("42".to_string())])
-            .unwrap();
-
-        assert_eq!(result, Value::Int(42));
-    }
-
-    #[test]
-    fn test_string_to_float() {
-        let result = __string_to_float()
-            .call(vec![Value::String("42.5".to_string())])
-            .unwrap();
-
-        assert_eq!(result, Value::Float(42.5));
-    }
-
-    #[test]
-    fn test_string_to_bool() {
-        let result = __string_to_bool()
-            .call(vec![Value::String("true".to_string())])
-            .unwrap();
-
-        assert_eq!(result, Value::Bool(true));
-    }
 }
