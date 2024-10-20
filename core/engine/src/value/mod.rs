@@ -248,6 +248,7 @@ impl PartialEq for Value {
             }
             (Value::Null, Value::Null) => true,
             (Value::Void, Value::Void) => true,
+            (Value::Char(a), Value::Char(b)) => a == b,
             _ => false,
         }
     }
