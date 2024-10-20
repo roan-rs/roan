@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on tags like v1.0.0, v1.1.0, etc.
+      - 'v*.*.*'
 
 jobs:
   changelog:
@@ -42,17 +42,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - name: Install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Install target with rustup
-        run: rustup target add ${{ matrix.target }}
-
-      - name: Build project for ${{ matrix.target }}
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Build project with cross for ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }}
 
       - name: Archive binaries
         run: |
@@ -69,7 +63,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      # Download all built artifacts
       - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
