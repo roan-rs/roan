@@ -76,26 +76,19 @@ jobs:
       - name: Build Binary
         run: cargo build --verbose --locked --release --target ${{ matrix.target }}
 
-      - name: Prepare Binary for Release
+      - name: Prepare Binary
         shell: bash
         run: |
           BIN_SUFFIX=""
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          if [[ "${{ matrix.runner }}" == "windows-latest" ]]; then
             BIN_SUFFIX=".exe"
           fi
           
-          # The built binary output location
           BIN_OUTPUT="target/${{ matrix.target }}/release/${PROJECT_NAME}${BIN_SUFFIX}"
-          
-          # Define a better name for the final binary
-          BIN_RELEASE="${PROJECT_NAME}-${{ matrix.name }}${BIN_SUFFIX}"
           BIN_RELEASE_VERSIONED="${PROJECT_NAME}-${{ github.ref_name }}-${{ matrix.name }}${BIN_SUFFIX}"
           
-          # Create an artifacts directory for the release
-          mkdir -p "./release_artifacts"
-          
-          # Move the built binary to the release artifacts directory
-          mv "${BIN_OUTPUT}" "./release_artifacts/${BIN_RELEASE}"
+          echo "Binary output: ${BIN_OUTPUT}"
+
 
       - name: Upload Binary Artifacts
         uses: actions/upload-artifact@v3
@@ -108,15 +101,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: binary_${{ matrix.name }}
-
-      - name: Create GitHub release and upload binaries
+      - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           body: ${{ needs.changelog.outputs.release_body }}
-          file: ./release_artifacts/${PROJECT_NAME}-${{ matrix.name }}*.zip
+          file: target/${{ matrix.target }}/release/${PROJECT_NAME}${{ matrix.name == 'win-amd64' && '.exe' || '' }}
