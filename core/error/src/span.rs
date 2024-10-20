@@ -168,9 +168,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_combine_empty() {
-        TextSpan::combine(vec![]);
+        assert_eq!(TextSpan::combine(vec![]), None);
     }
 
     #[test]
