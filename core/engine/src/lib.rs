@@ -1,4 +1,3 @@
-#![feature(fn_traits)]
 #[allow(unused_mut)]
 extern crate core;
 
