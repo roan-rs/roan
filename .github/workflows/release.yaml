@@ -80,14 +80,15 @@ jobs:
         shell: bash
         run: |
           BIN_SUFFIX=""
-          if [[ "${{ matrix.runner }}" == "windows-latest" ]]; then
+          if [[ "${{ matrix.name }}" == "win-amd64" ]]; then
             BIN_SUFFIX=".exe"
           fi
           
-          BIN_OUTPUT="target/${{ matrix.target }}/release/${PROJECT_NAME}${BIN_SUFFIX}"
-          BIN_RELEASE_VERSIONED="${PROJECT_NAME}-${{ github.ref_name }}-${{ matrix.name }}${BIN_SUFFIX}"
+          BIN_OUTPUT="target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${BIN_SUFFIX}"
+          BIN_RELEASE_VERSIONED="${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.name }}${BIN_SUFFIX}"
           
           echo "Binary output: ${BIN_OUTPUT}"
+          echo "Versioned Binary name: ${BIN_RELEASE_VERSIONED}"
 
       - name: Upload Binary Artifacts
         uses: actions/upload-artifact@v3
@@ -106,4 +107,4 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           body: ${{ needs.changelog.outputs.release_body }}
-          file: target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${{ matrix.name == 'win-amd64' && '.exe' || '' }}
+          file: target/${{ needs.build.outputs.target }}/release/${{ env.PROJECT_NAME }}${{ needs.build.outputs.target == 'win-amd64' && '.exe' || '' }}
