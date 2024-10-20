@@ -79,15 +79,6 @@ impl Value {
                     "slice" => __string_slice(),
                     "index_of" => __string_index_of(),
                     "last_index_of" => __string_last_index_of()
-
-                    // TODO: Implement static methods
-                    // "to_int" => __string_to_int(),
-                    // "to_float" => __string_to_float(),
-                    // "to_bool" => __string_to_bool(),
-                    // "from_int" => __string_from_int(),
-                    // "from_float" => __string_from_float(),
-                    // "from_bool" => __string_from_bool(),
-                    // "from_code" => __string_from_code()
                 )
             }
             Value::Char(_) => {
