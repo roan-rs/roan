@@ -48,6 +48,9 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Install target with rustup
+        run: rustup target add ${{ matrix.target }}
+
       - name: Build project for ${{ matrix.target }}
         run: cargo build --release --target ${{ matrix.target }}
 
