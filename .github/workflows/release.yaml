@@ -93,7 +93,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: binary_${{ matrix.name }}
-          path: target/${{ matrix.target }}/release/${PROJECT_NAME}${{ matrix.name == 'win-amd64' && '.exe' || '' }}
+          path: target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${{ matrix.name == 'win-amd64' && '.exe' || '' }}
 
   upload:
     name: Upload the release
@@ -106,4 +106,4 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           body: ${{ needs.changelog.outputs.release_body }}
-          file: target/${{ matrix.target }}/release/${PROJECT_NAME}${{ matrix.name == 'win-amd64' && '.exe' || '' }}
+          file: target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${{ matrix.name == 'win-amd64' && '.exe' || '' }}
