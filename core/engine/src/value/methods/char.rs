@@ -232,3 +232,276 @@ native_function!(
         Value::String(c.to_string().into())
     }
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::Value;
+
+    #[test]
+    fn test_char_is_alphabetic() {
+        let result = __char_is_alphabetic().call(vec![Value::Char('a')]).unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_alphanumeric() {
+        let result = __char_is_alphanumeric()
+            .call(vec![Value::Char('a')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii() {
+        let result = __char_is_ascii().call(vec![Value::Char('a')]).unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_alphabetic() {
+        let result = __char_is_ascii_alphabetic()
+            .call(vec![Value::Char('a')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_alphanumeric() {
+        let result = __char_is_ascii_alphanumeric()
+            .call(vec![Value::Char('a')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_control() {
+        let result = __char_is_ascii_control()
+            .call(vec![Value::Char('\n')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_digit() {
+        let result = __char_is_ascii_digit()
+            .call(vec![Value::Char('1')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_graphic() {
+        let result = __char_is_ascii_graphic()
+            .call(vec![Value::Char('a')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_lowercase() {
+        let result = __char_is_ascii_lowercase()
+            .call(vec![Value::Char('a')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_punctuation() {
+        let result = __char_is_ascii_punctuation()
+            .call(vec![Value::Char('!')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_uppercase() {
+        let result = __char_is_ascii_uppercase()
+            .call(vec![Value::Char('A')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_ascii_whitespace() {
+        let result = __char_is_ascii_whitespace()
+            .call(vec![Value::Char(' ')])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_control() {
+        let result = __char_is_control().call(vec![Value::Char('\n')]).unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_digit() {
+        let result = __char_is_digit().call(vec![Value::Char('1')]).unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_lowercase() {
+        let result = __char_is_lowercase().call(vec![Value::Char('a')]).unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_numeric() {
+        let result = __char_is_numeric().call(vec![Value::Char('1')]).unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_uppercase() {
+        let result = __char_is_uppercase().call(vec![Value::Char('A')]).unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_is_whitespace() {
+        let result = __char_is_whitespace().call(vec![Value::Char(' ')]).unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_to_ascii_lowercase() {
+        let result = __char_to_ascii_lowercase()
+            .call(vec![Value::Char('A')])
+            .unwrap();
+
+        assert_eq!(result, Value::Char('a'));
+    }
+
+    #[test]
+    fn test_char_to_ascii_uppercase() {
+        let result = __char_to_ascii_uppercase()
+            .call(vec![Value::Char('a')])
+            .unwrap();
+
+        assert_eq!(result, Value::Char('A'));
+    }
+
+    #[test]
+    fn test_char_to_lowercase() {
+        let result = __char_to_lowercase().call(vec![Value::Char('A')]).unwrap();
+
+        assert_eq!(result, Value::Char('a'));
+    }
+
+    #[test]
+    fn test_char_to_uppercase() {
+        let result = __char_to_uppercase().call(vec![Value::Char('a')]).unwrap();
+
+        assert_eq!(result, Value::Char('A'));
+    }
+
+    #[test]
+    fn test_char_is_digit_in_base() {
+        let result = __char_is_digit_in_base()
+            .call(vec![Value::Char('1'), Value::Int(10)])
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_char_escape_default() {
+        let result = __char_escape_default()
+            .call(vec![Value::Char('\n')])
+            .unwrap();
+
+        assert_eq!(result, Value::String("\\n".into()));
+    }
+
+    #[test]
+    fn test_char_escape_unicode() {
+        let result = __char_escape_unicode()
+            .call(vec![Value::Char('a')])
+            .unwrap();
+
+        assert_eq!(result, Value::String("\\u{61}".into()));
+    }
+
+    #[test]
+    fn test_char_from_digit() {
+        let result = __char_from_digit()
+            .call(vec![Value::Int(1), Value::Int(10)])
+            .unwrap();
+
+        assert_eq!(result, Value::Char('1'));
+    }
+
+    #[test]
+    fn test_char_len_utf8() {
+        let result = __char_len_utf8().call(vec![Value::Char('a')]).unwrap();
+
+        assert_eq!(result, Value::Int(1));
+    }
+
+    #[test]
+    fn test_char_is_ascii_non_ascii() {
+        let result = __char_is_ascii().call(vec![Value::Char('é')]).unwrap();
+        assert_eq!(result, Value::Bool(false));
+    }
+
+    #[test]
+    fn test_char_is_ascii_lowercase_non_ascii() {
+        let result = __char_is_ascii_lowercase()
+            .call(vec![Value::Char('é')])
+            .unwrap();
+        assert_eq!(result, Value::Bool(false));
+    }
+
+    #[test]
+    fn test_char_is_ascii_uppercase_non_ascii() {
+        let result = __char_is_ascii_uppercase()
+            .call(vec![Value::Char('É')])
+            .unwrap();
+        assert_eq!(result, Value::Bool(false));
+    }
+
+    #[test]
+    fn test_char_from_digit_invalid() {
+        let result = __char_from_digit()
+            .call(vec![Value::Int(16), Value::Int(10)]) // 16 is invalid in base 10
+            .unwrap();
+
+        assert_eq!(result, Value::Null);
+    }
+
+    #[test]
+    fn test_char_is_digit_in_base_invalid_base() {
+        let result = __char_is_digit_in_base()
+            .call(vec![Value::Char('A'), Value::Int(10)]) // 'A' is not a digit in base 10
+            .unwrap();
+
+        assert_eq!(result, Value::Bool(false));
+    }
+
+    #[test]
+    fn test_char_len_utf8_emoji() {
+        let result = __char_len_utf8().call(vec![Value::Char('😊')]).unwrap();
+        assert_eq!(result, Value::Int(4)); // UTF-8 length of emoji
+    }
+}
