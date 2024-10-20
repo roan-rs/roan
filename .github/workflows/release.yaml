@@ -77,40 +77,41 @@ jobs:
       - name: Build Binary
         run: cargo build --verbose --locked --release --target ${{ matrix.target }} --bin ${{ env.PROJECT_NAME }}
 
-      - name: Prepare Binary
-        shell: bash
+      - name: Archive Binary
         run: |
-          # Create a directory for binaries if it doesn't exist
           mkdir -p ${{ env.BINARIES_DIR }}
-          
-          BIN_SUFFIX=""
-          if [[ "${{ matrix.name }}" == "win-amd64" ]]; then
-            BIN_SUFFIX=".exe"
-          fi
-          
-          BIN_OUTPUT="target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${BIN_SUFFIX}"
-          cp "${BIN_OUTPUT}" "${{ env.BINARIES_DIR }}/"
+          cp target/${{ matrix.target }}/release/${{ env.PROJECT_NAME}} ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.name }}
 
-      - name: List binaries
-        run: |
-          echo "Contents of ${{ env.BINARIES_DIR }}:"
-          ls -l ${{ env.BINARIES_DIR }}
+      - name: Upload Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.BINARIES_DIR }}-${{ matrix.name }}
+          path: '${{ env.BINARIES_DIR }}'
 
-  upload:
-    name: Upload the release
+  release:
+    name: Create a new release
     needs: build
     runs-on: ubuntu-latest
-    permissions: write-all
     steps:
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
-          body: ${{ needs.changelog.outputs.release_body }}
-          file: ${{ env.BINARIES_DIR }}/*
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Check for uploaded files
-        run: |
-          echo "Trying to upload files:"
-          ls -l ${{ env.BINARIES_DIR }}
+      - name: Download Binaries
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.BINARIES_DIR }}-*
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.BINARIES_DIR }}-*
+            CHANGES.md
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: ${{ needs.changelog.outputs.release_body }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
