@@ -83,10 +83,10 @@ jobs:
           cp target/${{ matrix.target }}/release/${{ env.PROJECT_NAME}} ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.name }}
 
       - name: Upload Binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BINARIES_DIR }}-${{ matrix.name }}
-          path: '${{ env.BINARIES_DIR }}'
+          path: ${{ env.BINARIES_DIR }}
 
   release:
     name: Create a new release
