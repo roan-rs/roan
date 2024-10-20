@@ -85,26 +85,32 @@ jobs:
           fi
           
           BIN_OUTPUT="target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${BIN_SUFFIX}"
-          BIN_RELEASE_VERSIONED="${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.name }}${BIN_SUFFIX}"
-          
           echo "Binary output: ${BIN_OUTPUT}"
-          echo "Versioned Binary name: ${BIN_RELEASE_VERSIONED}"
-
-      - name: Upload Binary Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: binary_${{ matrix.name }}
-          path: target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${{ matrix.name == 'win-amd64' && '.exe' || '' }}
+          
+          # Append the binary path to the BINARIES array
+          echo "BINARIES+=${BIN_OUTPUT}" >> $GITHUB_ENV  # Store all paths in BINARIES
 
   upload:
     name: Upload the release
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Set up binary paths
+        id: set_paths
+        run: |
+          echo "BINARIES=()" >> $GITHUB_ENV  # Initialize BINARIES as an array
+          for target in linux-amd64 win-amd64 macos-amd64 macos-arm64; do
+            if [[ "$target" == "win-amd64" ]]; then
+              echo "target/x86_64-pc-windows-msvc/release/${{ env.PROJECT_NAME }}.exe" >> $GITHUB_ENV
+            else
+              echo "target/${{ target }}/release/${{ env.PROJECT_NAME }}" >> $GITHUB_ENV
+            fi
+          done
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           body: ${{ needs.changelog.outputs.release_body }}
-          file: target/${{ needs.build.outputs.target }}/release/${{ env.PROJECT_NAME }}${{ needs.build.outputs.target == 'win-amd64' && '.exe' || '' }}
+          file: ${{ env.BINARIES }}
