@@ -234,27 +234,23 @@ mod tests {
         );
     }
 
-    // assertion `left == right` failed
-    //   left: Vec([Char('H'), Char('e'), Char('l'), Char('l'), Char('o')])
-    //  right: Vec([Char('H'), Char('e'), Char('l'), Char('l'), Char('o')])
-    // The left and right are equal, but the assertion failed.
-    // #[test]
-    // fn test_string_chars() {
-    //     let result = __string_chars()
-    //         .call(vec![Value::String("Hello".to_string())])
-    //         .unwrap();
-    //
-    //     assert_eq!(
-    //         result,
-    //         Value::Vec(vec![
-    //             Value::Char('H'),
-    //             Value::Char('e'),
-    //             Value::Char('l'),
-    //             Value::Char('l'),
-    //             Value::Char('o')
-    //         ])
-    //     );
-    // }
+    #[test]
+    fn test_string_chars() {
+        let result = __string_chars()
+            .call(vec![Value::String("Hello".to_string())])
+            .unwrap();
+
+        assert_eq!(
+            result,
+            Value::Vec(vec![
+                Value::Char('H'),
+                Value::Char('e'),
+                Value::Char('l'),
+                Value::Char('l'),
+                Value::Char('o')
+            ])
+        );
+    }
 
     #[test]
     fn test_string_contains() {
