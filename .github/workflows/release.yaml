@@ -7,6 +7,7 @@ on:
 
 env:
   PROJECT_NAME: roan-cli
+  BINARIES_DIR: release_binaries
 
 jobs:
   changelog:
@@ -79,38 +80,26 @@ jobs:
       - name: Prepare Binary
         shell: bash
         run: |
+          # Create a directory for binaries if it doesn't exist
+          mkdir -p ${{ env.BINARIES_DIR }}
+          
           BIN_SUFFIX=""
           if [[ "${{ matrix.name }}" == "win-amd64" ]]; then
             BIN_SUFFIX=".exe"
           fi
           
           BIN_OUTPUT="target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${BIN_SUFFIX}"
-          echo "Binary output: ${BIN_OUTPUT}"
-          
-          # Append the binary path to the BINARIES array
-          echo "BINARIES+=${BIN_OUTPUT}" >> $GITHUB_ENV  # Store all paths in BINARIES
+          cp "${BIN_OUTPUT}" "${{ env.BINARIES_DIR }}/"
 
   upload:
     name: Upload the release
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Set up binary paths
-        id: set_paths
-        run: |
-          echo "BINARIES=()" >> $GITHUB_ENV  # Initialize BINARIES as an array
-          for target in linux-amd64 win-amd64 macos-amd64 macos-arm64; do
-            if [[ "$target" == "win-amd64" ]]; then
-              echo "target/x86_64-pc-windows-msvc/release/${{ env.PROJECT_NAME }}.exe" >> $GITHUB_ENV
-            else
-              echo "target/${{ target }}/release/${{ env.PROJECT_NAME }}" >> $GITHUB_ENV
-            fi
-          done
-
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           body: ${{ needs.changelog.outputs.release_body }}
-          file: ${{ env.BINARIES }}
+          file: ${{ env.BINARIES_DIR }}/*
