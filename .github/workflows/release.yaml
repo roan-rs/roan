@@ -74,7 +74,7 @@ jobs:
           echo "PKG_CONFIG_PATH=$(brew --prefix openssl)/lib/pkgconfig" >> $GITHUB_ENV
 
       - name: Build Binary
-        run: cargo build --verbose --locked --release --target ${{ matrix.target }} --bin ${{ PROJECT_NAME }}
+        run: cargo build --verbose --locked --release --target ${{ matrix.target }} --bin ${{ env.PROJECT_NAME }}
 
       - name: Prepare Binary
         shell: bash
