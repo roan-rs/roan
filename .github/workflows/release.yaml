@@ -91,6 +91,11 @@ jobs:
           BIN_OUTPUT="target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${BIN_SUFFIX}"
           cp "${BIN_OUTPUT}" "${{ env.BINARIES_DIR }}/"
 
+      - name: List binaries
+        run: |
+          echo "Contents of ${env.BINARIES_DIR}:"
+          ls -l ${env.BINARIES_DIR}
+
   upload:
     name: Upload the release
     needs: build
@@ -104,3 +109,8 @@ jobs:
           tag: ${{ github.ref }}
           body: ${{ needs.changelog.outputs.release_body }}
           file: ${{ env.BINARIES_DIR }}/*
+
+      - name: Check for uploaded files
+        run: |
+          echo "Trying to upload files:"
+          ls -l ${env.BINARIES_DIR}
