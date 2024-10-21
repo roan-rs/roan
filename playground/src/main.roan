@@ -1,9 +1,10 @@
-use { println } from "std::debug"
+use { assert, println } from "std::debug"
 use { Base64Encoder } from "std::base64";
 
 pub fn main() -> int {
-    let encoder = Base64Encoder::new();
+    assert(1 == 1, "1 is not equal to 1");
 
+    let encoder = Base64Encoder::new("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
 
     println("{}", encoder);
 
