@@ -1,4 +1,4 @@
-use { assert } from "std::debug";
+use { assert, println } from "std::debug";
 
 pub struct Base64Encoder {
     alphabetChars: string,
@@ -18,10 +18,44 @@ impl Base64Encoder {
     }
 
     pub fn calc_size(self, len: int) -> int {
-        if self.padChar == null {   
+        if self.padChar == null {
             return (len + 2) / 3 * 4;
         } else {
             return ((len * 8 + 5) / 6 + 3) / 4 * 4;
         }
+    }
+
+    pub fn encode(self, source: string) -> string {
+        let output = "";
+        let bits = 0;
+        let bitCount = 0;
+
+        let chars = source.chars();
+        let index = 0;
+
+        while index < source.len() {
+            let c = chars[index].to_int();
+            bits = (bits << 8) | c;
+            bitCount += 8;
+
+            while bitCount >= 6 {
+                let idx = (bits >> (bitCount - 6)) & 63;
+                output += self.alphabetChars[idx];
+                bitCount -= 6;
+            }
+
+            index += 1;
+        }
+
+        if bitCount > 0 {
+            let idx = (bits << (6 - bitCount)) & 63;
+            output += self.alphabetChars[idx];
+        }
+
+        while output.len() % 4 != 0 {
+            output += self.padChar then self.padChar else "";
+        }
+
+        return output;
     }
 }
