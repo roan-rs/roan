@@ -1,6 +1,6 @@
 use crate::{
     context::Context,
-    module::{ExportType, Module, StoredFunction},
+    module::{ExportType, Module, StoredFunction, StoredStruct},
     value::Value,
     vm::VM,
 };
@@ -87,7 +87,10 @@ impl Module {
                 }
             }
             Stmt::Struct(struct_stmt) => {
-                self.structs.push(struct_stmt.clone());
+                self.structs.push(StoredStruct {
+                    def: struct_stmt.clone(),
+                    defining_module: Arc::clone(&Arc::new(Mutex::new(self.clone()))),
+                });
 
                 if struct_stmt.public {
                     self.exports.push((
@@ -120,15 +123,15 @@ impl Module {
     pub fn interpret_struct_impl(&mut self, impl_stmt: StructImpl) -> Result<()> {
         let struct_name = impl_stmt.struct_name.literal();
 
-        let mut struct_def = self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
-        struct_def.impls.push(impl_stmt.clone());
+        let mut found_struct = self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
+        found_struct.def.impls.push(impl_stmt.clone());
 
         if let Some(existing_struct) = self
             .structs
             .iter_mut()
-            .find(|s| s.name.literal() == struct_name)
+            .find(|s| s.def.name.literal() == struct_name)
         {
-            *existing_struct = struct_def;
+            *existing_struct = found_struct;
 
             if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &struct_name) {
                 if let ExportType::Struct(s) = &mut export.1 {
@@ -152,6 +155,7 @@ impl Module {
         let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
 
         if struct_def
+            .def
             .trait_impls
             .iter()
             .any(|t| t.trait_name.literal() == trait_name)
@@ -180,12 +184,12 @@ impl Module {
             .into());
         }
 
-        struct_def.trait_impls.push(impl_stmt.clone());
+        struct_def.def.trait_impls.push(impl_stmt.clone());
 
         if let Some(existing_struct) = self
             .structs
             .iter_mut()
-            .find(|s| s.name.literal() == for_name)
+            .find(|s| s.def.name.literal() == for_name)
         {
             *existing_struct = struct_def;
 
@@ -208,11 +212,11 @@ impl Module {
             .ok_or_else(|| PulseError::TraitNotFoundError(name.into(), span))?)
     }
 
-    pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<Struct> {
+    pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<StoredStruct> {
         Ok(self
             .structs
             .iter()
-            .find(|s| s.name.literal() == name)
+            .find(|s| s.def.name.literal() == name)
             .cloned()
             .ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
     }
@@ -421,7 +425,10 @@ impl Module {
                         });
                     }
                     ExportType::Struct(s) => {
-                        self.structs.push(s.clone());
+                        self.structs.push(StoredStruct {
+                            def: s.clone(),
+                            defining_module: Arc::clone(&module),
+                        });
                     }
                     ExportType::Trait(t) => {
                         self.traits.push(t.clone());

@@ -18,6 +18,12 @@ use tracing::debug;
 pub mod loaders;
 
 #[derive(Debug, Clone)]
+pub struct StoredStruct {
+    pub(crate) def: Struct,
+    pub(crate) defining_module: Arc<Mutex<Module>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum ExportType {
     Function(Fn),
     Trait(TraitDef),
@@ -43,7 +49,7 @@ pub struct Module {
     pub(crate) functions: Vec<StoredFunction>,
     pub(crate) exports: Vec<(String, ExportType)>,
     pub(crate) scopes: Vec<HashMap<String, Value>>,
-    pub(crate) structs: Vec<Struct>,
+    pub(crate) structs: Vec<StoredStruct>,
     pub(crate) traits: Vec<TraitDef>,
 }
 
