@@ -167,14 +167,23 @@ impl Module {
                 .map(|arg| arg.span())
                 .collect::<Vec<TextSpan>>();
 
+            let mut offset = 0;
             for (i, (param, arg)) in function
                 .params
                 .iter()
                 .zip(args.iter().chain(std::iter::repeat(&Value::Null)))
                 .enumerate()
             {
-                let expr = exprs.get(i);
                 let ident = param.ident.literal();
+                // Maybe we could find a better way to handle this
+                if ident == "self" {
+                    offset += 1;
+
+                    defining_module_guard.declare_variable(ident, arg.clone());
+                    continue;
+                }
+
+                let expr = exprs.get(i - offset);
                 if param.is_rest {
                     let rest: Vec<Value> = args
                         .iter()
@@ -188,9 +197,9 @@ impl Module {
                         if let Some(_type) = param.type_annotation.as_ref() {
                             for arg in &rest {
                                 if _type.is_any() {
-                                    continue
+                                    continue;
                                 };
-                                
+
                                 arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
                             }
                         }
@@ -221,9 +230,9 @@ impl Module {
                                 Value::Vec(vec) => {
                                     for arg in vec {
                                         if _type.is_any() {
-                                            continue
+                                            continue;
                                         };
-                                        
+
                                         arg.check_type(
                                             &_type.type_name.literal(),
                                             expr.unwrap().clone(),

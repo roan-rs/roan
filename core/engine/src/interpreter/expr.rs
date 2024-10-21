@@ -304,7 +304,7 @@ impl Module {
     /// # Returns
     /// The result of the call.
     pub fn interpret_call(&mut self, call: &CallExpr, ctx: &Context, vm: &mut VM) -> Result<Value> {
-        debug!("Interpreting call: {:?}", call);
+        debug!("Interpreting call");
 
         let mut args = vec![];
         for arg in call.args.iter() {
