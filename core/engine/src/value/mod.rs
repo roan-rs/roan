@@ -141,6 +141,9 @@ impl ops::Add for Value {
             (Value::Int(a), Value::Float(b)) => Value::Float(a as f64 + b),
             (Value::Float(a), Value::Int(b)) => Value::Float(a + b as f64),
             (Value::String(a), Value::String(b)) => Value::String(a + &b),
+            (Value::Char(a), Value::Char(b)) => Value::String(format!("{}{}", a, b)),
+            (Value::Char(a), Value::String(b)) => Value::String(format!("{}{}", a, b)),
+            (Value::String(a), Value::Char(b)) => Value::String(format!("{}{}", a, b)),
             _ => panic!("Cannot add values of different types"),
         }
     }
@@ -249,6 +252,8 @@ impl PartialEq for Value {
             (Value::Null, Value::Null) => true,
             (Value::Void, Value::Void) => true,
             (Value::Char(a), Value::Char(b)) => a == b,
+            (Value::Char(a), Value::String(b)) => a.to_string() == *b,
+            (Value::String(a), Value::Char(b)) => a == &b.to_string(),
             _ => false,
         }
     }
