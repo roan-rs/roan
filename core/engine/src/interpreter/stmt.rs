@@ -5,7 +5,10 @@ use crate::{
     vm::VM,
 };
 use anyhow::Result;
-use roan_ast::{Block, Fn, GetSpan, If, Loop, Stmt, Struct, Token, TraitDef, Use, While};
+use roan_ast::{
+    Block, Fn, GetSpan, If, Let, Loop, Stmt, Struct, StructImpl, Token, TraitDef, TraitImpl, Use,
+    While,
+};
 use roan_error::{
     error::{
         PulseError,
@@ -68,56 +71,7 @@ impl Module {
                     },
                 }
             }
-            Stmt::Let(l) => {
-                debug!("Interpreting let: {:?}", l.ident);
-                self.interpret_expr(l.initializer.as_ref(), ctx, vm)?;
-
-                let val = vm.pop().unwrap();
-                let ident = l.ident.literal();
-
-                if let Some(type_annotation) = &l.type_annotation {
-                    let type_name = type_annotation.type_name.literal();
-
-                    if type_annotation.is_array {
-                        match val.clone() {
-                            Value::Vec(v) => {
-                                // TODO: actually display what part of the array is wrong
-                                for item in v.iter() {
-                                    item.check_type(&type_name, l.initializer.span())?
-                                }
-                            }
-                            _ => {
-                                return Err(PulseError::TypeMismatch(
-                                    format!(
-                                        "Expected array of type {} but got {}",
-                                        type_name,
-                                        val.type_name()
-                                    ),
-                                    l.initializer.span(),
-                                )
-                                .into());
-                            }
-                        }
-                    } else {
-                        if val.is_null() && type_annotation.is_nullable {
-                            self.declare_variable(ident.clone(), val);
-                            return Ok(());
-                        }
-
-                        val.check_type(
-                            &type_name,
-                            TextSpan::combine(vec![
-                                l.ident.span,
-                                type_annotation.type_name.span.clone(),
-                                l.initializer.span(),
-                            ])
-                            .unwrap(),
-                        )?
-                    }
-                }
-
-                self.declare_variable(ident.clone(), val);
-            }
+            Stmt::Let(l) => self.interpret_let(l, vm, ctx)?,
             Stmt::Expr(expr) => {
                 debug!("Interpreting expression");
 
@@ -152,78 +106,92 @@ impl Module {
                     ));
                 }
             }
-            Stmt::StructImpl(impl_stmt) => {
-                let struct_name = impl_stmt.struct_name.literal();
+            Stmt::StructImpl(impl_stmt) => self.interpret_struct_impl(impl_stmt)?,
+            Stmt::TraitImpl(impl_stmt) => self.interpret_trait_impl(impl_stmt)?,
+        }
 
-                let mut struct_def =
-                    self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
-                struct_def.impls.push(impl_stmt.clone());
+        Ok(())
+    }
 
-                if let Some(existing_struct) = self
-                    .structs
-                    .iter_mut()
-                    .find(|s| s.name.literal() == struct_name)
-                {
-                    *existing_struct = struct_def;
+    /// Interpret a struct implementation.
+    ///
+    /// # Arguments
+    /// * `impl_stmt` - [`StructImpl`] - The struct implementation to interpret.
+    pub fn interpret_struct_impl(&mut self, impl_stmt: StructImpl) -> Result<()> {
+        let struct_name = impl_stmt.struct_name.literal();
 
-                    if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &struct_name) {
-                        if let ExportType::Struct(s) = &mut export.1 {
-                            s.impls.push(impl_stmt);
-                        }
-                    }
+        let mut struct_def = self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
+        struct_def.impls.push(impl_stmt.clone());
+
+        if let Some(existing_struct) = self
+            .structs
+            .iter_mut()
+            .find(|s| s.name.literal() == struct_name)
+        {
+            *existing_struct = struct_def;
+
+            if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &struct_name) {
+                if let ExportType::Struct(s) = &mut export.1 {
+                    s.impls.push(impl_stmt);
                 }
             }
-            Stmt::TraitImpl(impl_stmt) => {
-                let for_name = impl_stmt.struct_name.literal();
-                let trait_name = impl_stmt.trait_name.literal();
+        }
 
-                let mut struct_def =
-                    self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
-                let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
+        Ok(())
+    }
 
-                if struct_def
-                    .trait_impls
-                    .iter()
-                    .any(|t| t.trait_name.literal() == trait_name)
-                {
-                    return Err(PulseError::StructAlreadyImplementsTrait(
-                        for_name,
-                        trait_name,
-                        impl_stmt.trait_name.span.clone(),
-                    )
-                    .into());
-                }
+    /// Interpret a trait implementation.
+    ///
+    /// # Arguments
+    /// * `impl_stmt` - [`TraitImpl`] - The trait implementation to interpret.
+    pub fn interpret_trait_impl(&mut self, impl_stmt: TraitImpl) -> Result<()> {
+        let for_name = impl_stmt.struct_name.literal();
+        let trait_name = impl_stmt.trait_name.literal();
 
-                let missing_methods: Vec<String> = trait_def
-                    .methods
-                    .iter()
-                    .filter(|m| !impl_stmt.methods.iter().any(|i| i.name == m.name))
-                    .map(|m| m.name.clone())
-                    .collect();
+        let mut struct_def = self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
+        let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
 
-                if !missing_methods.is_empty() {
-                    return Err(PulseError::TraitMethodNotImplemented(
-                        trait_name,
-                        missing_methods,
-                        impl_stmt.trait_name.span.clone(),
-                    )
-                    .into());
-                }
+        if struct_def
+            .trait_impls
+            .iter()
+            .any(|t| t.trait_name.literal() == trait_name)
+        {
+            return Err(PulseError::StructAlreadyImplementsTrait(
+                for_name,
+                trait_name,
+                impl_stmt.trait_name.span.clone(),
+            )
+            .into());
+        }
 
-                struct_def.trait_impls.push(impl_stmt.clone());
+        let missing_methods: Vec<String> = trait_def
+            .methods
+            .iter()
+            .filter(|m| !impl_stmt.methods.iter().any(|i| i.name == m.name))
+            .map(|m| m.name.clone())
+            .collect();
 
-                if let Some(existing_struct) = self
-                    .structs
-                    .iter_mut()
-                    .find(|s| s.name.literal() == for_name)
-                {
-                    *existing_struct = struct_def;
+        if !missing_methods.is_empty() {
+            return Err(PulseError::TraitMethodNotImplemented(
+                trait_name,
+                missing_methods,
+                impl_stmt.trait_name.span.clone(),
+            )
+            .into());
+        }
 
-                    if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &for_name) {
-                        if let ExportType::Struct(s) = &mut export.1 {
-                            s.trait_impls.push(impl_stmt);
-                        }
-                    }
+        struct_def.trait_impls.push(impl_stmt.clone());
+
+        if let Some(existing_struct) = self
+            .structs
+            .iter_mut()
+            .find(|s| s.name.literal() == for_name)
+        {
+            *existing_struct = struct_def;
+
+            if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &for_name) {
+                if let ExportType::Struct(s) = &mut export.1 {
+                    s.trait_impls.push(impl_stmt);
                 }
             }
         }
@@ -247,6 +215,65 @@ impl Module {
             .find(|s| s.name.literal() == name)
             .cloned()
             .ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
+    }
+
+    /// Interpret a let statement.
+    ///
+    /// # Arguments
+    /// * `let_stmt` - [`Let`] - The let statement to interpret.
+    /// * `vm` - [`VM`] - The virtual machine to use for interpretation.
+    /// * `ctx` - [`Context`] - The context in which to interpret the statement.
+    pub fn interpret_let(&mut self, l: Let, vm: &mut VM, ctx: &Context) -> Result<()> {
+        debug!("Interpreting let: {:?}", l.ident);
+        self.interpret_expr(l.initializer.as_ref(), ctx, vm)?;
+
+        let val = vm.pop().unwrap();
+        let ident = l.ident.literal();
+
+        if let Some(type_annotation) = &l.type_annotation {
+            let type_name = type_annotation.type_name.literal();
+
+            if type_annotation.is_array {
+                match val.clone() {
+                    Value::Vec(v) => {
+                        // TODO: actually display what part of the array is wrong
+                        for item in v.iter() {
+                            item.check_type(&type_name, l.initializer.span())?
+                        }
+                    }
+                    _ => {
+                        return Err(PulseError::TypeMismatch(
+                            format!(
+                                "Expected array of type {} but got {}",
+                                type_name,
+                                val.type_name()
+                            ),
+                            l.initializer.span(),
+                        )
+                        .into());
+                    }
+                }
+            } else {
+                if val.is_null() && type_annotation.is_nullable {
+                    self.declare_variable(ident.clone(), val);
+                    return Ok(());
+                }
+
+                val.check_type(
+                    &type_name,
+                    TextSpan::combine(vec![
+                        l.ident.span,
+                        type_annotation.type_name.span.clone(),
+                        l.initializer.span(),
+                    ])
+                    .unwrap(),
+                )?
+            }
+        }
+
+        self.declare_variable(ident.clone(), val);
+
+        Ok(())
     }
 
     /// Handle the result of a loop statement.
