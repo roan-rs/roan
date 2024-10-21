@@ -1,16 +1,19 @@
+use { assert } from "std::debug";
+
 pub struct Base64Encoder {
     alphabetChars: string,
-    padChar: char,
+    padChar: char?,
 }
 
+let BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
 impl Base64Encoder {
-    pub fn new(chars: char[]?, pad: char?) -> anytype {
-        let chars = chars then chars else "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".chars();
-        let pad = pad then pad else '=';
+    pub fn new(alphabet: string, padChar: char?) -> anytype {
+        assert(alphabet.len() == 64, "Base64 alphabet must be exactly 64 characters long");
 
         return Base64Encoder {
-            alphabetChars: chars,
-            padChar: pad,
+            alphabetChars: alphabet,
+            padChar: padChar,
         };
     }
 }
