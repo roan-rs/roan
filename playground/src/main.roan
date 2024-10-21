@@ -1,18 +1,11 @@
-use { String } from "std::string"
 use { println } from "std::debug"
-
-fn print(text: string, ...args: anytype) -> void {
-    println(text, ...args);
-}
+use { Base64Encoder } from "std::base64";
 
 pub fn main() -> int {
-    let c = '5';
+    let encoder = Base64Encoder::new();
 
-    if c.is_digit() {
-        print("Is digit");
-    } else {
-        print("Is not digit");
-    }
+
+    println("{}", encoder);
 
     return 0;
 }
