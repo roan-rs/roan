@@ -33,7 +33,7 @@ impl Parser {
                     Some(self.parse_struct()?)
                 } else if self.peek_next().kind == TokenKind::Trait {
                     Some(self.parse_trait()?)
-                } else if self.peek_next().kind == TokenKind::Const { 
+                } else if self.peek_next().kind == TokenKind::Const {
                     Some(self.parse_const()?)
                 } else {
                     // TODO: return error
@@ -196,14 +196,20 @@ impl Parser {
         Ok(Stmt::new_trait_def(trait_token, name, methods, public))
     }
 
-    // TODO: add docs
+    /// Parses an expression statement.
+    ///
+    /// An expression statement is a statement that consists of an expression followed by a semicolon.
+    ///
+    /// # Returns
+    ///
+    /// - `Stmt`: An expression statement.
+    /// - `Err`: If there is a parsing error.
     pub fn parse_const(&mut self) -> Result<Stmt> {
-                debug!("Parsing const");
+        debug!("Parsing const");
         let (_, public) = self.parse_pub(TokenKind::Const)?;
-    
 
         let name = self.expect(TokenKind::Identifier)?;
-    
+
         self.expect(TokenKind::Equals)?;
 
         let expr = self.parse_expr()?;
@@ -505,7 +511,7 @@ impl Parser {
             type_name,
             is_array,
             is_nullable: self.is_nullable(),
-            colon
+            colon,
         })
     }
 
@@ -529,7 +535,7 @@ impl Parser {
             type_name,
             is_array,
             is_nullable: self.is_nullable(),
-            arrow
+            arrow,
         }))
     }
 
