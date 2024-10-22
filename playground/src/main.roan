@@ -2,9 +2,9 @@ use { println } from "std::debug"
 use { Base64Encoder } from "std::base64";
 
 pub fn main() -> int {
-    let encoder = Base64Encoder::new("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
+    let encoder = Base64Encoder::new("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", '=');
 
-    println("{}", encoder.calc_size(3));
+    println("{}", encoder.encode("Hello, Rust!dawdawdawdawdaw nhrth rh trh 5435 23 5"));
 
     return 0;
 }

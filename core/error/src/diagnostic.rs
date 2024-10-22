@@ -65,7 +65,7 @@ impl Diagnostic {
                 let line = content
                     .lines()
                     .nth((line_number - 1) as usize)
-                    .expect("Error getting line");
+                    .unwrap_or("");
                 let column = location.start.column;
                 let line_content = line.trim_end();
                 let decoration =

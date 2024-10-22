@@ -41,6 +41,16 @@ pub enum Stmt {
     StructImpl(StructImpl),
     /// A trait implementation.
     TraitImpl(TraitImpl),
+    /// A const statement
+    Const(Const)
+}
+
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Const {
+    pub expr: Box<Expr>,
+    pub ident: Token,
+    pub public: bool
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -418,6 +428,21 @@ impl Stmt {
             trait_impls: vec![],
         })
     }
+
+    // TODO: improve
+    /// Creates a new [`Const`] statement.
+    /// 
+    /// # Arguments
+    /// * `expr` - Expr
+    /// * `ident` - Token
+    /// * `public` - If public
+    ///
+    /// # Returns
+   pub fn new_const(expr: Box<Expr>, ident: Token, public: bool) -> Self {
+    Stmt::Const(Const {
+        expr, ident, public
+    })
+   }
 
     /// Creates a new `TraitDef` statement.
     ///
