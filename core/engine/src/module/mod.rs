@@ -20,7 +20,7 @@ use uuid::Uuid;
 
 pub mod loaders;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct StoredStruct {
     pub(crate) def: Struct,
     pub(crate) defining_module: String,
@@ -30,20 +30,6 @@ pub struct StoredStruct {
 pub struct StoredConst {
     pub ident: Token,
     pub value: Value,
-}
-
-impl Debug for StoredStruct {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StoredStruct")
-            .field("def", &self.def)
-            .finish()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StoredStruct {
-    pub(crate) def: Struct,
-    pub(crate) defining_module: Arc<Mutex<Module>>,
 }
 
 #[derive(Debug, Clone)]
