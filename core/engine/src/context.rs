@@ -123,6 +123,18 @@ impl Context {
         self.module_loader.borrow().get(name)
     }
 
+    /// Load a module from the context.
+    /// 
+    /// This function is different from `query_module` in that it will attempt to load the module from the cache
+    /// if it is not found it will try to resolve the path and load the module.
+    /// 
+    /// # Arguments
+    /// - `referrer` - The module that is requesting the module.
+    /// - `spec` - The name of the module to load.
+    pub fn load_module(&mut self, referrer: &Module, spec: &str) -> Result<Module> {
+        self.module_loader.borrow_mut().load(referrer, spec, self)
+    }
+    
     pub fn module_keys(&self) -> Vec<String> {
         self.module_loader.borrow().keys()
     }
