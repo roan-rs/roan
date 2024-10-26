@@ -72,7 +72,6 @@ impl Module {
             Expr::Null(_) => Ok(Value::Null),
             Expr::Unary(u) => self.interpret_unary(u.clone(), ctx, vm),
             Expr::ThenElse(then_else) => self.interpret_then_else(then_else.clone(), ctx, vm),
-            _ => todo!("missing expr: {:?}", expr),
         };
 
         Ok(vm.push(val?))
@@ -94,7 +93,7 @@ impl Module {
         vm: &mut VM,
     ) -> Result<Value> {
         debug!("Interpreting struct constructor");
-        let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
+        let found = self.get_struct(&constructor.name, constructor.token.span.clone())?;
 
         let mut fields = HashMap::new();
 
@@ -103,7 +102,7 @@ impl Module {
             fields.insert(field_name.clone(), vm.pop().unwrap());
         }
 
-        Ok(Value::Struct(struct_def, fields))
+        Ok(Value::Struct(found, fields))
     }
 
     /// Interpret a unary expression.
@@ -189,7 +188,7 @@ impl Module {
                 match expr {
                     Expr::Call(call) => {
                         let method_name = call.callee.clone();
-                        let method = struct_def.find_static_method(&method_name);
+                        let method = struct_def.def.find_static_method(&method_name);
 
                         if method.is_none() {
                             return Err(UndefinedFunctionError(
@@ -212,7 +211,7 @@ impl Module {
 
                         self.execute_user_defined_function(
                             method.clone(),
-                            Arc::new(Mutex::new(self.clone())),
+                            struct_def.defining_module,
                             args,
                             ctx,
                             vm,
@@ -399,7 +398,6 @@ impl Module {
             (Value::Bool(a), BinOpKind::And, Value::Bool(b)) => Value::Bool(a && b),
             (Value::Bool(a), BinOpKind::Or, Value::Bool(b)) => Value::Bool(a || b),
 
-            // TODO: add more bitwise operators
             (Value::Int(a), BinOpKind::BitwiseAnd, Value::Int(b)) => Value::Int(a & b),
             (Value::Int(a), BinOpKind::BitwiseOr, Value::Int(b)) => Value::Int(a | b),
             (Value::Int(a), BinOpKind::BitwiseXor, Value::Int(b)) => Value::Int(a ^ b),
@@ -530,7 +528,7 @@ impl Module {
             Expr::Call(call) => {
                 let value_clone = value.clone();
                 if let Value::Struct(struct_def, _) = value_clone {
-                    let field = struct_def.find_method(&call.callee);
+                    let field = struct_def.def.find_method(&call.callee);
 
                     if field.is_none() {
                         return Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into());
@@ -545,7 +543,7 @@ impl Module {
 
                     self.execute_user_defined_function(
                         field.clone(),
-                        Arc::new(Mutex::new(self.clone())),
+                        struct_def.defining_module,
                         args,
                         ctx,
                         vm,
