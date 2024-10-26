@@ -1,5 +1,6 @@
 use crate::{
     entries,
+    module::StoredStruct,
     value::methods::{
         char::{
             __char_escape_default, __char_escape_unicode, __char_from_digit, __char_is_alphabetic,
@@ -45,7 +46,7 @@ pub enum Value {
     Char(char),
     String(String),
     Vec(Vec<Value>),
-    Struct(Struct, HashMap<String, Value>),
+    Struct(StoredStruct, HashMap<String, Value>),
     Null,
     Void,
 }
@@ -374,7 +375,7 @@ impl Value {
                     format!("{}[]", vals[0].type_name())
                 }
             }
-            Value::Struct(struct_def, _) => struct_def.name.literal(),
+            Value::Struct(struct_def, _) => struct_def.def.name.literal(),
             Value::Null => "null".to_string(),
             Value::Void => "void".to_string(),
             Value::Char(_) => "char".to_string(),
