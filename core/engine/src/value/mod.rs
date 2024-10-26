@@ -38,7 +38,7 @@ pub mod methods {
     pub mod vec;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Value {
     Int(i64),
     Float(f64),
@@ -150,6 +150,28 @@ impl ops::Add for Value {
     }
 }
 
+impl Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Int(i) => write!(f, "Int({})", i),
+            Value::Float(fl) => write!(f, "Float({})", fl),
+            Value::Bool(b) => write!(f, "Bool({})", b),
+            Value::String(s) => write!(f, "String({})", s),
+            Value::Vec(v) => write!(f, "Vec({:?})", v),
+            Value::Null => write!(f, "Null"),
+            Value::Void => write!(f, "Void"),
+            Value::Struct(struct_def, fields) => {
+                write!(f, "Struct({} with fields: ", struct_def.def.name.literal())?;
+                for (name, val) in fields {
+                    write!(f, "{}: {:?}, ", name, val)?;
+                }
+                write!(f, ")")
+            }
+            Value::Char(c) => write!(f, "Char({})", c),
+        }
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -169,8 +191,18 @@ impl Display for Value {
             }
             Value::Null => write!(f, "null"),
             Value::Void => write!(f, "void"),
-            // TODO: improve formatting of structs
-            Value::Struct(..) => write!(f, "struct"),
+            Value::Struct(st, fields) => {
+                let def = st.def.clone();
+
+                write!(f, "{} {{", def.name.literal())?;
+                for (i, (name, val)) in fields.iter().enumerate() {
+                    write!(f, "{}: {}", name, val)?;
+                    if i < fields.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, "}}")
+            }
             Value::Char(c) => write!(f, "{}", c),
         }
     }

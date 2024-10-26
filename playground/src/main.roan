@@ -4,7 +4,7 @@ use { Base64Encoder } from "std::base64";
 pub fn main() -> int {
     let encoder = Base64Encoder::new("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
 
-    println("{}", encoder.check());
+    println("{}", encoder.calc_size(3));
 
     return 0;
 }
