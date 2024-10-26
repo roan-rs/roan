@@ -213,6 +213,7 @@ impl Lexer {
                     "impl" => TokenKind::Impl,
                     "trait" => TokenKind::Trait,
                     "then" => TokenKind::Then,
+                    "const" => TokenKind::Const,
 
                     _ => TokenKind::Identifier,
                 }

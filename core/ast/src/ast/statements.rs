@@ -429,12 +429,12 @@ impl Stmt {
     }
 
     /// Creates a new `Const` statement.
-    /// 
+    ///
     /// # Arguments
     /// * `expr` - The expression to assign to the constant.
     /// * `ident` - The identifier token for the constant.
     /// * `public` - A boolean indicating if the constant is public.
-    /// 
+    ///
     /// # Returns
     /// A `Stmt::Const` variant containing the provided constant details.
     pub fn new_const(expr: Box<Expr>, ident: Token, public: bool) -> Self {

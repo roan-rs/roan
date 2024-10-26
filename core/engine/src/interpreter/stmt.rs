@@ -1,6 +1,6 @@
 use crate::{
     context::Context,
-    module::{ExportType, Module, StoredFunction, StoredStruct},
+    module::{ExportType, Module, StoredConst, StoredFunction, StoredStruct},
     value::Value,
     vm::VM,
 };
@@ -25,9 +25,9 @@ impl Module {
     /// # Arguments
     /// * `stmt` - [`Stmt`] - The statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         match stmt {
-            Stmt::Fn(f) => self.interpret_function(f)?,
+            Stmt::Fn(f) => self.interpret_function(f, ctx)?,
             Stmt::Use(u) => self.interpret_use(u, ctx, vm)?,
             Stmt::While(while_stmt) => self.interpret_while(while_stmt, ctx, vm)?,
             Stmt::Loop(loop_stmt) => self.interpret_loop(loop_stmt, ctx, vm)?,
@@ -89,8 +89,9 @@ impl Module {
             Stmt::Struct(struct_stmt) => {
                 self.structs.push(StoredStruct {
                     def: struct_stmt.clone(),
-                    defining_module: Arc::clone(&Arc::new(Mutex::new(self.clone()))),
+                    defining_module: self.id(),
                 });
+                ctx.upsert_module(self.id().clone(), self.clone());
 
                 if struct_stmt.public {
                     self.exports.push((
@@ -111,6 +112,27 @@ impl Module {
             }
             Stmt::StructImpl(impl_stmt) => self.interpret_struct_impl(impl_stmt)?,
             Stmt::TraitImpl(impl_stmt) => self.interpret_trait_impl(impl_stmt)?,
+            Stmt::Const(c) => {
+                let def_expr = c.expr.clone();
+                let ident_literal = c.ident.literal();
+                let is_public = c.public;
+
+                self.interpret_expr(&def_expr, ctx, vm)?;
+
+                let val = vm.pop().expect("Expected value on stack");
+
+                let stored_val = StoredConst {
+                    ident: c.ident.clone(),
+                    value: val.clone(),
+                };
+
+                self.consts.push(stored_val.clone());
+
+                if is_public {
+                    self.exports
+                        .push((ident_literal, ExportType::Const(stored_val)));
+                }
+            }
         }
 
         Ok(())
@@ -213,11 +235,9 @@ impl Module {
     }
 
     pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<StoredStruct> {
-        Ok(self
-            .structs
-            .iter()
-            .find(|s| s.def.name.literal() == name)
-            .cloned()
+        let x = self.structs.iter().find(|s| s.def.name.literal() == name);
+
+        Ok(x.cloned()
             .ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
     }
 
@@ -227,7 +247,7 @@ impl Module {
     /// * `let_stmt` - [`Let`] - The let statement to interpret.
     /// * `vm` - [`VM`] - The virtual machine to use for interpretation.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_let(&mut self, l: Let, vm: &mut VM, ctx: &Context) -> Result<()> {
+    pub fn interpret_let(&mut self, l: Let, vm: &mut VM, ctx: &mut Context) -> Result<()> {
         debug!("Interpreting let: {:?}", l.ident);
         self.interpret_expr(l.initializer.as_ref(), ctx, vm)?;
 
@@ -305,7 +325,12 @@ impl Module {
     /// # Arguments
     /// * `loop_stmt` - [`Loop`] - The loop to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the loop.
-    pub fn interpret_loop(&mut self, loop_stmt: Loop, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_loop(
+        &mut self,
+        loop_stmt: Loop,
+        ctx: &mut Context,
+        vm: &mut VM,
+    ) -> Result<()> {
         debug!("Interpreting infinite loop");
         loop {
             self.enter_scope();
@@ -321,7 +346,12 @@ impl Module {
     /// # Arguments
     /// * `while_stmt` - [`While`] - The while loop to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the while loop.
-    pub fn interpret_while(&mut self, while_stmt: While, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_while(
+        &mut self,
+        while_stmt: While,
+        ctx: &mut Context,
+        vm: &mut VM,
+    ) -> Result<()> {
         debug!("Interpreting while loop");
 
         loop {
@@ -358,12 +388,14 @@ impl Module {
     /// # Arguments
     /// * `function` - [`Fn`] - The function to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the function.
-    pub fn interpret_function(&mut self, function: Fn) -> Result<()> {
+    pub fn interpret_function(&mut self, function: Fn, ctx: &mut Context) -> Result<()> {
         debug!("Interpreting function: {}", function.name);
+
         self.functions.push(StoredFunction::Function {
             function: function.clone(),
-            defining_module: Arc::clone(&Arc::new(Mutex::new(self.clone()))),
+            defining_module: self.id(),
         });
+        ctx.upsert_module(self.id().clone(), self.clone());
 
         if function.public {
             self.exports.push((
@@ -380,17 +412,12 @@ impl Module {
     /// # Arguments
     /// * `use_stmt` - [`Use`] - The use statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_use(&mut self, u: Use, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_use(&mut self, u: Use, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting use: {}", u.from.literal());
 
-        // Load the module as an Arc<Mutex<Module>>
-        let module = ctx
-            .module_loader
-            .load(&self.clone(), &u.from.literal(), ctx)
-            .map_err(|_| ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone()))?;
-
-        // Lock the loaded module for parsing and interpretation
-        let mut loaded_module = module.lock().expect("Failed to lock loaded module");
+        let mut loaded_module = ctx.query_module(&u.from.literal()).ok_or_else(|| {
+            ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone())
+        })?;
 
         match loaded_module.parse() {
             Ok(_) => {}
@@ -421,17 +448,20 @@ impl Module {
                     ExportType::Function(f) => {
                         self.functions.push(StoredFunction::Function {
                             function: f.clone(),
-                            defining_module: Arc::clone(&module),
+                            defining_module: loaded_module.id(),
                         });
                     }
                     ExportType::Struct(s) => {
                         self.structs.push(StoredStruct {
                             def: s.clone(),
-                            defining_module: Arc::clone(&module),
+                            defining_module: loaded_module.id(),
                         });
                     }
                     ExportType::Trait(t) => {
                         self.traits.push(t.clone());
+                    }
+                    ExportType::Const(c) => {
+                        self.consts.push(c.clone());
                     }
                 }
             } else {
@@ -447,7 +477,7 @@ impl Module {
     /// # Arguments
     /// * `if_stmt` - [`If`] - The if statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_if(&mut self, if_stmt: If, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_if(&mut self, if_stmt: If, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting if statement");
 
         self.interpret_expr(&if_stmt.condition, ctx, vm)?;
@@ -507,7 +537,7 @@ impl Module {
     ///
     /// # Arguments
     /// * `block` - [`Block`] - The block of statements to execute.
-    pub fn execute_block(&mut self, block: Block, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn execute_block(&mut self, block: Block, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting block statement");
 
         self.enter_scope();

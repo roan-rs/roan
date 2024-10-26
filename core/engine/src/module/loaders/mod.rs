@@ -12,11 +12,11 @@ pub mod basic;
 pub trait ModuleLoader: Debug {
     /// Load a module from a given source.
     fn load(
-        &self,
+        &mut self,
         referrer: &Module,
         spec: &str,
         ctx: &Context,
-    ) -> anyhow::Result<Arc<Mutex<Module>>>;
+    ) -> anyhow::Result<Module>;
 
     /// Insert a module into the loader's cache if loader handles caching.
     ///
@@ -25,7 +25,7 @@ pub trait ModuleLoader: Debug {
     /// # Arguments
     /// - `name` - The name of the module to insert into the cache.
     /// - `module` - The module to insert into the cache.
-    fn insert(&self, name: String, module: Arc<Mutex<Module>>) {}
+    fn insert(&mut self, name: String, module: Module) {}
 
     /// Get a module from the cache if the loader caches modules.
     ///
@@ -33,8 +33,18 @@ pub trait ModuleLoader: Debug {
     ///
     /// # Arguments
     /// - `name` - The name of the module to get from the cache.
-    fn get(&self, name: &str) -> Option<Arc<Mutex<Module>>> {
+    fn get(&self, name: &str) -> Option<Module> {
         None
+    }
+    
+    /// Returns all the keys in the cache.
+    ///
+    /// This function returns an empty vector for loaders that do not cache modules.
+    /// 
+    /// # Returns
+    /// A vector of strings representing the keys in the cache.
+    fn keys(&self) -> Vec<String> {
+        Vec::new()
     }
 
     /// Resolves the path of a referenced module based on the referrer module's path and the provided specification.
