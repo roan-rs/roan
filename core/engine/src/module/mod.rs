@@ -41,6 +41,12 @@ impl Debug for StoredStruct {
 }
 
 #[derive(Debug, Clone)]
+pub struct StoredStruct {
+    pub(crate) def: Struct,
+    pub(crate) defining_module: Arc<Mutex<Module>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum ExportType {
     Function(Fn),
     Trait(TraitDef),

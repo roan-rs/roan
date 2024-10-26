@@ -10,7 +10,7 @@ roan-error = { path = "core/error" }
 roan-ast = { path = "core/ast" }
 
 # Other dependencies
-anyhow = "1.0.89"
+anyhow = "1.0.90"
 colored = "2.1.0"
 log = "0.4.22"
 thiserror = "1.0.64"

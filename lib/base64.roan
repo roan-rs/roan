@@ -17,7 +17,7 @@ impl Base64Encoder {
         };
     }
 
-    pub fn calc_size(self, len: int) -> int {
+   pub fn calc_size(self, len: int) -> int {
         if self.padChar == null {
             return (len + 2) / 3 * 4;
         } else {

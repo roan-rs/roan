@@ -175,7 +175,6 @@ impl Module {
 
         let mut struct_def = self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
         let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
-
         if struct_def
             .def
             .trait_impls

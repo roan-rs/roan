@@ -1,5 +1,4 @@
 use { println } from "std::debug"
-
 pub struct Person {
     name: string,
     age: int,
