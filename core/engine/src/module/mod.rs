@@ -5,7 +5,10 @@ use crate::{
     vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
-use roan_ast::{source::Source, Ast, Expr, Fn, Lexer, Parser, Struct, Token, TraitDef};
+use roan_ast::{
+    source::Source, Ast, Expr, Fn, Lexer, Parser, Struct, StructField, StructImpl, Token, TraitDef,
+    TraitImpl,
+};
 use roan_error::{error::PulseError::VariableNotFoundError, print_diagnostic, TextSpan};
 use std::{
     collections::HashMap,
@@ -19,8 +22,47 @@ pub mod loaders;
 
 #[derive(Clone, Debug)]
 pub struct StoredStruct {
-    pub(crate) def: Struct,
-    pub(crate) defining_module: String,
+    pub defining_module: String,
+    pub struct_token: Token,
+    pub name: Token,
+    pub fields: Vec<StructField>,
+    pub public: bool,
+    pub impls: Vec<StoredImpl>,
+    pub trait_impls: Vec<StoredTraitImpl>,
+}
+
+impl StoredStruct {
+    fn find_method_internal(&self, name: &str, is_static: bool) -> Option<&Fn> {
+        self.impls
+            .iter()
+            .flat_map(|impl_stmt| impl_stmt.def.methods.iter())
+            .chain(
+                self.trait_impls
+                    .iter()
+                    .flat_map(|impl_stmt| impl_stmt.def.methods.iter()),
+            )
+            .find(|method| method.name == name && method.is_static == is_static)
+    }
+
+    pub fn find_static_method(&self, name: &str) -> Option<&Fn> {
+        self.find_method_internal(name, true)
+    }
+
+    pub fn find_method(&self, name: &str) -> Option<&Fn> {
+        self.find_method_internal(name, false)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct StoredImpl {
+    pub def: StructImpl,
+    pub defining_module: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct StoredTraitImpl {
+    pub def: TraitImpl,
+    pub defining_module: String,
 }
 
 #[derive(Clone, Debug)]
@@ -33,7 +75,7 @@ pub struct StoredConst {
 pub enum ExportType {
     Function(Fn),
     Trait(TraitDef),
-    Struct(Struct),
+    Struct(StoredStruct),
     Const(StoredConst),
 }
 
@@ -49,17 +91,17 @@ pub enum StoredFunction {
 
 #[derive(Clone)]
 pub struct Module {
-    pub(crate) source: Source,
-    pub(crate) path: Option<PathBuf>,
-    pub(crate) tokens: Vec<Token>,
-    pub(crate) ast: Ast,
-    pub(crate) functions: Vec<StoredFunction>,
-    pub(crate) exports: Vec<(String, ExportType)>,
-    pub(crate) scopes: Vec<HashMap<String, Value>>,
-    pub(crate) structs: Vec<StoredStruct>,
-    pub(crate) traits: Vec<TraitDef>,
-    pub(crate) consts: Vec<StoredConst>,
-    pub(crate) id: String,
+    pub source: Source,
+    pub path: Option<PathBuf>,
+    pub tokens: Vec<Token>,
+    pub ast: Ast,
+    pub functions: Vec<StoredFunction>,
+    pub exports: Vec<(String, ExportType)>,
+    pub scopes: Vec<HashMap<String, Value>>,
+    pub structs: Vec<StoredStruct>,
+    pub traits: Vec<TraitDef>,
+    pub consts: Vec<StoredConst>,
+    pub id: String,
 }
 
 impl Debug for Module {

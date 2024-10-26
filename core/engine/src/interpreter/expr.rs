@@ -194,7 +194,7 @@ impl Module {
                 match expr {
                     Expr::Call(call) => {
                         let method_name = call.callee.clone();
-                        let method = struct_def.def.find_static_method(&method_name);
+                        let method = struct_def.find_static_method(&method_name);
 
                         if method.is_none() {
                             return Err(UndefinedFunctionError(
@@ -543,7 +543,7 @@ impl Module {
             Expr::Call(call) => {
                 let value_clone = value.clone();
                 if let Value::Struct(struct_def, _) = value_clone {
-                    let field = struct_def.def.find_method(&call.callee);
+                    let field = struct_def.find_method(&call.callee);
 
                     if field.is_none() {
                         return Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into());

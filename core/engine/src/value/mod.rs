@@ -166,7 +166,7 @@ impl Debug for Value {
             Value::Null => write!(f, "Null"),
             Value::Void => write!(f, "Void"),
             Value::Struct(struct_def, fields) => {
-                write!(f, "Struct({} with fields: ", struct_def.def.name.literal())?;
+                write!(f, "Struct({} with fields: ", struct_def.name.literal())?;
                 for (name, val) in fields {
                     write!(f, "{}: {:?}, ", name, val)?;
                 }
@@ -197,7 +197,7 @@ impl Display for Value {
             Value::Null => write!(f, "null"),
             Value::Void => write!(f, "void"),
             Value::Struct(st, fields) => {
-                let def = st.def.clone();
+                let def = st.clone();
 
                 write!(f, "{} {{", def.name.literal())?;
                 for (i, (name, val)) in fields.iter().enumerate() {
@@ -426,7 +426,7 @@ impl Value {
                     format!("{}[]", vals[0].type_name())
                 }
             }
-            Value::Struct(struct_def, _) => struct_def.def.name.literal(),
+            Value::Struct(struct_def, _) => struct_def.name.literal(),
             Value::Null => "null".to_string(),
             Value::Void => "void".to_string(),
             Value::Char(_) => "char".to_string(),

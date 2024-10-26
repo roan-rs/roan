@@ -4,7 +4,7 @@ use cli::cli;
 use commands::run::run_command;
 use logger::setup_logger;
 use panic_handler::setup_panic_handler;
-use std::env;
+use std::{env, process::exit};
 
 pub mod cli;
 pub mod commands;
@@ -38,21 +38,17 @@ fn main() -> Result<()> {
     let mut ctx = GlobalContext::default()?;
     ctx.verbose = verbose;
 
-    let result = match cmd.0 {
-        "run" => run_command(&mut ctx),
+    if let Err(err) = match cmd.0 {
+        "run" => run_command(&mut ctx, cmd.1),
         _ => {
             cli().print_help()?;
-
-            Err(anyhow!("Unknown command"))
+            exit(1);
         }
-    };
+    } {
+        tracing::error!("{}", err);
 
-    match result {
-        Err(err) => {
-            tracing::error!("{:?}", err);
-        }
-        _ok => {}
+        Ok(())
+    } else {
+        Ok(())
     }
-
-    Ok(())
 }

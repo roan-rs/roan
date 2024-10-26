@@ -1,6 +1,8 @@
 use crate::{
     context::Context,
-    module::{ExportType, Module, StoredConst, StoredFunction, StoredStruct},
+    module::{
+        ExportType, Module, StoredConst, StoredFunction, StoredImpl, StoredStruct, StoredTraitImpl,
+    },
     value::Value,
     vm::VM,
 };
@@ -85,18 +87,27 @@ impl Module {
                 }
             }
             Stmt::Struct(struct_stmt) => {
-                self.structs.push(StoredStruct {
-                    def: struct_stmt.clone(),
+                let def = struct_stmt.clone();
+                let stored_struct = StoredStruct {
                     defining_module: self.id(),
-                });
-                ctx.upsert_module(self.id().clone(), self.clone());
+                    struct_token: def.struct_token,
+                    name: def.name,
+                    fields: def.fields,
+                    public: def.public,
+                    impls: vec![],
+                    trait_impls: vec![],
+                };
+
+                self.structs.push(stored_struct.clone());
 
                 if struct_stmt.public {
                     self.exports.push((
                         struct_stmt.name.literal(),
-                        ExportType::Struct(struct_stmt.clone()),
+                        ExportType::Struct(stored_struct),
                     ));
                 }
+
+                ctx.upsert_module(self.id().clone(), self.clone());
             }
             Stmt::TraitDef(trait_stmt) => {
                 self.traits.push(trait_stmt.clone());
@@ -107,9 +118,11 @@ impl Module {
                         ExportType::Trait(trait_stmt.clone()),
                     ));
                 }
+
+                ctx.upsert_module(self.id().clone(), self.clone());
             }
-            Stmt::StructImpl(impl_stmt) => self.interpret_struct_impl(impl_stmt)?,
-            Stmt::TraitImpl(impl_stmt) => self.interpret_trait_impl(impl_stmt)?,
+            Stmt::StructImpl(impl_stmt) => self.interpret_struct_impl(impl_stmt, ctx)?,
+            Stmt::TraitImpl(impl_stmt) => self.interpret_trait_impl(impl_stmt, ctx)?,
             Stmt::Const(c) => {
                 let def_expr = c.expr.clone();
                 let ident_literal = c.ident.literal();
@@ -140,25 +153,35 @@ impl Module {
     ///
     /// # Arguments
     /// * `impl_stmt` - [`StructImpl`] - The struct implementation to interpret.
-    pub fn interpret_struct_impl(&mut self, impl_stmt: StructImpl) -> Result<()> {
+    pub fn interpret_struct_impl(
+        &mut self,
+        impl_stmt: StructImpl,
+        ctx: &mut Context,
+    ) -> Result<()> {
         let struct_name = impl_stmt.struct_name.literal();
 
         let mut found_struct = self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
-        found_struct.def.impls.push(impl_stmt.clone());
+        let stored_impl = StoredImpl {
+            def: impl_stmt.clone(),
+            defining_module: self.id(),
+        };
+        found_struct.impls.push(stored_impl.clone());
 
         if let Some(existing_struct) = self
             .structs
             .iter_mut()
-            .find(|s| s.def.name.literal() == struct_name)
+            .find(|s| s.name.literal() == struct_name)
         {
             *existing_struct = found_struct;
 
             if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &struct_name) {
                 if let ExportType::Struct(s) = &mut export.1 {
-                    s.impls.push(impl_stmt);
+                    s.impls.push(stored_impl);
                 }
             }
         }
+
+        ctx.upsert_module(self.id().clone(), self.clone());
 
         Ok(())
     }
@@ -167,17 +190,16 @@ impl Module {
     ///
     /// # Arguments
     /// * `impl_stmt` - [`TraitImpl`] - The trait implementation to interpret.
-    pub fn interpret_trait_impl(&mut self, impl_stmt: TraitImpl) -> Result<()> {
+    pub fn interpret_trait_impl(&mut self, impl_stmt: TraitImpl, ctx: &mut Context) -> Result<()> {
         let for_name = impl_stmt.struct_name.literal();
         let trait_name = impl_stmt.trait_name.literal();
 
         let mut struct_def = self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
         let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
         if struct_def
-            .def
             .trait_impls
             .iter()
-            .any(|t| t.trait_name.literal() == trait_name)
+            .any(|t| t.def.trait_name.literal() == trait_name)
         {
             return Err(PulseError::StructAlreadyImplementsTrait(
                 for_name,
@@ -203,21 +225,28 @@ impl Module {
             .into());
         }
 
-        struct_def.def.trait_impls.push(impl_stmt.clone());
+        let stored_trait_impl = StoredTraitImpl {
+            def: impl_stmt.clone(),
+            defining_module: self.id(),
+        };
+
+        struct_def.trait_impls.push(stored_trait_impl.clone());
 
         if let Some(existing_struct) = self
             .structs
             .iter_mut()
-            .find(|s| s.def.name.literal() == for_name)
+            .find(|s| s.name.literal() == for_name)
         {
             *existing_struct = struct_def;
 
             if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &for_name) {
                 if let ExportType::Struct(s) = &mut export.1 {
-                    s.trait_impls.push(impl_stmt);
+                    s.trait_impls.push(stored_trait_impl);
                 }
             }
         }
+
+        ctx.upsert_module(self.id().clone(), self.clone());
 
         Ok(())
     }
@@ -232,7 +261,7 @@ impl Module {
     }
 
     pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<StoredStruct> {
-        let x = self.structs.iter().find(|s| s.def.name.literal() == name);
+        let x = self.structs.iter().find(|s| s.name.literal() == name);
 
         Ok(x.cloned()
             .ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
@@ -392,7 +421,6 @@ impl Module {
             function: function.clone(),
             defining_module: self.id(),
         });
-        ctx.upsert_module(self.id().clone(), self.clone());
 
         if function.public {
             self.exports.push((
@@ -401,6 +429,7 @@ impl Module {
             ));
         }
 
+        ctx.upsert_module(self.id().clone(), self.clone());
         Ok(())
     }
 
@@ -449,10 +478,7 @@ impl Module {
                         });
                     }
                     ExportType::Struct(s) => {
-                        self.structs.push(StoredStruct {
-                            def: s.clone(),
-                            defining_module: loaded_module.id(),
-                        });
+                        self.structs.push(s.clone());
                     }
                     ExportType::Trait(t) => {
                         self.traits.push(t.clone());

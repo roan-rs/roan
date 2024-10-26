@@ -1,24 +1,11 @@
 use { println } from "std::debug"
-pub struct Person {
-    name: string,
-    age: int,
-    occupation: string,
-}
-
-impl Person {
-    pub fn new(name: string, age: int, occupation: string) -> anytype {
-        return Person {
-            name: name,
-            age: age,
-            occupation: occupation,
-        };
-    }
-}
-
-pub const person = Person::new("John Doe", 30, "Software Engineer");
+use { base64_url, Base64Encoder, BASE64_ALPHABET } from "std::base64"
 
 pub fn main() -> int {
-    println("Person: {}", person);
+    let x = Base64Encoder::new(BASE64_ALPHABET, null);
+
+    let url = x.encode("https://roan-lang.org");
+    println("Base64 URL: {}", url);
 
     return 0;
 }

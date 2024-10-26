@@ -6,6 +6,7 @@ pub struct Base64Encoder {
 }
 
 pub const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+pub const BASE64_URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 impl Base64Encoder {
     pub fn new(alphabet: string, padChar: char?) -> anytype {
@@ -62,3 +63,5 @@ impl Base64Encoder {
 
 pub const base64 = Base64Encoder::new(BASE64_ALPHABET, '=');
 pub const base64_no_pad = Base64Encoder::new(BASE64_ALPHABET);
+pub const base64_url = Base64Encoder::new(BASE64_URL_ALPHABET, '=');
+pub const base64_url_no_pad = Base64Encoder::new(BASE64_URL_ALPHABET);

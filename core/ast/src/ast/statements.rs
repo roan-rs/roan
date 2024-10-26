@@ -62,28 +62,6 @@ pub struct Struct {
     pub trait_impls: Vec<TraitImpl>,
 }
 
-impl Struct {
-    fn find_method_internal(&self, name: &str, is_static: bool) -> Option<&Fn> {
-        self.impls
-            .iter()
-            .flat_map(|impl_stmt| impl_stmt.methods.iter())
-            .chain(
-                self.trait_impls
-                    .iter()
-                    .flat_map(|impl_stmt| impl_stmt.methods.iter()),
-            )
-            .find(|method| method.name == name && method.is_static == is_static)
-    }
-
-    pub fn find_static_method(&self, name: &str) -> Option<&Fn> {
-        self.find_method_internal(name, true)
-    }
-
-    pub fn find_method(&self, name: &str) -> Option<&Fn> {
-        self.find_method_internal(name, false)
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructField {
     pub ident: Token,

@@ -1,13 +1,14 @@
 use crate::{config_file::RoanConfig, fs::walk_for_file};
 use anyhow::{anyhow, Context, Result};
 use roan_engine::path::normalize_path;
-use std::{fs::read_to_string, path::PathBuf};
+use std::{fs::read_to_string, path::PathBuf, time::Instant};
 
 #[derive(Debug)]
 pub struct GlobalContext {
     pub verbose: bool,
     pub cwd: PathBuf,
     pub config: Option<RoanConfig>,
+    pub start: Instant,
 }
 
 impl GlobalContext {
@@ -16,6 +17,7 @@ impl GlobalContext {
             verbose: false,
             cwd: std::env::current_dir().context("Failed to get current directory")?,
             config: None,
+            start: Instant::now(),
         })
     }
 

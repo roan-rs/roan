@@ -1,6 +1,7 @@
-use crate::{context::GlobalContext, stds::ensure_lib_dir};
+use crate::{cli::opt, context::GlobalContext, stds::ensure_lib_dir};
 use anyhow::{anyhow, Result};
-use clap::Command;
+use clap::{ArgAction, ArgMatches, Command};
+use colored::Colorize;
 use roan_engine::{
     context::Context, module::Module, path::canonicalize_path, print_diagnostic, source::Source,
     vm::VM,
@@ -8,14 +9,18 @@ use roan_engine::{
 use std::fs::read_to_string;
 
 pub fn run_cmd() -> Command {
-    Command::new("run").about("Run a project")
+    Command::new("run").about("Run a project").arg(
+        opt("time", "Prints the time taken to run the project")
+            .short('t')
+            .action(ArgAction::SetTrue),
+    )
 }
 
-pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
-    ctx.load_config()?;
-    let path = ctx.get_main_file()?;
+pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<()> {
+    global.load_config()?;
+    let path = global.get_main_file()?;
 
-    if ctx.project_type()? == "lib" {
+    if global.project_type()? == "lib" {
         return Err(anyhow!("Cannot run a library project."));
     }
 
@@ -39,9 +44,19 @@ pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
     }
 
     match ctx.eval(&mut module, vm) {
-        Ok(_) => Ok(()),
-        Err(e) => Ok({
+        Ok(_) => {}
+        Err(e) => {
             print_diagnostic(e, Some(content));
-        }),
+            std::process::exit(1);
+        }
     }
+
+    if matches.get_flag("time") {
+        println!(
+            "Finished program in: {}",
+            format!("{:?}", global.start.elapsed()).cyan()
+        );
+    }
+
+    Ok(())
 }
