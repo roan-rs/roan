@@ -10,7 +10,8 @@ use crate::{
             __char_is_ascii_uppercase, __char_is_ascii_whitespace, __char_is_control,
             __char_is_digit, __char_is_digit_in_base, __char_is_lowercase, __char_is_numeric,
             __char_is_uppercase, __char_is_whitespace, __char_len_utf8, __char_to_ascii_lowercase,
-            __char_to_ascii_uppercase, __char_to_lowercase, __char_to_string, __char_to_uppercase,
+            __char_to_ascii_uppercase, __char_to_int, __char_to_lowercase, __char_to_string,
+            __char_to_uppercase,
         },
         string::{
             __string_char_at, __string_char_code_at, __string_chars, __string_contains,
@@ -38,7 +39,7 @@ pub mod methods {
     pub mod vec;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Value {
     Int(i64),
     Float(f64),
@@ -111,7 +112,8 @@ impl Value {
                     "escape_unicode" => __char_escape_unicode(),
                     "from_digit" => __char_from_digit(),
                     "len_utf8" => __char_len_utf8(),
-                    "to_string" => __char_to_string()
+                    "to_string" => __char_to_string(),
+                    "to_int" => __char_to_int()
                 )
             }
             _ => HashMap::new(),
@@ -136,7 +138,7 @@ impl ops::Add for Value {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        match (self, other) {
+        match (self.clone(), other.clone()) {
             (Value::Int(a), Value::Int(b)) => Value::Int(a + b),
             (Value::Float(a), Value::Float(b)) => Value::Float(a + b),
             (Value::Int(a), Value::Float(b)) => Value::Float(a as f64 + b),
@@ -145,7 +147,32 @@ impl ops::Add for Value {
             (Value::Char(a), Value::Char(b)) => Value::String(format!("{}{}", a, b)),
             (Value::Char(a), Value::String(b)) => Value::String(format!("{}{}", a, b)),
             (Value::String(a), Value::Char(b)) => Value::String(format!("{}{}", a, b)),
-            _ => panic!("Cannot add values of different types"),
+            _ => panic!(
+                "Cannot add values of different types: {:?} and {:?}",
+                self, other
+            ),
+        }
+    }
+}
+
+impl Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Int(i) => write!(f, "Int({})", i),
+            Value::Float(fl) => write!(f, "Float({})", fl),
+            Value::Bool(b) => write!(f, "Bool({})", b),
+            Value::String(s) => write!(f, "String({})", s),
+            Value::Vec(v) => write!(f, "Vec({:?})", v),
+            Value::Null => write!(f, "Null"),
+            Value::Void => write!(f, "Void"),
+            Value::Struct(struct_def, fields) => {
+                write!(f, "Struct({} with fields: ", struct_def.def.name.literal())?;
+                for (name, val) in fields {
+                    write!(f, "{}: {:?}, ", name, val)?;
+                }
+                write!(f, ")")
+            }
+            Value::Char(c) => write!(f, "Char({})", c),
         }
     }
 }
@@ -169,8 +196,18 @@ impl Display for Value {
             }
             Value::Null => write!(f, "null"),
             Value::Void => write!(f, "void"),
-            // TODO: improve formatting of structs
-            Value::Struct(..) => write!(f, "struct"),
+            Value::Struct(st, fields) => {
+                let def = st.def.clone();
+
+                write!(f, "{} {{", def.name.literal())?;
+                for (i, (name, val)) in fields.iter().enumerate() {
+                    write!(f, "{}: {}", name, val)?;
+                    if i < fields.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, "}}")
+            }
             Value::Char(c) => write!(f, "{}", c),
         }
     }
@@ -293,7 +330,18 @@ impl Value {
                 Value::Int(i) => v.get(i as usize).cloned().unwrap_or(Value::Null),
                 _ => Value::Null,
             },
-            _ => Value::Null,
+            Value::String(s) => match index {
+                Value::Int(i) => {
+                    if i < 0 {
+                        Value::Null
+                    } else {
+                        s.chars().nth(i as usize).map(Value::Char).unwrap_or(Value::Null)
+                    }
+                }
+                _ => Value::Null,
+            },
+            // TODO: proper error handling
+            _ => panic!("Cannot access index of non-indexable value"),
         }
     }
 }

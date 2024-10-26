@@ -233,6 +233,14 @@ native_function!(
     }
 );
 
+native_function!(
+    fn __char_to_int(c) {
+        let c = as_cast!(c, Char);
+
+        Value::Int(c as i64)
+    }
+);
+
 #[cfg(test)]
 mod tests {
     use super::*;

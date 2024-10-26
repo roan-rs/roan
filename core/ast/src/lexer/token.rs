@@ -89,6 +89,7 @@ impl Display for TokenKind {
             TokenKind::Struct => write!(f, "struct"),
             TokenKind::Trait => write!(f, "trait"),
             TokenKind::Then => write!(f, "then"),
+            TokenKind::Const => write!(f, "const"),
 
             // Operators
             TokenKind::Plus => write!(f, "+"),
@@ -180,6 +181,7 @@ pub enum TokenKind {
     Struct,
     Trait,
     Then,
+    Const,
 
     // Operators
     Plus,              // +

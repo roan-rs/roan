@@ -1,10 +1,24 @@
 use { println } from "std::debug"
-use { Base64Encoder } from "std::base64";
+pub struct Person {
+    name: string,
+    age: int,
+    occupation: string,
+}
+
+impl Person {
+    pub fn new(name: string, age: int, occupation: string) -> anytype {
+        return Person {
+            name: name,
+            age: age,
+            occupation: occupation,
+        };
+    }
+}
+
+pub const person = Person::new("John Doe", 30, "Software Engineer");
 
 pub fn main() -> int {
-    let encoder = Base64Encoder::new("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
-
-    println("{}", encoder.check());
+    println("Person: {}", person);
 
     return 0;
 }
