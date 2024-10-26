@@ -796,15 +796,15 @@ impl Expr {
             value: LiteralType::String(value),
         })
     }
-    
+
     /// Creates a new character literal expression.
-    /// 
+    ///
     /// # Arguments
     /// * `token` - The token representing the character literal.
     /// * `value` - The character value.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new `Expr::Literal` variant with `LiteralType::Char`.
     pub fn new_char(token: Token, value: char) -> Self {
         Expr::Literal(Literal {

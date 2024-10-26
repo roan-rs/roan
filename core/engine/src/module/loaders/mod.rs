@@ -1,9 +1,5 @@
 use crate::{context::Context, module::Module};
-use std::{
-    fmt::Debug,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::{fmt::Debug, path::PathBuf};
 use tracing::debug;
 
 pub mod basic;
@@ -11,12 +7,7 @@ pub mod basic;
 /// Trait that defines the interface for a module loader.
 pub trait ModuleLoader: Debug {
     /// Load a module from a given source.
-    fn load(
-        &mut self,
-        referrer: &Module,
-        spec: &str,
-        ctx: &Context,
-    ) -> anyhow::Result<Module>;
+    fn load(&mut self, referrer: &Module, spec: &str, ctx: &Context) -> anyhow::Result<Module>;
 
     /// Insert a module into the loader's cache if loader handles caching.
     ///
@@ -36,11 +27,11 @@ pub trait ModuleLoader: Debug {
     fn get(&self, name: &str) -> Option<Module> {
         None
     }
-    
+
     /// Returns all the keys in the cache.
     ///
     /// This function returns an empty vector for loaders that do not cache modules.
-    /// 
+    ///
     /// # Returns
     /// A vector of strings representing the keys in the cache.
     fn keys(&self) -> Vec<String> {

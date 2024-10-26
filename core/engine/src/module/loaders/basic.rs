@@ -7,10 +7,7 @@ use crate::{
     path::canonicalize_path,
 };
 use roan_ast::source::Source;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 use tracing::debug;
 
 /// A basic implementation of the `ModuleLoader` trait that caches modules in memory.
@@ -97,9 +94,7 @@ impl ModuleLoader for BasicModuleLoader {
     fn get(&self, name: &str) -> Option<Module> {
         debug!("Retrieving module from cache: {}", name);
 
-       self.modules.get(
-           remove_surrounding_quotes(name)
-       ).cloned()
+        self.modules.get(remove_surrounding_quotes(name)).cloned()
     }
 
     /// Returns all the keys in the cache.

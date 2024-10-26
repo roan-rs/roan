@@ -20,10 +20,7 @@ use roan_error::{
     },
     print_diagnostic,
 };
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 
 impl Module {
     /// Interpret an expression.

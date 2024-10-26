@@ -1,5 +1,5 @@
 use crate::{entries::LogEntry, gui::Application};
-use egui::{RichText, TextStyle, TextWrapMode};
+use egui::{RichText, TextStyle};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct LogsTable {

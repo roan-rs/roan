@@ -55,7 +55,7 @@ impl VM {
     pub fn stack(&self) -> &[Value] {
         &self.stack
     }
-    
+
     pub fn stack_last(&self) -> Option<&Value> {
         self.stack.last()
     }

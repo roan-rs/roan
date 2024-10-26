@@ -25,7 +25,7 @@ use crate::{
     vm::native_fn::NativeFunction,
 };
 use anyhow::Result;
-use roan_ast::{Literal, LiteralType, Struct};
+use roan_ast::{Literal, LiteralType};
 use roan_error::{error::PulseError::TypeMismatch, TextSpan};
 use std::{
     collections::HashMap,
@@ -335,7 +335,10 @@ impl Value {
                     if i < 0 {
                         Value::Null
                     } else {
-                        s.chars().nth(i as usize).map(Value::Char).unwrap_or(Value::Null)
+                        s.chars()
+                            .nth(i as usize)
+                            .map(Value::Char)
+                            .unwrap_or(Value::Null)
                     }
                 }
                 _ => Value::Null,

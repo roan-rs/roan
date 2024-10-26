@@ -4,7 +4,7 @@ mod table;
 
 use crate::gui::open_gui;
 use anyhow::{anyhow, bail, Result};
-use std::{env, error::Error};
+use std::env;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();

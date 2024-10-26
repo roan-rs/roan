@@ -276,7 +276,7 @@ impl Parser {
             _ => {
                 debug!("Unexpected token: {:?}", token);
                 Err(UnexpectedToken(token.kind.to_string(), token.span.clone()).into())
-            },
+            }
         }
     }
 

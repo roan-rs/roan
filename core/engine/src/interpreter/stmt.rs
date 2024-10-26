@@ -6,8 +6,7 @@ use crate::{
 };
 use anyhow::Result;
 use roan_ast::{
-    Block, Fn, GetSpan, If, Let, Loop, Stmt, Struct, StructImpl, Token, TraitDef, TraitImpl, Use,
-    While,
+    Block, Fn, GetSpan, If, Let, Loop, Stmt, StructImpl, Token, TraitDef, TraitImpl, Use, While,
 };
 use roan_error::{
     error::{
@@ -16,7 +15,6 @@ use roan_error::{
     },
     print_diagnostic, TextSpan,
 };
-use std::sync::{Arc, Mutex};
 use tracing::debug;
 
 impl Module {

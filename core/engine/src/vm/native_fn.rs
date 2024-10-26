@@ -9,7 +9,6 @@ use roan_error::{
 use std::{
     fmt,
     fmt::{Display, Formatter},
-    sync::{Arc, Mutex},
 };
 use tracing::debug;
 
