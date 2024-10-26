@@ -9,6 +9,7 @@ use anyhow::Result;
 use bon::bon;
 use roan_error::print_diagnostic;
 use std::{
+    cell::RefCell,
     fmt::Debug,
     rc::Rc,
     sync::{Arc, Mutex},
@@ -52,7 +53,7 @@ use tracing::debug;
 /// ```
 #[derive(Clone, Debug)]
 pub struct Context {
-    pub module_loader: Rc<dyn ModuleLoader>,
+    pub module_loader: Rc<RefCell<dyn ModuleLoader>>,
 }
 
 #[bon]
@@ -61,9 +62,9 @@ impl Context {
     #[builder]
     pub fn new(
         #[builder(
-            default = Rc::new(BasicModuleLoader::new())
+            default = Rc::new(RefCell::new(BasicModuleLoader::new()))
         )]
-        module_loader: Rc<dyn ModuleLoader>,
+        module_loader: Rc<RefCell<dyn ModuleLoader>>,
     ) -> Self {
         Self { module_loader }
     }
@@ -86,19 +87,16 @@ impl Context {
     /// # Returns
     ///
     /// The result of the evaluation.
-    pub fn eval(&self, module: Arc<Mutex<Module>>, vm: &mut VM) -> Result<()> {
+    pub fn eval(&mut self, module: &mut Module, vm: &mut VM) -> Result<()> {
         {
-            let mut main_module_guard = module.lock().unwrap();
-            debug!("Evaluating module: {:?}", main_module_guard.source().path());
-
             match {
-                main_module_guard.parse()?;
-                main_module_guard.interpret(&self, vm)?;
+                module.parse()?;
+                module.interpret(self, vm)?;
                 Ok(())
             } {
                 Ok(_) => {}
                 Err(e) => {
-                    print_diagnostic(e, Some(main_module_guard.source().content()));
+                    print_diagnostic(e, Some(module.source().content()));
                     std::process::exit(1);
                 }
             }
@@ -112,9 +110,27 @@ impl Context {
     /// # Arguments
     /// - `name` - The name of the module.
     /// - `module` - The module to insert.
-    pub fn insert_module(&self, name: String, module: Arc<Mutex<Module>>) {
+    pub fn insert_module(&mut self, name: String, module: Module) {
         debug!("Inserting module: {}", name);
-        self.module_loader.insert(name, module);
+        self.module_loader.borrow_mut().insert(name, module);
+    }
+
+    /// Query a module from the context.
+    ///
+    /// # Arguments
+    /// - `name` - The name of the module to query.
+    pub fn query_module(&self, name: &str) -> Option<Module> {
+        self.module_loader.borrow().get(name)
+    }
+
+    pub fn module_keys(&self) -> Vec<String> {
+        self.module_loader.borrow().keys()
+    }
+    
+    /// Inserts or updates a module in the context.
+    pub fn upsert_module(&mut self, name: String, module: Module) {
+        debug!("Upserting module: {}", name);
+        self.module_loader.borrow_mut().insert(name, module);
     }
 }
 
@@ -125,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_eval() {
-        let ctx = Context::builder().build();
+        let mut ctx = Context::builder().build();
         let src_code = r#"
 fn main() -> int {
     return 3;
@@ -135,10 +151,10 @@ main();
 "#;
 
         let source = Source::from_string(src_code.to_string());
-        let module = Module::new(source);
+        let mut module = Module::new(source);
 
         let mut vm = VM::new();
-        let result = ctx.eval(module, &mut vm);
+        let result = ctx.eval(&mut module, &mut vm);
 
         assert_eq!(vm.pop(), Some(Value::Int(3)));
     }

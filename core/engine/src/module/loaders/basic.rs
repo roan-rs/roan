@@ -16,7 +16,7 @@ use tracing::debug;
 /// A basic implementation of the `ModuleLoader` trait that caches modules in memory.
 #[derive(Debug)]
 pub struct BasicModuleLoader {
-    modules: Arc<Mutex<HashMap<String, Arc<Mutex<Module>>>>>,
+    modules: HashMap<String, Module>,
 }
 
 impl BasicModuleLoader {
@@ -24,19 +24,19 @@ impl BasicModuleLoader {
     pub fn new() -> Self {
         debug!("Creating new BasicModuleLoader");
         Self {
-            modules: Arc::new(Mutex::new(HashMap::new())),
+            modules: HashMap::new(),
         }
     }
 
     /// Creates a new [`BasicModuleLoader`] with the specified cache of modules.
-    pub fn with_modules(cache: Arc<Mutex<HashMap<String, Arc<Mutex<Module>>>>>) -> Self {
+    pub fn with_modules(cache: HashMap<String, Module>) -> Self {
         debug!("Creating new BasicModuleLoader with provided module cache");
         Self { modules: cache }
     }
 
     /// Returns a clone of the module cache.
-    pub fn modules(&self) -> Arc<Mutex<HashMap<String, Arc<Mutex<Module>>>>> {
-        Arc::clone(&self.modules)
+    pub fn modules(&self) -> &HashMap<String, Module> {
+        &self.modules
     }
 }
 
@@ -45,22 +45,14 @@ impl ModuleLoader for BasicModuleLoader {
     ///
     /// If the module is already in the cache, it returns the cached module.
     /// Otherwise, it resolves the path, loads the module, caches it, and returns it.
-    fn load(
-        &self,
-        referrer: &Module,
-        spec: &str,
-        ctx: &Context,
-    ) -> anyhow::Result<Arc<Mutex<Module>>> {
+    fn load(&mut self, referrer: &Module, spec: &str, ctx: &Context) -> anyhow::Result<Module> {
         debug!("Loading module: {}", spec);
 
-        {
-            // Attempt to retrieve the module from the cache.
-            let cache_key = remove_surrounding_quotes(spec).to_string();
-            let cache = self.modules.lock().expect("Failed to lock module cache");
-            if let Some(module) = cache.get(&cache_key) {
-                debug!("Module found in cache: {}", cache_key);
-                return Ok(Arc::clone(module));
-            }
+        // Attempt to retrieve the module from the cache.
+        let cache_key = remove_surrounding_quotes(spec).to_string();
+        if let Some(module) = self.modules.get(&cache_key) {
+            debug!("Module found in cache: {}", cache_key);
+            return Ok(module.clone());
         }
 
         // Use the resolved path as the cache key to prevent duplicates.
@@ -73,14 +65,10 @@ impl ModuleLoader for BasicModuleLoader {
             resolved_path
         );
         let source = Source::from_path(resolved_path)?;
-        let module = Module::new(source); // Now returns Arc<Mutex<Module>>
+        let module = Module::new(source);
 
-        // Insert the newly loaded module into the cache.
-        {
-            let mut cache = self.modules.lock().expect("Failed to lock module cache");
-            cache.insert(cache_key.clone(), Arc::clone(&module));
-            debug!("Module loaded and cached: {}", cache_key);
-        }
+        self.modules.insert(cache_key.clone(), module.clone());
+        debug!("Module loaded and cached: {}", cache_key);
 
         Ok(module)
     }
@@ -91,10 +79,10 @@ impl ModuleLoader for BasicModuleLoader {
     ///
     /// * `name` - The name of the module to insert into the cache.
     /// * `module` - The module to insert into the cache.
-    fn insert(&self, name: String, module: Arc<Mutex<Module>>) {
+    fn insert(&mut self, name: String, module: Module) {
         debug!("Inserting module into cache: {}", name);
-        let mut cache = self.modules.lock().unwrap();
-        cache.insert(name, module);
+
+        self.modules.insert(name, module);
     }
 
     /// Retrieves a module from the cache.
@@ -106,9 +94,21 @@ impl ModuleLoader for BasicModuleLoader {
     /// # Returns
     ///
     /// An `Option` containing the module if found, or `None` otherwise.
-    fn get(&self, name: &str) -> Option<Arc<Mutex<Module>>> {
+    fn get(&self, name: &str) -> Option<Module> {
         debug!("Retrieving module from cache: {}", name);
-        let cache = self.modules.lock().unwrap();
-        cache.get(name).cloned()
+
+       self.modules.get(
+           remove_surrounding_quotes(name)
+       ).cloned()
+    }
+
+    /// Returns all the keys in the cache.
+    ///
+    /// # Returns
+    /// A vector of strings representing the keys in the cache.
+    fn keys(&self) -> Vec<String> {
+        debug!("Retrieving keys from cache");
+
+        self.modules.keys().cloned().collect()
     }
 }

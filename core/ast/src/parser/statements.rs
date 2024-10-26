@@ -43,6 +43,7 @@ impl Parser {
             TokenKind::Fn => Some(self.parse_fn()?),
             TokenKind::Struct => Some(self.parse_struct()?),
             TokenKind::Trait => Some(self.parse_trait()?),
+            TokenKind::Const => Some(self.parse_const()?),
             TokenKind::Impl => {
                 let impl_keyword = self.consume();
                 if self.peek().kind == TokenKind::Identifier {

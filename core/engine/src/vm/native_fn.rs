@@ -148,9 +148,9 @@ impl Module {
     pub fn execute_user_defined_function(
         &mut self,
         function: roan_ast::Fn,
-        defining_module: Arc<Mutex<Module>>,
+        def_module: &mut Module,
         args: Vec<Value>,
-        ctx: &Context,
+        ctx: &mut Context,
         vm: &mut VM,
         call: &CallExpr,
     ) -> Result<()> {
@@ -159,8 +159,6 @@ impl Module {
         self.enter_scope();
 
         {
-            let mut defining_module_guard = defining_module.lock().unwrap();
-
             let exprs = call
                 .args
                 .iter()
@@ -179,7 +177,7 @@ impl Module {
                 if ident == "self" {
                     offset += 1;
 
-                    defining_module_guard.declare_variable(ident, arg.clone());
+                    def_module.declare_variable(ident, arg.clone());
                     continue;
                 }
 
@@ -192,7 +190,7 @@ impl Module {
                         .collect();
 
                     if expr.is_none() {
-                        defining_module_guard.declare_variable(ident, Value::Vec(rest));
+                        def_module.declare_variable(ident, Value::Vec(rest));
                     } else {
                         if let Some(_type) = param.type_annotation.as_ref() {
                             for arg in &rest {
@@ -204,12 +202,12 @@ impl Module {
                             }
                         }
 
-                        defining_module_guard.declare_variable(ident, Value::Vec(rest));
+                        def_module.declare_variable(ident, Value::Vec(rest));
                     }
                 } else {
                     if let Some(_type) = param.type_annotation.as_ref() {
                         if arg.is_null() && _type.is_nullable {
-                            defining_module_guard.declare_variable(ident, Value::Null);
+                            def_module.declare_variable(ident, Value::Null);
                             continue;
                         }
 
@@ -238,8 +236,7 @@ impl Module {
                                             expr.unwrap().clone(),
                                         )?;
                                     }
-                                    defining_module_guard
-                                        .declare_variable(ident.clone(), arg.clone());
+                                    def_module.declare_variable(ident.clone(), arg.clone());
                                 }
                                 _ => {
                                     return Err(TypeMismatch(
@@ -257,10 +254,10 @@ impl Module {
                             if arg.is_null() && !_type.is_nullable && !_type.is_any() {
                                 arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
                             }
-                            defining_module_guard.declare_variable(ident, arg.clone());
+                            def_module.declare_variable(ident, arg.clone());
                         }
                     } else {
-                        defining_module_guard.declare_variable(ident, arg.clone());
+                        def_module.declare_variable(ident, arg.clone());
                     }
                 }
             }
@@ -269,15 +266,12 @@ impl Module {
         let frame = Frame::new(
             function.name.clone(),
             function.fn_token.span.clone(),
-            Frame::path_or_unknown(defining_module.lock().unwrap().path()),
+            Frame::path_or_unknown(def_module.path()),
         );
         vm.push_frame(frame);
 
-        {
-            let mut defining_module_guard = defining_module.lock().unwrap();
-            for stmt in function.body.stmts {
-                defining_module_guard.interpret_stmt(stmt, ctx, vm)?;
-            }
+        for stmt in function.body.stmts {
+            def_module.interpret_stmt(stmt, ctx, vm)?;
         }
 
         vm.pop_frame();
