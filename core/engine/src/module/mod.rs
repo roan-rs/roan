@@ -5,7 +5,9 @@ use crate::{
     vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
-use roan_ast::{source::Source, Ast, Expr, Fn, Lexer, Parser, Struct, Token, TraitDef};
+use roan_ast::{
+    source::Source, Ast, Const, Expr, Fn, Lexer, Parser, Stmt, Struct, Token, TraitDef, Variable,
+};
 use roan_error::{error::PulseError::VariableNotFoundError, print_diagnostic, TextSpan};
 use std::{
     collections::HashMap,
@@ -14,14 +16,42 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tracing::debug;
+use uuid::Uuid;
 
 pub mod loaders;
+
+#[derive(Clone)]
+pub struct StoredStruct {
+    pub(crate) def: Struct,
+    pub(crate) defining_module: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct StoredConst {
+    pub ident: Token,
+    pub value: Value,
+}
+
+impl Debug for StoredStruct {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StoredStruct")
+            .field("def", &self.def)
+            .finish()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StoredStruct {
+    pub(crate) def: Struct,
+    pub(crate) defining_module: Arc<Mutex<Module>>,
+}
 
 #[derive(Debug, Clone)]
 pub enum ExportType {
     Function(Fn),
     Trait(TraitDef),
     Struct(Struct),
+    Const(StoredConst),
 }
 
 /// Represents a function stored in a module.
@@ -30,11 +60,11 @@ pub enum StoredFunction {
     Native(NativeFunction),
     Function {
         function: Fn,
-        defining_module: Arc<Mutex<Module>>,
+        defining_module: String,
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Module {
     pub(crate) source: Source,
     pub(crate) path: Option<PathBuf>,
@@ -43,8 +73,27 @@ pub struct Module {
     pub(crate) functions: Vec<StoredFunction>,
     pub(crate) exports: Vec<(String, ExportType)>,
     pub(crate) scopes: Vec<HashMap<String, Value>>,
-    pub(crate) structs: Vec<Struct>,
+    pub(crate) structs: Vec<StoredStruct>,
     pub(crate) traits: Vec<TraitDef>,
+    pub(crate) consts: Vec<StoredConst>,
+    pub(crate) id: String,
+}
+
+impl Debug for Module {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Module")
+            .field("path", &self.path)
+            .field("source", &self.source)
+            // .field("tokens", &self.tokens)
+            // .field("ast", &self.ast)
+            // .field("functions", &self.functions)
+            .field("exports", &self.exports)
+            .field("scopes", &self.scopes)
+            .field("structs", &self.structs)
+            .field("traits", &self.traits)
+            .field("consts", &self.consts)
+            .finish()
+    }
 }
 
 impl Module {
@@ -55,10 +104,10 @@ impl Module {
     ///
     /// # Returns
     /// An `Arc<Mutex<Self>>` containing the new Module.
-    pub fn new(source: Source) -> Arc<Mutex<Self>> {
+    pub fn new(source: Source) -> Self {
         let path = source.path().as_deref().map(Path::to_path_buf);
 
-        let module = Self {
+        Self {
             source,
             path,
             tokens: vec![],
@@ -68,9 +117,14 @@ impl Module {
             ast: Ast::new(),
             structs: vec![],
             traits: vec![],
-        };
+            consts: vec![],
+            id: Uuid::new_v4().to_string(),
+        }
+    }
 
-        Arc::new(Mutex::new(module))
+    /// Get module id
+    pub fn id(&self) -> String {
+        self.id.clone()
     }
 
     /// Returns the path of the module.
@@ -104,11 +158,12 @@ impl Module {
         debug!("Parsing tokens into AST");
         let ast = parser.parse()?;
         self.ast = ast;
+        self.tokens = vec![];
 
         Ok(())
     }
 
-    pub fn interpret(&mut self, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret(&mut self, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         for stmt in self.ast.stmts.clone() {
             match self.interpret_stmt(stmt, ctx, vm) {
                 Ok(_) => {}
@@ -165,6 +220,11 @@ impl Module {
         }
         debug!("Variable '{}' not found in any scope", name);
         None
+    }
+
+    /// Finds a constant by name.
+    pub fn find_const(&self, name: &str) -> Option<&StoredConst> {
+        self.consts.iter().find(|c| c.ident.literal() == name)
     }
 
     pub fn name(&self) -> String {

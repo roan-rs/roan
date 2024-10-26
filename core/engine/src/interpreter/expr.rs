@@ -8,7 +8,7 @@ use anyhow::Result;
 use log::debug;
 use roan_ast::{
     AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan,
-    UnOpKind, Unary, VecExpr,
+    StructConstructor, ThenElse, UnOpKind, Unary, VecExpr,
 };
 use roan_error::{
     error::{
@@ -36,13 +36,22 @@ impl Module {
     ///
     /// # Returns
     /// The result of the expression.
-    pub fn interpret_expr(&mut self, expr: &Expr, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_expr(&mut self, expr: &Expr, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         let val: Result<Value> = match expr {
             Expr::Variable(v) => {
                 debug!("Interpreting variable: {}", v.ident);
 
-                let variable = self
+                let variable: &Value = self
                     .find_variable(&v.ident)
+                    .or_else(|| {
+                        let constant = self.find_const(&v.ident);
+
+                        if let Some(constant) = constant {
+                            Some(&constant.value)
+                        } else {
+                            None
+                        }
+                    })
                     .ok_or_else(|| VariableNotFoundError(v.ident.clone(), v.token.span.clone()))?;
 
                 Ok(variable.clone())
@@ -72,7 +81,6 @@ impl Module {
             Expr::Null(_) => Ok(Value::Null),
             Expr::Unary(u) => self.interpret_unary(u.clone(), ctx, vm),
             Expr::ThenElse(then_else) => self.interpret_then_else(then_else.clone(), ctx, vm),
-            _ => todo!("missing expr: {:?}", expr),
         };
 
         Ok(vm.push(val?))
@@ -89,12 +97,12 @@ impl Module {
     /// The result of the struct constructor expression.
     pub fn interpret_struct_constructor(
         &mut self,
-        constructor: roan_ast::StructConstructor,
-        ctx: &Context,
+        constructor: StructConstructor,
+        ctx: &mut Context,
         vm: &mut VM,
     ) -> Result<Value> {
         debug!("Interpreting struct constructor");
-        let struct_def = self.get_struct(&constructor.name, constructor.token.span.clone())?;
+        let found = self.get_struct(&constructor.name, constructor.token.span.clone())?;
 
         let mut fields = HashMap::new();
 
@@ -103,7 +111,7 @@ impl Module {
             fields.insert(field_name.clone(), vm.pop().unwrap());
         }
 
-        Ok(Value::Struct(struct_def, fields))
+        Ok(Value::Struct(found, fields))
     }
 
     /// Interpret a unary expression.
@@ -115,7 +123,7 @@ impl Module {
     ///
     /// # Returns
     /// The result of the unary expression.
-    pub fn interpret_unary(&mut self, u: Unary, ctx: &Context, vm: &mut VM) -> Result<Value> {
+    pub fn interpret_unary(&mut self, u: Unary, ctx: &mut Context, vm: &mut VM) -> Result<Value> {
         self.interpret_expr(&u.expr, ctx, vm)?;
         let val = vm.pop().unwrap();
 
@@ -154,7 +162,7 @@ impl Module {
     pub fn interpret_access(
         &mut self,
         access: AccessExpr,
-        ctx: &Context,
+        ctx: &mut Context,
         vm: &mut VM,
     ) -> Result<Value> {
         match access.access.clone() {
@@ -189,7 +197,7 @@ impl Module {
                 match expr {
                     Expr::Call(call) => {
                         let method_name = call.callee.clone();
-                        let method = struct_def.find_static_method(&method_name);
+                        let method = struct_def.def.find_static_method(&method_name);
 
                         if method.is_none() {
                             return Err(UndefinedFunctionError(
@@ -205,14 +213,16 @@ impl Module {
                             .args
                             .iter()
                             .map(|arg| {
-                                self.interpret_expr(arg, ctx, vm).unwrap();
-                                vm.pop().unwrap()
+                                self.interpret_expr(arg, ctx, vm)?;
+                                Ok(vm.pop().unwrap())
                             })
-                            .collect();
+                            .collect::<Result<Vec<_>>>()?;
+
+                        let mut def_module = ctx.query_module(&struct_def.defining_module).unwrap();
 
                         self.execute_user_defined_function(
                             method.clone(),
-                            Arc::new(Mutex::new(self.clone())),
+                            &mut def_module,
                             args,
                             ctx,
                             vm,
@@ -238,8 +248,8 @@ impl Module {
     /// The result of the then-else expression.
     pub fn interpret_then_else(
         &mut self,
-        then_else: roan_ast::ThenElse,
-        ctx: &Context,
+        then_else: ThenElse,
+        ctx: &mut Context,
         vm: &mut VM,
     ) -> Result<Value> {
         debug!("Interpreting then-else");
@@ -269,7 +279,7 @@ impl Module {
     ///
     /// # Returns
     /// The result of the vector expression.
-    pub fn interpret_vec(&mut self, vec: VecExpr, ctx: &Context, vm: &mut VM) -> Result<Value> {
+    pub fn interpret_vec(&mut self, vec: VecExpr, ctx: &mut Context, vm: &mut VM) -> Result<Value> {
         debug!("Interpreting vec: {:?}", vec);
 
         let mut values = vec![];
@@ -304,8 +314,13 @@ impl Module {
     ///
     /// # Returns
     /// The result of the call.
-    pub fn interpret_call(&mut self, call: &CallExpr, ctx: &Context, vm: &mut VM) -> Result<Value> {
-        debug!("Interpreting call: {:?}", call);
+    pub fn interpret_call(
+        &mut self,
+        call: &CallExpr,
+        ctx: &mut Context,
+        vm: &mut VM,
+    ) -> Result<Value> {
+        debug!("Interpreting call");
 
         let mut args = vec![];
         for arg in call.args.iter() {
@@ -342,9 +357,11 @@ impl Module {
                 function,
                 defining_module,
             } => {
+                let mut def_module = ctx.query_module(&defining_module).unwrap();
+
                 match self.execute_user_defined_function(
                     function,
-                    defining_module.clone(),
+                    &mut def_module,
                     args,
                     ctx,
                     vm,
@@ -352,7 +369,7 @@ impl Module {
                 ) {
                     Ok(_) => Ok(vm.pop().unwrap_or(Value::Void)),
                     Err(e) => {
-                        print_diagnostic(e, Some(defining_module.lock().unwrap().source.content()));
+                        print_diagnostic(e, Some(def_module.source.content()));
                         std::process::exit(1);
                     }
                 }
@@ -371,7 +388,7 @@ impl Module {
     pub fn interpret_binary(
         &mut self,
         binary_expr: Binary,
-        ctx: &Context,
+        ctx: &mut Context,
         vm: &mut VM,
     ) -> Result<Value> {
         debug!("Interpreting binary: {:?}", binary_expr);
@@ -399,7 +416,6 @@ impl Module {
             (Value::Bool(a), BinOpKind::And, Value::Bool(b)) => Value::Bool(a && b),
             (Value::Bool(a), BinOpKind::Or, Value::Bool(b)) => Value::Bool(a || b),
 
-            // TODO: add more bitwise operators
             (Value::Int(a), BinOpKind::BitwiseAnd, Value::Int(b)) => Value::Int(a & b),
             (Value::Int(a), BinOpKind::BitwiseOr, Value::Int(b)) => Value::Int(a | b),
             (Value::Int(a), BinOpKind::BitwiseXor, Value::Int(b)) => Value::Int(a ^ b),
@@ -423,7 +439,7 @@ impl Module {
     pub fn interpret_assignment(
         &mut self,
         assign: Assign,
-        ctx: &Context,
+        ctx: &mut Context,
         vm: &mut VM,
     ) -> Result<Value> {
         debug!("Interpreting assign: {:?}", assign);
@@ -523,14 +539,14 @@ impl Module {
         &mut self,
         value: Value,
         expr: &Expr,
-        ctx: &Context,
+        ctx: &mut Context,
         vm: &mut VM,
     ) -> Result<Value> {
         match expr {
             Expr::Call(call) => {
                 let value_clone = value.clone();
                 if let Value::Struct(struct_def, _) = value_clone {
-                    let field = struct_def.find_method(&call.callee);
+                    let field = struct_def.def.find_method(&call.callee);
 
                     if field.is_none() {
                         return Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into());
@@ -543,9 +559,11 @@ impl Module {
                         args.push(vm.pop().expect("Expected value on stack"));
                     }
 
+                    let mut def_module = ctx.query_module(&struct_def.defining_module).unwrap();
+
                     self.execute_user_defined_function(
                         field.clone(),
-                        Arc::new(Mutex::new(self.clone())),
+                        &mut def_module,
                         args,
                         ctx,
                         vm,

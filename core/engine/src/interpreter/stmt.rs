@@ -1,11 +1,14 @@
 use crate::{
     context::Context,
-    module::{ExportType, Module, StoredFunction},
+    module::{ExportType, Module, StoredConst, StoredFunction, StoredStruct},
     value::Value,
     vm::VM,
 };
 use anyhow::Result;
-use roan_ast::{Block, Fn, GetSpan, If, Loop, Stmt, Struct, Token, TraitDef, Use, While};
+use roan_ast::{
+    Block, Fn, GetSpan, If, Let, Loop, Stmt, Struct, StructImpl, Token, TraitDef, TraitImpl, Use,
+    While,
+};
 use roan_error::{
     error::{
         PulseError,
@@ -22,9 +25,9 @@ impl Module {
     /// # Arguments
     /// * `stmt` - [`Stmt`] - The statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         match stmt {
-            Stmt::Fn(f) => self.interpret_function(f)?,
+            Stmt::Fn(f) => self.interpret_function(f, ctx)?,
             Stmt::Use(u) => self.interpret_use(u, ctx, vm)?,
             Stmt::While(while_stmt) => self.interpret_while(while_stmt, ctx, vm)?,
             Stmt::Loop(loop_stmt) => self.interpret_loop(loop_stmt, ctx, vm)?,
@@ -68,56 +71,7 @@ impl Module {
                     },
                 }
             }
-            Stmt::Let(l) => {
-                debug!("Interpreting let: {:?}", l.ident);
-                self.interpret_expr(l.initializer.as_ref(), ctx, vm)?;
-
-                let val = vm.pop().unwrap();
-                let ident = l.ident.literal();
-
-                if let Some(type_annotation) = &l.type_annotation {
-                    let type_name = type_annotation.type_name.literal();
-
-                    if type_annotation.is_array {
-                        match val.clone() {
-                            Value::Vec(v) => {
-                                // TODO: actually display what part of the array is wrong
-                                for item in v.iter() {
-                                    item.check_type(&type_name, l.initializer.span())?
-                                }
-                            }
-                            _ => {
-                                return Err(PulseError::TypeMismatch(
-                                    format!(
-                                        "Expected array of type {} but got {}",
-                                        type_name,
-                                        val.type_name()
-                                    ),
-                                    l.initializer.span(),
-                                )
-                                .into());
-                            }
-                        }
-                    } else {
-                        if val.is_null() && type_annotation.is_nullable {
-                            self.declare_variable(ident.clone(), val);
-                            return Ok(());
-                        }
-
-                        val.check_type(
-                            &type_name,
-                            TextSpan::combine(vec![
-                                l.ident.span,
-                                type_annotation.type_name.span.clone(),
-                                l.initializer.span(),
-                            ])
-                            .unwrap(),
-                        )?
-                    }
-                }
-
-                self.declare_variable(ident.clone(), val);
-            }
+            Stmt::Let(l) => self.interpret_let(l, vm, ctx)?,
             Stmt::Expr(expr) => {
                 debug!("Interpreting expression");
 
@@ -133,7 +87,11 @@ impl Module {
                 }
             }
             Stmt::Struct(struct_stmt) => {
-                self.structs.push(struct_stmt.clone());
+                self.structs.push(StoredStruct {
+                    def: struct_stmt.clone(),
+                    defining_module: self.id(),
+                });
+                ctx.upsert_module(self.id().clone(), self.clone());
 
                 if struct_stmt.public {
                     self.exports.push((
@@ -152,78 +110,113 @@ impl Module {
                     ));
                 }
             }
-            Stmt::StructImpl(impl_stmt) => {
-                let struct_name = impl_stmt.struct_name.literal();
+            Stmt::StructImpl(impl_stmt) => self.interpret_struct_impl(impl_stmt)?,
+            Stmt::TraitImpl(impl_stmt) => self.interpret_trait_impl(impl_stmt)?,
+            Stmt::Const(c) => {
+                let def_expr = c.expr.clone();
+                let ident_literal = c.ident.literal();
+                let is_public = c.public;
 
-                let mut struct_def =
-                    self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
-                struct_def.impls.push(impl_stmt.clone());
+                self.interpret_expr(&def_expr, ctx, vm)?;
 
-                if let Some(existing_struct) = self
-                    .structs
-                    .iter_mut()
-                    .find(|s| s.name.literal() == struct_name)
-                {
-                    *existing_struct = struct_def;
+                let val = vm.pop().expect("Expected value on stack");
 
-                    if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &struct_name) {
-                        if let ExportType::Struct(s) = &mut export.1 {
-                            s.impls.push(impl_stmt);
-                        }
-                    }
+                let stored_val = StoredConst {
+                    ident: c.ident.clone(),
+                    value: val.clone(),
+                };
+
+                self.consts.push(stored_val.clone());
+
+                if is_public {
+                    self.exports
+                        .push((ident_literal, ExportType::Const(stored_val)));
                 }
             }
-            Stmt::TraitImpl(impl_stmt) => {
-                let for_name = impl_stmt.struct_name.literal();
-                let trait_name = impl_stmt.trait_name.literal();
+        }
 
-                let mut struct_def =
-                    self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
-                let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
+        Ok(())
+    }
 
-                if struct_def
-                    .trait_impls
-                    .iter()
-                    .any(|t| t.trait_name.literal() == trait_name)
-                {
-                    return Err(PulseError::StructAlreadyImplementsTrait(
-                        for_name,
-                        trait_name,
-                        impl_stmt.trait_name.span.clone(),
-                    )
-                    .into());
+    /// Interpret a struct implementation.
+    ///
+    /// # Arguments
+    /// * `impl_stmt` - [`StructImpl`] - The struct implementation to interpret.
+    pub fn interpret_struct_impl(&mut self, impl_stmt: StructImpl) -> Result<()> {
+        let struct_name = impl_stmt.struct_name.literal();
+
+        let mut found_struct = self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
+        found_struct.def.impls.push(impl_stmt.clone());
+
+        if let Some(existing_struct) = self
+            .structs
+            .iter_mut()
+            .find(|s| s.def.name.literal() == struct_name)
+        {
+            *existing_struct = found_struct;
+
+            if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &struct_name) {
+                if let ExportType::Struct(s) = &mut export.1 {
+                    s.impls.push(impl_stmt);
                 }
+            }
+        }
 
-                let missing_methods: Vec<String> = trait_def
-                    .methods
-                    .iter()
-                    .filter(|m| !impl_stmt.methods.iter().any(|i| i.name == m.name))
-                    .map(|m| m.name.clone())
-                    .collect();
+        Ok(())
+    }
 
-                if !missing_methods.is_empty() {
-                    return Err(PulseError::TraitMethodNotImplemented(
-                        trait_name,
-                        missing_methods,
-                        impl_stmt.trait_name.span.clone(),
-                    )
-                    .into());
-                }
+    /// Interpret a trait implementation.
+    ///
+    /// # Arguments
+    /// * `impl_stmt` - [`TraitImpl`] - The trait implementation to interpret.
+    pub fn interpret_trait_impl(&mut self, impl_stmt: TraitImpl) -> Result<()> {
+        let for_name = impl_stmt.struct_name.literal();
+        let trait_name = impl_stmt.trait_name.literal();
 
-                struct_def.trait_impls.push(impl_stmt.clone());
+        let mut struct_def = self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
+        let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
+        if struct_def
+            .def
+            .trait_impls
+            .iter()
+            .any(|t| t.trait_name.literal() == trait_name)
+        {
+            return Err(PulseError::StructAlreadyImplementsTrait(
+                for_name,
+                trait_name,
+                impl_stmt.trait_name.span.clone(),
+            )
+            .into());
+        }
 
-                if let Some(existing_struct) = self
-                    .structs
-                    .iter_mut()
-                    .find(|s| s.name.literal() == for_name)
-                {
-                    *existing_struct = struct_def;
+        let missing_methods: Vec<String> = trait_def
+            .methods
+            .iter()
+            .filter(|m| !impl_stmt.methods.iter().any(|i| i.name == m.name))
+            .map(|m| m.name.clone())
+            .collect();
 
-                    if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &for_name) {
-                        if let ExportType::Struct(s) = &mut export.1 {
-                            s.trait_impls.push(impl_stmt);
-                        }
-                    }
+        if !missing_methods.is_empty() {
+            return Err(PulseError::TraitMethodNotImplemented(
+                trait_name,
+                missing_methods,
+                impl_stmt.trait_name.span.clone(),
+            )
+            .into());
+        }
+
+        struct_def.def.trait_impls.push(impl_stmt.clone());
+
+        if let Some(existing_struct) = self
+            .structs
+            .iter_mut()
+            .find(|s| s.def.name.literal() == for_name)
+        {
+            *existing_struct = struct_def;
+
+            if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &for_name) {
+                if let ExportType::Struct(s) = &mut export.1 {
+                    s.trait_impls.push(impl_stmt);
                 }
             }
         }
@@ -240,13 +233,70 @@ impl Module {
             .ok_or_else(|| PulseError::TraitNotFoundError(name.into(), span))?)
     }
 
-    pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<Struct> {
-        Ok(self
-            .structs
-            .iter()
-            .find(|s| s.name.literal() == name)
-            .cloned()
+    pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<StoredStruct> {
+        let x = self.structs.iter().find(|s| s.def.name.literal() == name);
+
+        Ok(x.cloned()
             .ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
+    }
+
+    /// Interpret a let statement.
+    ///
+    /// # Arguments
+    /// * `let_stmt` - [`Let`] - The let statement to interpret.
+    /// * `vm` - [`VM`] - The virtual machine to use for interpretation.
+    /// * `ctx` - [`Context`] - The context in which to interpret the statement.
+    pub fn interpret_let(&mut self, l: Let, vm: &mut VM, ctx: &mut Context) -> Result<()> {
+        debug!("Interpreting let: {:?}", l.ident);
+        self.interpret_expr(l.initializer.as_ref(), ctx, vm)?;
+
+        let val = vm.pop().unwrap();
+        let ident = l.ident.literal();
+
+        if let Some(type_annotation) = &l.type_annotation {
+            let type_name = type_annotation.type_name.literal();
+
+            if type_annotation.is_array {
+                match val.clone() {
+                    Value::Vec(v) => {
+                        // TODO: actually display what part of the array is wrong
+                        for item in v.iter() {
+                            item.check_type(&type_name, l.initializer.span())?
+                        }
+                    }
+                    _ => {
+                        return Err(PulseError::TypeMismatch(
+                            format!(
+                                "Expected array of type {} but got {}",
+                                type_name,
+                                val.type_name()
+                            ),
+                            l.initializer.span(),
+                        )
+                        .into());
+                    }
+                }
+            } else {
+                if val.is_null() && type_annotation.is_nullable {
+                    self.declare_variable(ident.clone(), val);
+                    return Ok(());
+                }
+
+                val.check_type(
+                    &type_name,
+                    TextSpan::combine(vec![
+                        l.ident.span,
+                        type_annotation.type_name.span.clone(),
+                        l.initializer.span(),
+                    ])
+                    .unwrap(),
+                )?
+            }
+        }
+
+        self.declare_variable(ident.clone(), val);
+
+        Ok(())
     }
 
     /// Handle the result of a loop statement.
@@ -274,7 +324,12 @@ impl Module {
     /// # Arguments
     /// * `loop_stmt` - [`Loop`] - The loop to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the loop.
-    pub fn interpret_loop(&mut self, loop_stmt: Loop, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_loop(
+        &mut self,
+        loop_stmt: Loop,
+        ctx: &mut Context,
+        vm: &mut VM,
+    ) -> Result<()> {
         debug!("Interpreting infinite loop");
         loop {
             self.enter_scope();
@@ -290,7 +345,12 @@ impl Module {
     /// # Arguments
     /// * `while_stmt` - [`While`] - The while loop to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the while loop.
-    pub fn interpret_while(&mut self, while_stmt: While, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_while(
+        &mut self,
+        while_stmt: While,
+        ctx: &mut Context,
+        vm: &mut VM,
+    ) -> Result<()> {
         debug!("Interpreting while loop");
 
         loop {
@@ -327,12 +387,14 @@ impl Module {
     /// # Arguments
     /// * `function` - [`Fn`] - The function to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the function.
-    pub fn interpret_function(&mut self, function: Fn) -> Result<()> {
+    pub fn interpret_function(&mut self, function: Fn, ctx: &mut Context) -> Result<()> {
         debug!("Interpreting function: {}", function.name);
+
         self.functions.push(StoredFunction::Function {
             function: function.clone(),
-            defining_module: Arc::clone(&Arc::new(Mutex::new(self.clone()))),
+            defining_module: self.id(),
         });
+        ctx.upsert_module(self.id().clone(), self.clone());
 
         if function.public {
             self.exports.push((
@@ -349,17 +411,12 @@ impl Module {
     /// # Arguments
     /// * `use_stmt` - [`Use`] - The use statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_use(&mut self, u: Use, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_use(&mut self, u: Use, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting use: {}", u.from.literal());
 
-        // Load the module as an Arc<Mutex<Module>>
-        let module = ctx
-            .module_loader
-            .load(&self.clone(), &u.from.literal(), ctx)
+        let mut loaded_module = ctx
+            .load_module(&self.clone(), &u.from.literal())
             .map_err(|_| ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone()))?;
-
-        // Lock the loaded module for parsing and interpretation
-        let mut loaded_module = module.lock().expect("Failed to lock loaded module");
 
         match loaded_module.parse() {
             Ok(_) => {}
@@ -390,14 +447,20 @@ impl Module {
                     ExportType::Function(f) => {
                         self.functions.push(StoredFunction::Function {
                             function: f.clone(),
-                            defining_module: Arc::clone(&module),
+                            defining_module: loaded_module.id(),
                         });
                     }
                     ExportType::Struct(s) => {
-                        self.structs.push(s.clone());
+                        self.structs.push(StoredStruct {
+                            def: s.clone(),
+                            defining_module: loaded_module.id(),
+                        });
                     }
                     ExportType::Trait(t) => {
                         self.traits.push(t.clone());
+                    }
+                    ExportType::Const(c) => {
+                        self.consts.push(c.clone());
                     }
                 }
             } else {
@@ -413,7 +476,7 @@ impl Module {
     /// # Arguments
     /// * `if_stmt` - [`If`] - The if statement to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_if(&mut self, if_stmt: If, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn interpret_if(&mut self, if_stmt: If, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting if statement");
 
         self.interpret_expr(&if_stmt.condition, ctx, vm)?;
@@ -473,7 +536,7 @@ impl Module {
     ///
     /// # Arguments
     /// * `block` - [`Block`] - The block of statements to execute.
-    pub fn execute_block(&mut self, block: Block, ctx: &Context, vm: &mut VM) -> Result<()> {
+    pub fn execute_block(&mut self, block: Block, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting block statement");
 
         self.enter_scope();

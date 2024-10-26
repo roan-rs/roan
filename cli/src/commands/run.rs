@@ -22,10 +22,10 @@ pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
     let (lib_dir, modules) = ensure_lib_dir()?;
     let content = read_to_string(&path)?;
 
-    let ctx = Context::default();
+    let mut ctx = Context::default();
     let source = Source::from_string(content.clone()).with_path(path);
     let vm = &mut VM::new();
-    let module = Module::new(source);
+    let mut module = Module::new(source);
 
     for mod_name in modules {
         let path = lib_dir.join(&mod_name).with_extension("roan");
@@ -35,10 +35,10 @@ pub fn run_command(ctx: &mut GlobalContext) -> Result<()> {
         let module = Module::new(source);
 
         let module_name = format!("std::{}", mod_name);
-        ctx.module_loader.insert(module_name, module);
+        ctx.insert_module(module_name, module);
     }
 
-    match ctx.eval(module, vm) {
+    match ctx.eval(&mut module, vm) {
         Ok(_) => Ok(()),
         Err(e) => Ok({
             print_diagnostic(e, Some(content));

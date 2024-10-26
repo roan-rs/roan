@@ -33,13 +33,17 @@ impl Parser {
                     Some(self.parse_struct()?)
                 } else if self.peek_next().kind == TokenKind::Trait {
                     Some(self.parse_trait()?)
+                } else if self.peek_next().kind == TokenKind::Const {
+                    Some(self.parse_const()?)
                 } else {
+                    // TODO: return error
                     None
                 }
             }
             TokenKind::Fn => Some(self.parse_fn()?),
             TokenKind::Struct => Some(self.parse_struct()?),
             TokenKind::Trait => Some(self.parse_trait()?),
+            TokenKind::Const => Some(self.parse_const()?),
             TokenKind::Impl => {
                 let impl_keyword = self.consume();
                 if self.peek().kind == TokenKind::Identifier {
@@ -191,6 +195,27 @@ impl Parser {
         self.expect(TokenKind::RightBrace)?;
 
         Ok(Stmt::new_trait_def(trait_token, name, methods, public))
+    }
+
+    /// Parses an expression statement.
+    ///
+    /// An expression statement is a statement that consists of an expression followed by a semicolon.
+    ///
+    /// # Returns
+    ///
+    /// - `Stmt`: An expression statement.
+    /// - `Err`: If there is a parsing error.
+    pub fn parse_const(&mut self) -> Result<Stmt> {
+        debug!("Parsing const");
+        let (_, public) = self.parse_pub(TokenKind::Const)?;
+
+        let name = self.expect(TokenKind::Identifier)?;
+
+        self.expect(TokenKind::Equals)?;
+
+        let expr = self.parse_expr()?;
+
+        Ok(Stmt::new_const(Box::new(expr), name, public))
     }
 
     /// Parses a `struct` declaration.
@@ -487,7 +512,7 @@ impl Parser {
             type_name,
             is_array,
             is_nullable: self.is_nullable(),
-            colon
+            colon,
         })
     }
 
@@ -511,7 +536,7 @@ impl Parser {
             type_name,
             is_array,
             is_nullable: self.is_nullable(),
-            arrow
+            arrow,
         }))
     }
 

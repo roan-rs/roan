@@ -1,18 +1,24 @@
-use { String } from "std::string"
 use { println } from "std::debug"
-
-fn print(text: string, ...args: anytype) -> void {
-    println(text, ...args);
+pub struct Person {
+    name: string,
+    age: int,
+    occupation: string,
 }
 
-pub fn main() -> int {
-    let c = '5';
-
-    if c.is_digit() {
-        print("Is digit");
-    } else {
-        print("Is not digit");
+impl Person {
+    pub fn new(name: string, age: int, occupation: string) -> anytype {
+        return Person {
+            name: name,
+            age: age,
+            occupation: occupation,
+        };
     }
+}
+
+pub const person = Person::new("John Doe", 30, "Software Engineer");
+
+pub fn main() -> int {
+    println("Person: {}", person);
 
     return 0;
 }
