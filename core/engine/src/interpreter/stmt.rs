@@ -415,9 +415,9 @@ impl Module {
     pub fn interpret_use(&mut self, u: Use, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         debug!("Interpreting use: {}", u.from.literal());
 
-        let mut loaded_module = ctx.query_module(&u.from.literal()).ok_or_else(|| {
-            ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone())
-        })?;
+        let mut loaded_module = ctx
+            .load_module(&self.clone(), &u.from.literal())
+            .map_err(|_| ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone()))?;
 
         match loaded_module.parse() {
             Ok(_) => {}

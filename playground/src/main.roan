@@ -19,6 +19,7 @@ impl Person {
 pub const person = Person::new("John Doe", 30, "Software Engineer");
 
 pub fn main() -> int {
+    println("Person: {}", person);
 
     return 0;
 }
