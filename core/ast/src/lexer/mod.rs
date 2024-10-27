@@ -1,5 +1,8 @@
 use crate::{
-    lexer::token::{Token, TokenKind},
+    lexer::{
+        identifier::Identifier,
+        token::{Token, TokenKind},
+    },
     source::Source,
 };
 use anyhow::Result;
@@ -8,7 +11,10 @@ use roan_error::{
     position::Position,
     span::TextSpan,
 };
+use crate::lexer::string::StringLiteral;
 
+mod identifier;
+mod string;
 pub mod token;
 
 /// The lexer is responsible for converting the source code into a list of tokens.
@@ -51,15 +57,22 @@ impl Lexer {
     ///
     /// When EOF is reached, the lexer will return the list of tokens.
     pub fn lex(&mut self) -> Result<Vec<Token>> {
-        while let Some(token) = self.next_token()? {
-            if token.kind == TokenKind::Whitespace {
-                continue;
-            }
-            if token.kind == TokenKind::EOF {
+        loop {
+            let token = self.next_token()?;
+
+            if let Some(token) = token {
+                if token.kind == TokenKind::Comment || token.kind == TokenKind::Whitespace {
+                    continue;
+                }
+
+                if token.kind == TokenKind::EOF {
+                    break;
+                }
+
                 self.tokens.push(token);
+            } else {
                 break;
             }
-            self.tokens.push(token);
         }
 
         Ok(self.tokens.clone())
@@ -122,51 +135,15 @@ impl Lexer {
         }
     }
 
-    /// Parse a string literal.
-    pub fn parse_string(&mut self) -> Result<String> {
-        let mut str = String::new();
-
-        self.consume();
-
-        while let Some(c) = self.current() {
-            if c == '"' {
-                self.consume();
-                break;
-            }
-
-            if c == '\\' {
-                self.consume();
-                if let Some(next) = self.current() {
-                    match next {
-                        'n' => str.push('\n'),
-                        'r' => str.push('\r'),
-                        't' => str.push('\t'),
-                        '\\' => str.push('\\'),
-                        '"' => str.push('"'),
-                        _ => {
-                            return Err(InvalidEscapeSequence(
-                                next.to_string(),
-                                TextSpan::new(self.position, self.position, next.to_string()),
-                            )
-                            .into())
-                        }
-                    }
-                    self.consume();
-                }
-            } else {
-                str.push(c);
-                self.consume();
-            }
-        }
-
-        Ok(str)
-    }
-
     /// Get the next token in the source code.
     pub fn next_token(&mut self) -> Result<Option<Token>> {
-        if let Some(c) = self.current() {
-            let start_pos = self.position;
-            let kind = if c.is_whitespace() {
+        let start = self.position;
+        let Some(c) = self.current() else {
+            return Ok(None);
+        };
+
+        let kind = match c {
+            _ if c.is_whitespace() => {
                 while let Some(c) = self.current() {
                     if !c.is_whitespace() {
                         break;
@@ -174,51 +151,23 @@ impl Lexer {
                     self.consume();
                 }
                 TokenKind::Whitespace
-            } else if c == '"' {
-                let string = self.parse_string()?;
-                TokenKind::String(string)
-            } else if c == '\'' {
-                let char = self.parse_char()?;
-                TokenKind::Char(char)
-            } else if c.is_numeric() {
+            }
+
+            _ if c == '"' => StringLiteral::lex_string(self)?,
+            _ if c == '\'' => TokenKind::Char(self.parse_char()?),
+
+            _ if Identifier::is_identifier_start(c) => Identifier::lex_identifier(self)?,
+
+            _ if c.is_ascii_digit() => {
                 let number = self.consume_number();
                 match number.0 {
                     NumberType::Integer => TokenKind::Integer(number.1.parse()?),
                     NumberType::Float => TokenKind::Float(number.1.parse()?),
                 }
-            } else if self.is_identifier_start(c) {
-                let ident = self.consume_identifier();
-                match ident.as_str() {
-                    "fn" => TokenKind::Fn,
-                    "let" => TokenKind::Let,
-                    "if" => TokenKind::If,
-                    "else" => TokenKind::Else,
-                    "return" => TokenKind::Return,
-                    "true" => TokenKind::True,
-                    "false" => TokenKind::False,
-                    "null" => TokenKind::Null,
-                    "while" => TokenKind::While,
-                    "for" => TokenKind::For,
-                    "in" => TokenKind::In,
-                    "break" => TokenKind::Break,
-                    "continue" => TokenKind::Continue,
-                    "use" => TokenKind::Use,
-                    "pub" => TokenKind::Pub,
-                    "from" => TokenKind::From,
-                    "throw" => TokenKind::Throw,
-                    "try" => TokenKind::Try,
-                    "catch" => TokenKind::Catch,
-                    "loop" => TokenKind::Loop,
-                    "struct" => TokenKind::Struct,
-                    "impl" => TokenKind::Impl,
-                    "trait" => TokenKind::Trait,
-                    "then" => TokenKind::Then,
-                    "const" => TokenKind::Const,
+            }
 
-                    _ => TokenKind::Identifier,
-                }
-            } else {
-                let punc = match c {
+            _ => {
+                let kind = match c {
                     '(' => TokenKind::LeftParen,
                     ')' => TokenKind::RightParen,
                     '{' => TokenKind::LeftBrace,
@@ -322,28 +271,26 @@ impl Lexer {
                     '&' => self.lex_potential_double('&', TokenKind::Ampersand, TokenKind::And),
                     '|' => self.lex_potential_double('|', TokenKind::Pipe, TokenKind::Or),
                     _ => {
-                        self.consume();
                         return Err(InvalidToken(
                             c.to_string(),
-                            TextSpan::new(start_pos, self.position, c.to_string()),
+                            TextSpan::new(self.position, self.position, c.to_string()),
                         )
-                        .into());
+                        .into())
                     }
                 };
 
                 self.consume();
-                punc
-            };
 
-            let end_pos = self.position;
-            let literal = self.source.get_between(start_pos.index, end_pos.index);
-            Ok(Some(Token::new(
-                kind,
-                TextSpan::new(start_pos, end_pos, literal),
-            )))
-        } else {
-            Ok(None)
-        }
+                kind
+            }
+        };
+
+        let end_pos = self.position;
+        let literal = self.source.get_between(start.index, end_pos.index);
+        Ok(Some(Token::new(
+            kind,
+            TextSpan::new(start, end_pos, literal),
+        )))
     }
 
     /// Parses a character literal. Throws an error if more than one character is found.
@@ -409,22 +356,6 @@ impl Lexer {
             }
         }
         false
-    }
-
-    /// Consume an identifier.
-    pub fn consume_identifier(&mut self) -> String {
-        let mut ident = String::new();
-
-        while let Some(c) = self.current() {
-            if self.is_identifier_start(c) {
-                ident.push(c);
-            } else {
-                break;
-            }
-            self.consume();
-        }
-
-        ident
     }
 
     /// Consume a number.
