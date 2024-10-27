@@ -1,6 +1,8 @@
 use crate::{
     lexer::{
         identifier::Identifier,
+        number::NumberLiteral,
+        string::StringLiteral,
         token::{Token, TokenKind},
     },
     source::Source,
@@ -11,9 +13,9 @@ use roan_error::{
     position::Position,
     span::TextSpan,
 };
-use crate::lexer::string::StringLiteral;
 
 mod identifier;
+mod number;
 mod string;
 pub mod token;
 
@@ -154,17 +156,10 @@ impl Lexer {
             }
 
             _ if c == '"' => StringLiteral::lex_string(self)?,
+            _ if c.is_ascii_digit() => NumberLiteral::lex_number(self, c)?,
             _ if c == '\'' => TokenKind::Char(self.parse_char()?),
 
             _ if Identifier::is_identifier_start(c) => Identifier::lex_identifier(self)?,
-
-            _ if c.is_ascii_digit() => {
-                let number = self.consume_number();
-                match number.0 {
-                    NumberType::Integer => TokenKind::Integer(number.1.parse()?),
-                    NumberType::Float => TokenKind::Float(number.1.parse()?),
-                }
-            }
 
             _ => {
                 let kind = match c {
@@ -293,6 +288,28 @@ impl Lexer {
         )))
     }
 
+    /// Consume a number.
+    ///
+    /// Can be either an integer or a float.
+    pub fn consume_number(&mut self) -> (NumberType, String) {
+        let mut number = String::new();
+        let mut number_type = NumberType::Integer;
+
+        while let Some(c) = self.current() {
+            if c.is_digit(10) {
+                number.push(c);
+            } else if c == '.' {
+                number.push(c);
+                number_type = NumberType::Float;
+            } else {
+                break;
+            }
+            self.consume();
+        }
+
+        (number_type, number)
+    }
+
     /// Parses a character literal. Throws an error if more than one character is found.
     pub fn parse_char(&mut self) -> Result<char> {
         self.consume();
@@ -357,33 +374,11 @@ impl Lexer {
         }
         false
     }
-
-    /// Consume a number.
-    ///
-    /// Can be either an integer or a float.
-    pub fn consume_number(&mut self) -> (NumberType, String) {
-        let mut number = String::new();
-        let mut number_type = NumberType::Integer;
-
-        while let Some(c) = self.current() {
-            if c.is_digit(10) {
-                number.push(c);
-            } else if c == '.' {
-                number.push(c);
-                number_type = NumberType::Float;
-            } else {
-                break;
-            }
-            self.consume();
-        }
-
-        (number_type, number)
-    }
 }
 
 /// The type of number.
 #[derive(Debug)]
-pub enum NumberType {
+enum NumberType {
     Integer,
     Float,
 }
@@ -451,7 +446,6 @@ mod tests {
             (
                 "// This is a comment\nlet x = 10;",
                 vec![
-                    TokenKind::Comment,
                     TokenKind::Let,
                     TokenKind::Identifier, // x
                     TokenKind::Equals,
@@ -540,6 +534,12 @@ mod tests {
             // Number Edge Cases
             ("007", vec![TokenKind::Integer(7)]),
             ("123.", vec![TokenKind::Float(123.0)]),
+            ("123.45", vec![TokenKind::Float(123.45)]),
+            ("1", vec![TokenKind::Integer(1)]),
+            ("123.45", vec![TokenKind::Float(123.45)]),
+            ("0b1010", vec![TokenKind::Integer(10)]),
+            ("0o755", vec![TokenKind::Integer(493)]),
+            ("0xdeadbeef", vec![TokenKind::Integer(0xdeadbeef)]),
             // Complex Expressions
             (
                 "fn add(a, b) -> a + b;",

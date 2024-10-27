@@ -1,11 +1,10 @@
 use { println } from "std::debug"
-use { base64_url, Base64Encoder, BASE64_ALPHABET } from "std::base64"
 
 pub fn main() -> int {
-    let x = Base64Encoder::new(BASE64_ALPHABET, null);
+    let hex = 0xDEADBEEF;
+    let bin = 0b11011110101011011011111011101111;
 
-    let url = x.encode("https://roan-lang.org");
-    println("Base64 URL: {}", url);
+    println("sum: {}", hex + bin);
 
     return 0;
 }
