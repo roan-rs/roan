@@ -1,15 +1,11 @@
 use crate::{
     context::Context,
-    module::{
-        ExportType, Module, StoredConst, StoredFunction, StoredImpl, StoredStruct, StoredTraitImpl,
-    },
+    module::{ExportType, Module, StoredConst, StoredFunction},
     value::Value,
     vm::VM,
 };
 use anyhow::Result;
-use roan_ast::{
-    Block, Fn, GetSpan, If, Let, Loop, Stmt, StructImpl, Token, TraitDef, TraitImpl, Use, While,
-};
+use roan_ast::{Block, Fn, GetSpan, Let, Loop, Stmt, Token, Use, While};
 use roan_error::{
     error::{
         PulseError,

@@ -25,14 +25,14 @@ use crate::{
     vm::native_fn::NativeFunction,
 };
 use anyhow::Result;
+use indexmap::IndexMap;
 use roan_ast::{Literal, LiteralType};
 use roan_error::{error::PulseError::TypeMismatch, TextSpan};
 use std::{
     collections::HashMap,
-    fmt::{write, Debug, Display},
+    fmt::{Debug, Display},
     ops,
 };
-use indexmap::IndexMap;
 
 pub mod methods {
     pub mod char;

@@ -1,5 +1,5 @@
 use crate::context::GlobalContext;
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{Ok, Result};
 use cli::cli;
 use commands::run::run_command;
 use logger::setup_logger;

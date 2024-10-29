@@ -1,4 +1,4 @@
-use crate::{Lexer, Token, TokenKind};
+use crate::{Lexer, TokenKind};
 use anyhow::Result;
 
 #[derive(Debug, Clone, PartialEq)]

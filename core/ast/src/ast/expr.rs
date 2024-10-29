@@ -1,10 +1,7 @@
 use crate::{statements::Stmt, GetSpan, Token, TokenKind};
 use indexmap::IndexMap;
 use roan_error::TextSpan;
-use std::{
-    collections::HashMap,
-    fmt::{Display, Formatter},
-};
+use std::fmt::{Display, Formatter};
 
 /// Represents a collection of expressions as a vector.
 /// Used to handle lists of expressions, such as arrays or argument lists.

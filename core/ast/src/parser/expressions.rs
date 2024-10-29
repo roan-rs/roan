@@ -4,7 +4,6 @@ use crate::{
 };
 use indexmap::IndexMap;
 use roan_error::error::PulseError::{ExpectedToken, UnexpectedToken};
-use std::collections::HashMap;
 use tracing::debug;
 
 impl Parser {

@@ -1,24 +1,15 @@
-use crate::{
-    context::Context,
-    module::{Module, StoredFunction},
-    value::Value,
-    vm::VM,
-};
+use crate::{context::Context, module::Module, value::Value, vm::VM};
 use anyhow::Result;
 use indexmap::IndexMap;
 use log::debug;
-use roan_ast::{AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, Expr::Literal, GetSpan, LiteralType, Spread, StructConstructor, ThenElse, UnOpKind, Unary, VecExpr};
-use roan_error::{
-    error::{
-        PulseError,
-        PulseError::{
-            InvalidSpread, PropertyNotFoundError, StaticContext, StaticMemberAccess,
-            StaticMemberAssignment, UndefinedFunctionError, VariableNotFoundError,
-        },
-    },
-    print_diagnostic,
+use roan_ast::{
+    AccessKind, Assign, AssignOperator, BinOpKind, Binary, Expr, GetSpan, LiteralType, UnOpKind,
+    Unary, VecExpr,
 };
-use std::collections::HashMap;
+use roan_error::error::{
+    PulseError,
+    PulseError::{InvalidSpread, StaticMemberAssignment, VariableNotFoundError},
+};
 
 impl Module {
     /// Interpret an expression.

@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::Result;
 use roan_ast::{
-    source::Source, Ast, Expr, Fn, Lexer, Parser, Struct, StructField, StructImpl, Token, TraitDef,
+    source::Source, Ast, Expr, Fn, Lexer, Parser, StructField, StructImpl, Token, TraitDef,
     TraitImpl,
 };
 use roan_error::{error::PulseError::VariableNotFoundError, print_diagnostic, TextSpan};

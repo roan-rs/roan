@@ -1,14 +1,14 @@
-use std::collections::HashMap;
 use crate::{
     context::Context,
     module::{ExportType, Module, StoredImpl, StoredStruct, StoredTraitImpl},
+    value::Value,
+    vm::VM,
 };
 use anyhow::Result;
 use log::debug;
 use roan_ast::{Struct, StructConstructor, StructImpl, TraitDef, TraitImpl};
 use roan_error::{error::PulseError, TextSpan};
-use crate::value::Value;
-use crate::vm::VM;
+use std::collections::HashMap;
 
 impl Module {
     /// Interpret a struct implementation.
@@ -159,16 +159,16 @@ impl Module {
         }
 
         ctx.upsert_module(self.id().clone(), self.clone());
-    
+
         Ok(())
     }
-    
+
     /// Interpret trait definition.
-    /// 
+    ///
     /// # Arguments
     /// * `trait_def` - [`TraitDef`] - The trait definition to interpret.
     /// * `ctx` - [`Context`] - The context in which to interpret the trait definition.
-    /// 
+    ///
     /// # Returns
     /// The result of interpreting the trait definition.
     pub fn interpret_trait(&mut self, trait_stmt: TraitDef, ctx: &mut Context) -> Result<()> {
@@ -182,7 +182,7 @@ impl Module {
         }
 
         ctx.upsert_module(self.id().clone(), self.clone());
-        
+
         Ok(())
     }
 

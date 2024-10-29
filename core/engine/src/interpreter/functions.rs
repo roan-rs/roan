@@ -1,15 +1,17 @@
 use crate::{
     context::Context,
-    module::Module,
+    module::{Module, StoredFunction},
     value::Value,
     vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
 use roan_ast::{CallExpr, Expr, GetSpan};
-use roan_error::{error::PulseError::{MissingParameter, TypeMismatch}, frame::Frame, print_diagnostic, TextSpan};
+use roan_error::{
+    error::PulseError::{InvalidSpread, MissingParameter, TypeMismatch, UndefinedFunctionError},
+    frame::Frame,
+    print_diagnostic, TextSpan,
+};
 use tracing::debug;
-use roan_error::error::PulseError::{InvalidSpread, UndefinedFunctionError};
-use crate::module::StoredFunction;
 
 impl Module {
     /// Executes a native function with the provided arguments.

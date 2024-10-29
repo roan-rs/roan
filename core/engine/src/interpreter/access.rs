@@ -1,7 +1,9 @@
 use crate::{context::Context, module::Module, value::Value, vm::VM};
-use roan_ast::{AccessExpr, AccessKind, Expr, GetSpan};
-use roan_error::error::PulseError::{PropertyNotFoundError, StaticContext, StaticMemberAccess, UndefinedFunctionError};
 use anyhow::Result;
+use roan_ast::{AccessExpr, AccessKind, Expr, GetSpan};
+use roan_error::error::PulseError::{
+    PropertyNotFoundError, StaticContext, StaticMemberAccess, UndefinedFunctionError,
+};
 
 impl Module {
     /// Interpret an access expression.
