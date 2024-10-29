@@ -10,7 +10,9 @@ use roan_error::error::PulseError::{
 };
 use tracing::debug;
 
-static VALID_TYPE_NAMES: [&str; 7] = ["bool", "int", "float", "string", "void", "anytype", "char"];
+static VALID_TYPE_NAMES: [&str; 8] = [
+    "bool", "int", "float", "string", "void", "anytype", "char", "object",
+];
 
 impl Parser {
     /// Parses a statement from the tokens.

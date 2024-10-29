@@ -9,3 +9,4 @@ roan-error = { workspace = true }
 log = { workspace = true }
 colored = { workspace = true }
 tracing = { workspace = true }
+indexmap = { workspace = true }

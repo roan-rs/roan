@@ -2867,6 +2867,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "colored",
+ "indexmap",
  "log",
  "roan-error",
  "tracing",
@@ -2902,6 +2903,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bon",
+ "indexmap",
  "log",
  "roan-ast",
  "roan-error",

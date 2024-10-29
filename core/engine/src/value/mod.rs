@@ -29,9 +29,10 @@ use roan_ast::{Literal, LiteralType};
 use roan_error::{error::PulseError::TypeMismatch, TextSpan};
 use std::{
     collections::HashMap,
-    fmt::{Debug, Display},
+    fmt::{write, Debug, Display},
     ops,
 };
+use indexmap::IndexMap;
 
 pub mod methods {
     pub mod char;
@@ -48,6 +49,7 @@ pub enum Value {
     String(String),
     Vec(Vec<Value>),
     Struct(StoredStruct, HashMap<String, Value>),
+    Object(IndexMap<String, Value>),
     Null,
     Void,
 }
@@ -173,6 +175,9 @@ impl Debug for Value {
                 write!(f, ")")
             }
             Value::Char(c) => write!(f, "Char({})", c),
+            Value::Object(fields) => {
+                write!(f, "{:#?}", fields)
+            }
         }
     }
 }
@@ -209,6 +214,16 @@ impl Display for Value {
                 write!(f, "}}")
             }
             Value::Char(c) => write!(f, "{}", c),
+            Value::Object(fields) => {
+                write!(f, "{{")?;
+                for (i, (name, val)) in fields.iter().enumerate() {
+                    write!(f, "{}: {}", name, val)?;
+                    if i < fields.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, "}}")
+            }
         }
     }
 }
@@ -343,6 +358,10 @@ impl Value {
                 }
                 _ => Value::Null,
             },
+            Value::Object(fields) => match index {
+                Value::String(key) => fields.get(&key).cloned().unwrap_or(Value::Null),
+                _ => Value::Null,
+            },
             // TODO: proper error handling
             _ => panic!("Cannot access index of non-indexable value"),
         }
@@ -430,6 +449,7 @@ impl Value {
             Value::Null => "null".to_string(),
             Value::Void => "void".to_string(),
             Value::Char(_) => "char".to_string(),
+            Value::Object(_) => "object".to_string(),
         }
     }
 }
@@ -446,6 +466,7 @@ impl Value {
             Value::Void => false,
             Value::Struct(_, _) => true,
             Value::Char(_) => true,
+            Value::Object(_) => true,
         }
     }
 }

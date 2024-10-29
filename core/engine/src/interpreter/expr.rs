@@ -7,8 +7,8 @@ use crate::{
 use anyhow::Result;
 use log::debug;
 use roan_ast::{
-    AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, GetSpan,
-    StructConstructor, ThenElse, UnOpKind, Unary, VecExpr,
+    AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr,
+    Expr::Literal, GetSpan, LiteralType, StructConstructor, ThenElse, UnOpKind, Unary, VecExpr,
 };
 use roan_error::{
     error::{
@@ -21,6 +21,7 @@ use roan_error::{
     print_diagnostic,
 };
 use std::collections::HashMap;
+use indexmap::IndexMap;
 
 impl Module {
     /// Interpret an expression.
@@ -78,6 +79,16 @@ impl Module {
             Expr::Null(_) => Ok(Value::Null),
             Expr::Unary(u) => self.interpret_unary(u.clone(), ctx, vm),
             Expr::ThenElse(then_else) => self.interpret_then_else(then_else.clone(), ctx, vm),
+            Expr::Object(obj) => {
+                let mut fields = IndexMap::new();
+
+                for (field_name, expr) in obj.fields.iter() {
+                    self.interpret_expr(expr, ctx, vm)?;
+                    fields.insert(field_name.clone(), vm.pop().unwrap());
+                }
+
+                Ok(Value::Object(fields))
+            }
         };
 
         Ok(vm.push(val?))
@@ -469,11 +480,49 @@ impl Module {
             }
             Expr::Access(access) => match &access.access {
                 AccessKind::Field(field) => {
-                    let base = access.base.clone();
+                    let base = access.base.as_ref().clone();
 
                     self.interpret_expr(right, ctx, vm)?;
                     let new_val = vm.pop().unwrap();
-                    unimplemented!("field access")
+
+                    self.interpret_expr(&base, ctx, vm)?;
+                    let base_val = vm.pop().unwrap();
+
+                    let field_name = {
+                        let field = field.as_ref().clone();
+                        match field {
+                            Expr::Variable(v) => v.ident.clone(),
+                            Expr::Literal(l) => match l.value.clone() {
+                                LiteralType::String(s) => s,
+                                _ => panic!("Invalid field name"),
+                            },
+                            // TODO: error
+                            _ => panic!("Invalid field name"),
+                        }
+                    };
+
+                    match base_val {
+                        Value::Object(mut fields) => {
+                            fields.insert(field_name, new_val.clone());
+
+                            if let Some(var_name) = Self::extract_variable_name(&access.base) {
+                                self.set_variable(&var_name, Value::Object(fields))?;
+                                Ok(new_val)
+                            } else {
+                                Err(PulseError::InvalidAssignment(
+                                    "Unable to determine variable for assignment".into(),
+                                    access.base.span(),
+                                )
+                                .into())
+                            }
+                        }
+                        Value::Struct(_, _) => todo!("Finish field assignment for struct"),
+                        _ => Err(PulseError::TypeMismatch(
+                            "Left side of assignment must be a struct or object".into(),
+                            access.base.span(),
+                        )
+                        .into()),
+                    }
                 }
                 AccessKind::Index(index_expr) => {
                     self.interpret_expr(&access.base, ctx, vm)?;
@@ -589,6 +638,13 @@ impl Module {
                 let name = lit.ident.clone();
                 match value {
                     Value::Struct(_, fields) => {
+                        let field = fields.get(&name).ok_or_else(|| {
+                            PropertyNotFoundError(name.clone(), lit.token.span.clone())
+                        })?;
+
+                        Ok(field.clone())
+                    }
+                    Value::Object(fields) => {
                         let field = fields.get(&name).ok_or_else(|| {
                             PropertyNotFoundError(name.clone(), lit.token.span.clone())
                         })?;

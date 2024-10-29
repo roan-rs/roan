@@ -28,3 +28,4 @@ tar = "0.4.42"
 toml = "0.8.19"
 serde = "1.0.210"
 uuid = { version = "1.11.0", features = ["v4"] }
+indexmap = "2.6.0"

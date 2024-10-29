@@ -1,6 +1,10 @@
 use crate::{statements::Stmt, GetSpan, Token, TokenKind};
+use indexmap::IndexMap;
 use roan_error::TextSpan;
-use std::fmt::{Display, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Formatter},
+};
 
 /// Represents a collection of expressions as a vector.
 /// Used to handle lists of expressions, such as arrays or argument lists.
@@ -401,6 +405,19 @@ pub enum Expr {
     StructConstructor(StructConstructor),
     /// Then-else expression. (e.g., `if condition then value else other`)
     ThenElse(ThenElse),
+    /// Object expression.
+    Object(ObjectExpr),
+}
+
+/// Represents an object expression in the AST.
+///
+/// An object expression is a collection of key-value pairs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ObjectExpr {
+    /// The key-value pairs in the object.
+    pub fields: IndexMap<String, Expr>,
+    /// The token representing opening and closing braces.
+    pub braces: (Token, Token),
 }
 
 /// Represents a then-else expression in the AST.
@@ -519,6 +536,9 @@ impl GetSpan for Expr {
             Expr::Null(t) => t.span.clone(),
             Expr::StructConstructor(s) => s.token.span.clone(),
             Expr::ThenElse(t) => t.span(),
+            Expr::Object(o) => {
+                TextSpan::combine(vec![o.braces.0.span.clone(), o.braces.1.span.clone()]).unwrap()
+            }
         }
     }
 }
@@ -875,5 +895,18 @@ impl Expr {
             access: AccessKind::StaticMethod(Box::new(method)),
             token,
         })
+    }
+
+    /// Creates a new object expression.
+    ///
+    /// # Arguments
+    /// * `fields` - The key-value pairs in the object.
+    /// * `braces` - The tokens representing the opening and closing braces.
+    ///
+    /// # Returns
+    ///
+    /// A new `Expr::Object` variant.
+    pub fn new_object(fields: IndexMap<String, Expr>, braces: (Token, Token)) -> Self {
+        Expr::Object(ObjectExpr { fields, braces })
     }
 }

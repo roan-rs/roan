@@ -1,10 +1,19 @@
-use { println } from "std::debug"
+use { println } from "std::debug";
 
 pub fn main() -> int {
-    let hex = 0xDEADBEEF;
-    let bin = 0b11011110101011011011111011101111;
+    let data = { "A": 1, "B": 2, "C": 3 };
 
-    println("sum: {}", hex + bin);
+    println("Data: {}", data.A);
+
+    data.A = 10;
+
+    println("Data: {}", data.A);
+
+    data.D = 4;
+
+    println("Data: {}", data.D);
+
+    println("Data: {}", data);
 
     return 0;
 }

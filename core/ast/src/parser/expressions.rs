@@ -2,7 +2,9 @@ use crate::{
     AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, ParseContext, Parser, Stmt,
     Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
 };
-use roan_error::error::PulseError::UnexpectedToken;
+use indexmap::IndexMap;
+use roan_error::error::PulseError::{ExpectedToken, UnexpectedToken};
+use std::collections::HashMap;
 use tracing::debug;
 
 impl Parser {
@@ -249,8 +251,48 @@ impl Parser {
             }
             TokenKind::TripleDot => Ok(Expr::new_spread(token.clone(), self.parse_expr()?)),
             TokenKind::LeftBracket => self.parse_vector(),
+            TokenKind::LeftBrace => {
+                let mut fields: IndexMap<String, Expr> = IndexMap::new();
+
+                while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
+                    let field_name = {
+                        if matches!(self.peek().kind, TokenKind::String(_)) {
+                            self.consume()
+                        } else {
+                            return Err(ExpectedToken(
+                                "string literal".to_string(),
+                                "Field names in objects must be string literals.".to_string(),
+                                self.peek().span.clone(),
+                            )
+                            .into());
+                        }
+                    };
+
+                    self.expect(TokenKind::Colon)?;
+                    let field_value = self.parse_expr()?;
+
+                    fields.insert(
+                        field_name
+                            .literal()
+                            .strip_prefix("\"")
+                            .unwrap()
+                            .strip_suffix("\"")
+                            .unwrap()
+                            .to_string(),
+                        field_value,
+                    );
+
+                    if self.peek().kind != TokenKind::RightBrace {
+                        self.expect(TokenKind::Comma)?;
+                    }
+                }
+
+                let closing_brace = self.expect(TokenKind::RightBrace)?;
+
+                Ok(Expr::new_object(fields, (token, closing_brace)))
+            }
             TokenKind::Identifier => {
-                tracing::debug!("Parsing identifier: {}", token.literal());
+                debug!("Parsing identifier: {}", token.literal());
 
                 if self.peek().kind == TokenKind::LeftParen {
                     self.parse_call_expr(token)
