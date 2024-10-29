@@ -3,8 +3,8 @@ use anyhow::Result;
 use indexmap::IndexMap;
 use log::debug;
 use roan_ast::{
-    AccessKind, Assign, AssignOperator, BinOpKind, Binary, Expr, GetSpan, LiteralType, UnOpKind,
-    Unary, VecExpr,
+    AccessKind, Assign, AssignOperator, BinOpKind, Binary, Expr, GetSpan, LiteralType, Spread,
+    UnOpKind, Unary, VecExpr,
 };
 use roan_error::error::{
     PulseError,
@@ -129,28 +129,9 @@ impl Module {
     pub fn interpret_vec(&mut self, vec: VecExpr, ctx: &mut Context, vm: &mut VM) -> Result<Value> {
         debug!("Interpreting vec: {:?}", vec);
 
-        let mut values = vec![];
-
-        for expr in vec.exprs.iter() {
-            match expr {
-                Expr::Spread(s) => {
-                    self.interpret_expr(&s.expr, ctx, vm)?;
-                    let spread_val = vm.pop().unwrap();
-
-                    if let Value::Vec(vec) = spread_val {
-                        values.extend(vec);
-                    } else {
-                        return Err(InvalidSpread(s.expr.span()).into());
-                    }
-                }
-                _ => {
-                    self.interpret_expr(expr, ctx, vm)?;
-                    values.push(vm.pop().unwrap());
-                }
-            }
-        }
-
-        Ok(Value::Vec(values))
+        Ok(Value::Vec(
+            self.interpret_possible_spread(vec.exprs, ctx, vm)?,
+        ))
     }
 
     /// Interpret a binary expression.
@@ -202,6 +183,63 @@ impl Module {
         };
 
         Ok(val)
+    }
+
+    /// Interpret a spread expression.
+    ///
+    /// This function requires vec of values to push to.
+    ///
+    /// # Arguments
+    /// * `expr` - [Expr] to interpret.
+    /// * `ctx` - The context in which to interpret the expression.
+    /// * `values` - The vec of values to push to.
+    ///
+    /// # Returns
+    /// The result of the expression.
+    pub fn interpret_spread(
+        &mut self,
+        s: Spread,
+        ctx: &mut Context,
+        vm: &mut VM,
+        values: &mut Vec<Value>,
+    ) -> Result<()> {
+        self.interpret_expr(&s.expr, ctx, vm)?;
+        let spread_val = vm.pop().unwrap();
+
+        if let Value::Vec(vec) = spread_val {
+            values.extend(vec);
+        } else {
+            return Err(InvalidSpread(s.expr.span()).into());
+        }
+
+        Ok(())
+    }
+
+    /// Helper function to interpret possible spread expressions.
+    ///
+    /// # Arguments
+    /// * `exprs` - The expressions to interpret.
+    /// * `ctx` - The context in which to interpret the expressions.
+    /// * `vm` - The virtual machine to use.
+    pub fn interpret_possible_spread(
+        &mut self,
+        exprs: Vec<Expr>,
+        ctx: &mut Context,
+        vm: &mut VM,
+    ) -> Result<Vec<Value>> {
+        let mut values = vec![];
+
+        for expr in exprs.iter() {
+            match expr {
+                Expr::Spread(s) => self.interpret_spread(s.clone(), ctx, vm, &mut values)?,
+                _ => {
+                    self.interpret_expr(expr, ctx, vm)?;
+                    values.push(vm.pop().unwrap());
+                }
+            }
+        }
+
+        Ok(values)
     }
 
     /// Interpret an assignment expression.

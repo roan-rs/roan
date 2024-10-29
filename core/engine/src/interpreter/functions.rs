@@ -179,25 +179,7 @@ impl Module {
     ) -> Result<Value> {
         log::debug!("Interpreting call");
 
-        let mut args = vec![];
-        for arg in call.args.iter() {
-            match arg {
-                Expr::Spread(s) => {
-                    self.interpret_expr(&s.expr, ctx, vm)?;
-                    let spread_val = vm.pop().unwrap();
-
-                    if let Value::Vec(vec) = spread_val {
-                        args.extend(vec);
-                    } else {
-                        return Err(InvalidSpread(s.expr.span()).into());
-                    }
-                }
-                _ => {
-                    self.interpret_expr(arg, ctx, vm)?;
-                    args.push(vm.pop().unwrap());
-                }
-            }
-        }
+        let args = self.interpret_possible_spread(call.args.clone(), ctx, vm)?;
 
         let stored_function = self
             .find_function(&call.callee)
