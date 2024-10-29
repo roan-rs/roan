@@ -26,6 +26,6 @@ vit_logger = "0.1.6"
 anstyle = "1.0.9"
 tar = "0.4.42"
 toml = "0.8.19"
-serde = "1.0.210"
+serde = "1.0.214"
 uuid = { version = "1.11.0", features = ["v4"] }
 indexmap = "2.6.0"
