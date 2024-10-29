@@ -41,42 +41,10 @@ impl Module {
                 debug!("Interpreting continue statement");
                 return Err(PulseError::LoopContinue(token.span).into());
             }
-            Stmt::Throw(throw) => {
-                debug!("Interpreting throw");
-
-                self.interpret_expr(&throw.value, ctx, vm)?;
-                let val = vm.pop().unwrap();
-
-                return Err(PulseError::Throw(val.to_string(), Vec::from(vm.frames())).into());
-            }
-            Stmt::Try(try_stmt) => {
-                debug!("Interpreting try");
-
-                let try_result = self.execute_block(try_stmt.try_block.clone(), ctx, vm);
-
-                match try_result {
-                    Ok(_) => return Ok(()),
-                    Err(e) => match e.downcast_ref::<PulseError>() {
-                        Some(PulseError::Throw(msg, _)) => {
-                            self.enter_scope();
-
-                            let var_name = try_stmt.error_ident.literal();
-                            self.declare_variable(var_name, Value::String(msg.clone()));
-                            let result = self.execute_block(try_stmt.catch_block, ctx, vm);
-                            self.exit_scope();
-
-                            result?
-                        }
-                        _ => return Err(e),
-                    },
-                }
-            }
+            Stmt::Throw(throw) => self.interpret_throw(throw, ctx, vm)?,
+            Stmt::Try(try_stmt) => self.interpret_try(try_stmt, ctx, vm)?,
             Stmt::Let(l) => self.interpret_let(l, vm, ctx)?,
-            Stmt::Expr(expr) => {
-                debug!("Interpreting expression");
-
-                self.interpret_expr(expr.as_ref(), ctx, vm)?;
-            }
+            Stmt::Expr(expr) => self.interpret_expr(expr.as_ref(), ctx, vm)?,
             Stmt::Return(r) => {
                 debug!("Interpreting return: {:?}", r);
 
@@ -86,41 +54,8 @@ impl Module {
                     vm.push(Value::Void);
                 }
             }
-            Stmt::Struct(struct_stmt) => {
-                let def = struct_stmt.clone();
-                let stored_struct = StoredStruct {
-                    defining_module: self.id(),
-                    struct_token: def.struct_token,
-                    name: def.name,
-                    fields: def.fields,
-                    public: def.public,
-                    impls: vec![],
-                    trait_impls: vec![],
-                };
-
-                self.structs.push(stored_struct.clone());
-
-                if struct_stmt.public {
-                    self.exports.push((
-                        struct_stmt.name.literal(),
-                        ExportType::Struct(stored_struct),
-                    ));
-                }
-
-                ctx.upsert_module(self.id().clone(), self.clone());
-            }
-            Stmt::TraitDef(trait_stmt) => {
-                self.traits.push(trait_stmt.clone());
-
-                if trait_stmt.public {
-                    self.exports.push((
-                        trait_stmt.name.literal(),
-                        ExportType::Trait(trait_stmt.clone()),
-                    ));
-                }
-
-                ctx.upsert_module(self.id().clone(), self.clone());
-            }
+            Stmt::Struct(struct_stmt) => self.interpret_struct(struct_stmt, ctx)?,
+            Stmt::TraitDef(trait_stmt) => self.interpret_trait(trait_stmt, ctx)?,
             Stmt::StructImpl(impl_stmt) => self.interpret_struct_impl(impl_stmt, ctx)?,
             Stmt::TraitImpl(impl_stmt) => self.interpret_trait_impl(impl_stmt, ctx)?,
             Stmt::Const(c) => {
@@ -147,124 +82,6 @@ impl Module {
         }
 
         Ok(())
-    }
-
-    /// Interpret a struct implementation.
-    ///
-    /// # Arguments
-    /// * `impl_stmt` - [`StructImpl`] - The struct implementation to interpret.
-    pub fn interpret_struct_impl(
-        &mut self,
-        impl_stmt: StructImpl,
-        ctx: &mut Context,
-    ) -> Result<()> {
-        let struct_name = impl_stmt.struct_name.literal();
-
-        let mut found_struct = self.get_struct(&struct_name, impl_stmt.struct_name.span.clone())?;
-        let stored_impl = StoredImpl {
-            def: impl_stmt.clone(),
-            defining_module: self.id(),
-        };
-        found_struct.impls.push(stored_impl.clone());
-
-        if let Some(existing_struct) = self
-            .structs
-            .iter_mut()
-            .find(|s| s.name.literal() == struct_name)
-        {
-            *existing_struct = found_struct;
-
-            if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &struct_name) {
-                if let ExportType::Struct(s) = &mut export.1 {
-                    s.impls.push(stored_impl);
-                }
-            }
-        }
-
-        ctx.upsert_module(self.id().clone(), self.clone());
-
-        Ok(())
-    }
-
-    /// Interpret a trait implementation.
-    ///
-    /// # Arguments
-    /// * `impl_stmt` - [`TraitImpl`] - The trait implementation to interpret.
-    pub fn interpret_trait_impl(&mut self, impl_stmt: TraitImpl, ctx: &mut Context) -> Result<()> {
-        let for_name = impl_stmt.struct_name.literal();
-        let trait_name = impl_stmt.trait_name.literal();
-
-        let mut struct_def = self.get_struct(&for_name, impl_stmt.struct_name.span.clone())?;
-        let trait_def = self.get_trait(&trait_name, impl_stmt.trait_name.span.clone())?;
-        if struct_def
-            .trait_impls
-            .iter()
-            .any(|t| t.def.trait_name.literal() == trait_name)
-        {
-            return Err(PulseError::StructAlreadyImplementsTrait(
-                for_name,
-                trait_name,
-                impl_stmt.trait_name.span.clone(),
-            )
-            .into());
-        }
-
-        let missing_methods: Vec<String> = trait_def
-            .methods
-            .iter()
-            .filter(|m| !impl_stmt.methods.iter().any(|i| i.name == m.name))
-            .map(|m| m.name.clone())
-            .collect();
-
-        if !missing_methods.is_empty() {
-            return Err(PulseError::TraitMethodNotImplemented(
-                trait_name,
-                missing_methods,
-                impl_stmt.trait_name.span.clone(),
-            )
-            .into());
-        }
-
-        let stored_trait_impl = StoredTraitImpl {
-            def: impl_stmt.clone(),
-            defining_module: self.id(),
-        };
-
-        struct_def.trait_impls.push(stored_trait_impl.clone());
-
-        if let Some(existing_struct) = self
-            .structs
-            .iter_mut()
-            .find(|s| s.name.literal() == for_name)
-        {
-            *existing_struct = struct_def;
-
-            if let Some(export) = self.exports.iter_mut().find(|(n, _)| n == &for_name) {
-                if let ExportType::Struct(s) = &mut export.1 {
-                    s.trait_impls.push(stored_trait_impl);
-                }
-            }
-        }
-
-        ctx.upsert_module(self.id().clone(), self.clone());
-
-        Ok(())
-    }
-
-    pub fn get_trait(&self, name: &str, span: TextSpan) -> Result<TraitDef> {
-        Ok(self
-            .traits
-            .iter()
-            .find(|t| t.name.literal() == name)
-            .cloned()
-            .ok_or_else(|| PulseError::TraitNotFoundError(name.into(), span))?)
-    }
-
-    pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<StoredStruct> {
-        let x = self.structs.iter().find(|s| s.name.literal() == name);
-
-        Ok(x.cloned()
-            .ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
     }
 
     /// Interpret a let statement.
@@ -489,67 +306,6 @@ impl Module {
                 }
             } else {
                 return Err(ImportError(name, item.span.clone()).into());
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Interpret an if statement.
-    ///
-    /// # Arguments
-    /// * `if_stmt` - [`If`] - The if statement to interpret.
-    /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_if(&mut self, if_stmt: If, ctx: &mut Context, vm: &mut VM) -> Result<()> {
-        debug!("Interpreting if statement");
-
-        self.interpret_expr(&if_stmt.condition, ctx, vm)?;
-        let condition_value = vm.pop().expect("Expected value on stack");
-
-        let condition = match condition_value {
-            Value::Bool(b) => b,
-            Value::Null => false,
-            _ => {
-                return Err(NonBooleanCondition(
-                    "If condition".into(),
-                    TextSpan::combine(vec![if_stmt.if_token.span, if_stmt.condition.span()])
-                        .unwrap(),
-                )
-                .into())
-            }
-        };
-
-        if condition {
-            self.execute_block(if_stmt.then_block, ctx, vm)?;
-        } else {
-            let mut executed = false;
-            for else_if in if_stmt.else_ifs {
-                self.interpret_expr(&else_if.condition, ctx, vm)?;
-                let else_if_condition = vm.pop().expect("Expected value on stack");
-
-                let else_if_result = match else_if_condition {
-                    Value::Bool(b) => b,
-                    Value::Null => false,
-                    _ => {
-                        return Err(NonBooleanCondition(
-                            "Else if condition".into(),
-                            else_if.condition.span(),
-                        )
-                        .into())
-                    }
-                };
-
-                if else_if_result {
-                    self.execute_block(else_if.block, ctx, vm)?;
-                    executed = true;
-                    break;
-                }
-            }
-
-            if !executed {
-                if let Some(else_block) = if_stmt.else_block {
-                    self.execute_block(else_block.block, ctx, vm)?;
-                }
             }
         }
 

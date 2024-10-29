@@ -5,11 +5,9 @@ use crate::{
     vm::VM,
 };
 use anyhow::Result;
+use indexmap::IndexMap;
 use log::debug;
-use roan_ast::{
-    AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr,
-    Expr::Literal, GetSpan, LiteralType, StructConstructor, ThenElse, UnOpKind, Unary, VecExpr,
-};
+use roan_ast::{AccessExpr, AccessKind, Assign, AssignOperator, BinOpKind, Binary, CallExpr, Expr, Expr::Literal, GetSpan, LiteralType, Spread, StructConstructor, ThenElse, UnOpKind, Unary, VecExpr};
 use roan_error::{
     error::{
         PulseError,
@@ -21,7 +19,6 @@ use roan_error::{
     print_diagnostic,
 };
 use std::collections::HashMap;
-use indexmap::IndexMap;
 
 impl Module {
     /// Interpret an expression.
@@ -94,34 +91,6 @@ impl Module {
         Ok(vm.push(val?))
     }
 
-    /// Interpret a struct constructor expression.
-    ///
-    /// # Arguments
-    /// * `constructor` - [StructConstructor] expression to interpret.
-    /// * `ctx` - The context in which to interpret the struct constructor expression.
-    /// * `vm` - The virtual machine to use.
-    ///
-    /// # Returns
-    /// The result of the struct constructor expression.
-    pub fn interpret_struct_constructor(
-        &mut self,
-        constructor: StructConstructor,
-        ctx: &mut Context,
-        vm: &mut VM,
-    ) -> Result<Value> {
-        debug!("Interpreting struct constructor");
-        let found = self.get_struct(&constructor.name, constructor.token.span.clone())?;
-
-        let mut fields = HashMap::new();
-
-        for (field_name, expr) in constructor.fields.iter() {
-            self.interpret_expr(expr, ctx, vm)?;
-            fields.insert(field_name.clone(), vm.pop().unwrap());
-        }
-
-        Ok(Value::Struct(found, fields))
-    }
-
     /// Interpret a unary expression.
     ///
     /// # Arguments
@@ -158,127 +127,6 @@ impl Module {
         Ok(val)
     }
 
-    /// Interpret an access expression.
-    ///
-    /// # Arguments
-    /// * `access` - [Access] expression to interpret.
-    /// * `ctx` - The context in which to interpret the access expression.
-    /// * `vm` - The virtual machine to use.
-    ///
-    /// # Returns
-    /// The result of the access expression.
-    pub fn interpret_access(
-        &mut self,
-        access: AccessExpr,
-        ctx: &mut Context,
-        vm: &mut VM,
-    ) -> Result<Value> {
-        match access.access.clone() {
-            AccessKind::Field(field_expr) => {
-                let base = access.base.clone();
-
-                self.interpret_expr(&base, ctx, vm)?;
-                let base = vm.pop().unwrap();
-
-                Ok(self.access_field(base, &field_expr, ctx, vm)?)
-            }
-            AccessKind::Index(index_expr) => {
-                self.interpret_expr(&index_expr, ctx, vm)?;
-                let index = vm.pop().unwrap();
-
-                self.interpret_expr(&access.base, ctx, vm)?;
-                let base = vm.pop().unwrap();
-
-                Ok(base.access_index(index))
-            }
-            AccessKind::StaticMethod(expr) => {
-                let base = access.base.as_ref().clone();
-
-                let (struct_name, span) = match base {
-                    Expr::Variable(v) => (v.ident.clone(), v.token.span.clone()),
-                    _ => return Err(StaticMemberAccess(access.span()).into()),
-                };
-
-                let struct_def = self.get_struct(&struct_name, span)?;
-
-                let expr = expr.as_ref().clone();
-                match expr {
-                    Expr::Call(call) => {
-                        let method_name = call.callee.clone();
-                        let method = struct_def.find_static_method(&method_name);
-
-                        if method.is_none() {
-                            return Err(UndefinedFunctionError(
-                                method_name,
-                                call.token.span.clone(),
-                            )
-                            .into());
-                        }
-
-                        let method = method.unwrap();
-
-                        let args = call
-                            .args
-                            .iter()
-                            .map(|arg| {
-                                self.interpret_expr(arg, ctx, vm)?;
-                                Ok(vm.pop().unwrap())
-                            })
-                            .collect::<Result<Vec<_>>>()?;
-
-                        let mut def_module = ctx.query_module(&struct_def.defining_module).unwrap();
-
-                        self.execute_user_defined_function(
-                            method.clone(),
-                            &mut def_module,
-                            args,
-                            ctx,
-                            vm,
-                            &call,
-                        )?;
-
-                        Ok(vm.pop().unwrap())
-                    }
-                    _ => return Err(StaticContext(expr.span()).into()),
-                }
-            }
-        }
-    }
-
-    /// Interpret a then-else expression.
-    ///
-    /// # Arguments
-    /// * `then_else` - [ThenElse] expression to interpret.
-    /// * `ctx` - The context in which to interpret the then-else expression.
-    /// * `vm` - The virtual machine to use.
-    ///
-    /// # Returns
-    /// The result of the then-else expression.
-    pub fn interpret_then_else(
-        &mut self,
-        then_else: ThenElse,
-        ctx: &mut Context,
-        vm: &mut VM,
-    ) -> Result<Value> {
-        debug!("Interpreting then-else");
-
-        self.interpret_expr(&then_else.condition, ctx, vm)?;
-        let condition = vm.pop().unwrap();
-
-        let b = match condition {
-            Value::Bool(b) => b,
-            _ => condition.is_truthy(),
-        };
-
-        if b {
-            self.interpret_expr(&then_else.then_expr, ctx, vm)?;
-        } else {
-            self.interpret_expr(&then_else.else_expr, ctx, vm)?;
-        }
-
-        Ok(vm.pop().expect("Expected value on stack"))
-    }
-
     /// Interpret a vector expression.
     ///
     /// # Arguments
@@ -312,77 +160,6 @@ impl Module {
         }
 
         Ok(Value::Vec(values))
-    }
-
-    /// Interpret a call expression.
-    ///
-    /// # Arguments
-    /// * `call` - [CallExpr] to interpret.
-    /// * `ctx` - The context in which to interpret the call.
-    ///
-    /// # Returns
-    /// The result of the call.
-    pub fn interpret_call(
-        &mut self,
-        call: &CallExpr,
-        ctx: &mut Context,
-        vm: &mut VM,
-    ) -> Result<Value> {
-        debug!("Interpreting call");
-
-        let mut args = vec![];
-        for arg in call.args.iter() {
-            match arg {
-                Expr::Spread(s) => {
-                    self.interpret_expr(&s.expr, ctx, vm)?;
-                    let spread_val = vm.pop().unwrap();
-
-                    if let Value::Vec(vec) = spread_val {
-                        args.extend(vec);
-                    } else {
-                        return Err(InvalidSpread(s.expr.span()).into());
-                    }
-                }
-                _ => {
-                    self.interpret_expr(arg, ctx, vm)?;
-                    args.push(vm.pop().unwrap());
-                }
-            }
-        }
-
-        let stored_function = self
-            .find_function(&call.callee)
-            .ok_or_else(|| UndefinedFunctionError(call.callee.clone(), call.token.span.clone()))?
-            .clone();
-
-        match stored_function {
-            StoredFunction::Native(n) => {
-                self.execute_native_function(n, args, vm)?;
-
-                Ok(vm.pop().unwrap())
-            }
-            StoredFunction::Function {
-                function,
-                defining_module,
-            } => {
-                let mut def_module = ctx.query_module(&defining_module).unwrap();
-
-                match self.execute_user_defined_function(
-                    function,
-                    &mut def_module,
-                    args,
-                    ctx,
-                    vm,
-                    call,
-                ) {
-                    Ok(_) => Ok(vm.pop().unwrap_or(Value::Void)),
-                    Err(e) => {
-                        print_diagnostic(e, Some(def_module.source.content()));
-                        std::process::exit(1);
-                    }
-                }
-            }
-        }
     }
 
     /// Interpret a binary expression.
@@ -569,98 +346,6 @@ impl Module {
                 AccessKind::StaticMethod(_) => Err(StaticMemberAssignment(access.span()).into()),
             },
             _ => todo!("missing left: {:?}", left),
-        }
-    }
-
-    /// Access a field of a value.
-    ///
-    /// # Arguments
-    /// * `value` - The [Value] to access the field of.
-    /// * `expr` - The [Expr] representing the field to access.
-    /// * `ctx` - The context in which to access the field.
-    ///
-    /// # Returns
-    /// The value of the field.
-    pub fn access_field(
-        &mut self,
-        value: Value,
-        expr: &Expr,
-        ctx: &mut Context,
-        vm: &mut VM,
-    ) -> Result<Value> {
-        match expr {
-            Expr::Call(call) => {
-                let value_clone = value.clone();
-                if let Value::Struct(struct_def, _) = value_clone {
-                    let field = struct_def.find_method(&call.callee);
-
-                    if field.is_none() {
-                        return Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into());
-                    }
-
-                    let field = field.unwrap();
-                    let mut args = vec![value.clone()];
-                    for arg in call.args.iter() {
-                        self.interpret_expr(arg, ctx, vm)?;
-                        args.push(vm.pop().expect("Expected value on stack"));
-                    }
-
-                    let mut def_module = ctx.query_module(&struct_def.defining_module).unwrap();
-
-                    self.execute_user_defined_function(
-                        field.clone(),
-                        &mut def_module,
-                        args,
-                        ctx,
-                        vm,
-                        call,
-                    )?;
-
-                    return Ok(vm.pop().expect("Expected value on stack"));
-                }
-
-                let methods = value.builtin_methods();
-                if let Some(method) = methods.get(&call.callee) {
-                    let mut args = vec![value.clone()];
-                    for arg in call.args.iter() {
-                        self.interpret_expr(arg, ctx, vm)?;
-                        args.push(vm.pop().expect("Expected value on stack"));
-                    }
-
-                    self.execute_native_function(method.clone(), args, vm)?;
-
-                    Ok(vm.pop().expect("Expected value on stack"))
-                } else {
-                    Err(PropertyNotFoundError(call.callee.clone(), expr.span()).into())
-                }
-            }
-            Expr::Variable(lit) => {
-                let name = lit.ident.clone();
-                match value {
-                    Value::Struct(_, fields) => {
-                        let field = fields.get(&name).ok_or_else(|| {
-                            PropertyNotFoundError(name.clone(), lit.token.span.clone())
-                        })?;
-
-                        Ok(field.clone())
-                    }
-                    Value::Object(fields) => {
-                        let field = fields.get(&name).ok_or_else(|| {
-                            PropertyNotFoundError(name.clone(), lit.token.span.clone())
-                        })?;
-
-                        Ok(field.clone())
-                    }
-                    _ => Err(PropertyNotFoundError(name.clone(), lit.token.span.clone()).into()),
-                }
-            }
-            _ => {
-                self.interpret_expr(expr, ctx, vm)?;
-
-                let field = vm.pop().expect("Expected value on stack");
-
-                Ok(field)
-            }
         }
     }
 }
