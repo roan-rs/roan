@@ -6,7 +6,8 @@ use roan_engine::{
     context::Context, module::Module, path::canonicalize_path, print_diagnostic, source::Source,
     vm::VM,
 };
-use std::fs::read_to_string;
+use std::fs::{create_dir, read_to_string};
+use tracing::debug;
 
 pub fn run_cmd() -> Command {
     Command::new("run").about("Run a project").arg(
@@ -24,24 +25,21 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
         return Err(anyhow!("Cannot run a library project."));
     }
 
-    let (lib_dir, modules) = ensure_lib_dir()?;
+    let build_dir = global.build_dir()?;
+
+    if !build_dir.exists() {
+        create_dir(&build_dir)?;
+        debug!("Created build directory at {:?}", build_dir);
+    }
+
+    ensure_lib_dir(global)?;
+
     let content = read_to_string(&path)?;
 
     let mut ctx = Context::builder().cwd(global.cwd.clone()).build();
     let source = Source::from_string(content.clone()).with_path(path);
     let vm = &mut VM::new();
     let mut module = Module::new(source);
-
-    // for mod_name in modules {
-    //     let path = lib_dir.join(&mod_name).with_extension("roan");
-    //
-    //     let content = read_to_string(&path)?;
-    //     let source = Source::from_string(content.clone()).with_path(canonicalize_path(path)?);
-    //     let module = Module::new(source);
-    //
-    //     let module_name = format!("std::{}", mod_name);
-    //     ctx.insert_module(module_name, module);
-    // }
 
     match ctx.eval(&mut module, vm) {
         Ok(_) => {}

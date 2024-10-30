@@ -1,20 +1,13 @@
+use crate::context::GlobalContext;
 use anyhow::Result;
-use std::{env::current_dir, fs, fs::create_dir, io::Cursor, path::PathBuf};
+use std::{fs, fs::create_dir, io::Cursor, path::PathBuf};
 use tracing::debug;
 
 const TAR_BYTES: &'static [u8] = include_bytes!("../std.tar");
 
 // Maybe simplify in the future
-pub fn ensure_lib_dir() -> Result<(PathBuf, Vec<String>)> {
-    let build_dir = current_dir()?.join("build");
-
-    if !build_dir.exists() {
-        create_dir(&build_dir)?;
-        debug!("Created build directory at {:?}", build_dir);
-    }
-
-    let mut modules = vec![];
-    let lib_dir = build_dir.join("std");
+pub fn ensure_lib_dir(global: &mut GlobalContext) -> Result<()> {
+    let lib_dir = global.deps_dir()?.join("std");
     let cursor = Cursor::new(TAR_BYTES);
 
     let mut archive = tar::Archive::new(cursor);
@@ -42,11 +35,9 @@ pub fn ensure_lib_dir() -> Result<(PathBuf, Vec<String>)> {
             let mut file = fs::File::create(&target)?;
             std::io::copy(&mut entry, &mut file)?;
         }
-
-        modules.push(module_name);
     }
 
     debug!("Extracted std library to {:?}", lib_dir);
 
-    Ok((lib_dir, modules))
+    Ok(())
 }
