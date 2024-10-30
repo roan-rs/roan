@@ -1,4 +1,7 @@
-use crate::{commands::run::run_cmd, style};
+use crate::{
+    commands::{init::init_cmd, run::run_cmd},
+    style,
+};
 use clap::{builder::Styles, Arg, ArgAction, Command};
 
 pub fn opt(name: &'static str, help: &'static str) -> Arg {
@@ -27,4 +30,5 @@ pub fn cli() -> Command {
                 .global(true),
         )
         .subcommand(run_cmd())
+        .subcommand(init_cmd())
 }
