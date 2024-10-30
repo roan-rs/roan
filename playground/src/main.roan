@@ -1,4 +1,4 @@
-use { println } from "std::debug";
+use { println } from "some_module::utils::io";
 
 pub fn main() -> int {
     let data = { "A": 1, "B": 2, "C": 3 };

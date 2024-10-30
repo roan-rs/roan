@@ -27,21 +27,21 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
     let (lib_dir, modules) = ensure_lib_dir()?;
     let content = read_to_string(&path)?;
 
-    let mut ctx = Context::default();
+    let mut ctx = Context::builder().cwd(global.cwd.clone()).build();
     let source = Source::from_string(content.clone()).with_path(path);
     let vm = &mut VM::new();
     let mut module = Module::new(source);
 
-    for mod_name in modules {
-        let path = lib_dir.join(&mod_name).with_extension("roan");
-
-        let content = read_to_string(&path)?;
-        let source = Source::from_string(content.clone()).with_path(canonicalize_path(path)?);
-        let module = Module::new(source);
-
-        let module_name = format!("std::{}", mod_name);
-        ctx.insert_module(module_name, module);
-    }
+    // for mod_name in modules {
+    //     let path = lib_dir.join(&mod_name).with_extension("roan");
+    //
+    //     let content = read_to_string(&path)?;
+    //     let source = Source::from_string(content.clone()).with_path(canonicalize_path(path)?);
+    //     let module = Module::new(source);
+    //
+    //     let module_name = format!("std::{}", mod_name);
+    //     ctx.insert_module(module_name, module);
+    // }
 
     match ctx.eval(&mut module, vm) {
         Ok(_) => {}

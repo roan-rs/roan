@@ -88,4 +88,12 @@ impl GlobalContext {
     pub fn project_type(&self) -> Result<&str> {
         Ok(self.get_config()?.project.r#type.as_ref().unwrap())
     }
+    
+    pub fn build_dir(&self) -> Result<PathBuf> {
+        Ok(self.cwd.join("build"))
+    }
+    
+    pub fn deps_dir(&self) -> Result<PathBuf> {
+        Ok(self.build_dir()?.join("deps"))
+    }
 }

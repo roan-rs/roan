@@ -16,9 +16,7 @@ native_function!(
     fn __vec_next(vec) {
         let mut vec = as_cast!(vec, Vec);
 
-        vec = vec.into_iter().skip(1).collect();
-
-        Value::Vec(vec)
+        Value::Vec(vec.into_iter().skip(1).collect())
     }
 );
 

@@ -14,6 +14,7 @@ use roan_error::{
     print_diagnostic, TextSpan,
 };
 use tracing::debug;
+use crate::module::loaders::remove_surrounding_quotes;
 
 impl Module {
     /// Interpret statement from the module.
@@ -255,7 +256,7 @@ impl Module {
         debug!("Interpreting use: {}", u.from.literal());
 
         let mut loaded_module = ctx
-            .load_module(&self.clone(), &u.from.literal())
+            .load_module(&self.clone(), remove_surrounding_quotes(&u.from.literal()))
             .map_err(|_| ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone()))?;
 
         match loaded_module.parse() {

@@ -1,7 +1,7 @@
 use crate::{
     context::Context,
     module::{
-        loaders::{remove_surrounding_quotes, ModuleLoader},
+        loaders::{ident::ModuleIdentifier, remove_surrounding_quotes, ModuleLoader},
         Module,
     },
     path::canonicalize_path,
@@ -52,8 +52,21 @@ impl ModuleLoader for BasicModuleLoader {
             return Ok(module.clone());
         }
 
+        // If no module was found in cache we try to parse it as a module identifier.
+        let resolved_path = if let Some(ident) = ModuleIdentifier::parse_module_identifier(spec) {
+            let path = ctx
+                .cwd
+                .join("build")
+                .join("deps")
+                .join(ident.main_name.clone())
+                .join(ident.file_name());
+
+            canonicalize_path(path)?
+        } else {
+            canonicalize_path(self.resolve_referrer(referrer, spec)?)?
+        };
+
         // Use the resolved path as the cache key to prevent duplicates.
-        let resolved_path = canonicalize_path(self.resolve_referrer(referrer, spec)?)?;
         let cache_key = resolved_path.to_string_lossy().to_string();
 
         // Module not in cache; proceed to load.

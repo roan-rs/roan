@@ -9,6 +9,7 @@ use anyhow::Result;
 use bon::bon;
 use roan_error::print_diagnostic;
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::path::PathBuf;
 use tracing::debug;
 
 /// Struct to interact with the runtime.
@@ -49,6 +50,7 @@ use tracing::debug;
 #[derive(Clone, Debug)]
 pub struct Context {
     pub module_loader: Rc<RefCell<dyn ModuleLoader>>,
+    pub cwd: PathBuf
 }
 
 #[bon]
@@ -60,8 +62,10 @@ impl Context {
             default = Rc::new(RefCell::new(BasicModuleLoader::new()))
         )]
         module_loader: Rc<RefCell<dyn ModuleLoader>>,
+        #[builder(default = std::env::current_dir().unwrap())]
+        cwd: PathBuf,
     ) -> Self {
-        Self { module_loader }
+        Self { module_loader, cwd }
     }
 }
 

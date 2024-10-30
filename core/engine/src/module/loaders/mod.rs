@@ -1,8 +1,12 @@
-use crate::{context::Context, module::Module};
+use crate::{
+    context::Context,
+    module::{loaders::ident::ModuleIdentifier, Module},
+};
 use std::{fmt::Debug, path::PathBuf};
 use tracing::debug;
 
 pub mod basic;
+pub mod ident;
 
 /// Trait that defines the interface for a module loader.
 pub trait ModuleLoader: Debug {
