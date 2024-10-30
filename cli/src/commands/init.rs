@@ -1,5 +1,8 @@
-use crate::cli::opt;
+use anstyle::Style;
+use crate::{cli::opt, context::GlobalContext};
+use anyhow::Result;
 use clap::{ArgAction, Command};
+use crate::style::WARN;
 
 pub fn init_cmd() -> Command {
     Command::new("init")
@@ -14,4 +17,9 @@ pub fn init_cmd() -> Command {
                 .short('l')
                 .action(ArgAction::SetTrue),
         )
+}
+
+pub fn init_command(ctx: &mut GlobalContext) -> Result<()> {
+
+    Ok(())
 }

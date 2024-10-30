@@ -29,6 +29,12 @@ pub fn cli() -> Command {
                 .action(ArgAction::SetTrue)
                 .global(true),
         )
+        .arg(
+            opt("no-color", "Disable colored output")
+                .long("no-color")
+                .action(ArgAction::SetTrue)
+                .global(true),
+        )
         .subcommand(run_cmd())
         .subcommand(init_cmd())
 }

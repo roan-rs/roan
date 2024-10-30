@@ -2,7 +2,7 @@ use std::io;
 use tracing::subscriber;
 use tracing_subscriber::{fmt, fmt::time::ChronoLocal, prelude::*};
 
-pub fn setup_logger(verbose: bool) {
+pub fn setup_tracing(verbose: bool) {
     let env = tracing_subscriber::EnvFilter::from_env("ROAN_LOG");
 
     // Set common time format
