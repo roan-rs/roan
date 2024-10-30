@@ -33,13 +33,13 @@ impl ModuleIdentifier {
     ///
     /// A boolean value indicating whether the spec is a module identifier.
     pub fn parse_module_identifier(spec: &str) -> Option<ModuleIdentifier> {
+        if !spec.contains("::") {
+            return None;
+        }
+
         let parts: Vec<&str> = spec.split("::").collect();
-        if parts.len() == 1 {
-            Some(ModuleIdentifier {
-                main_name: parts[0].to_string(),
-                rest: None,
-            })
-        } else if parts.len() >= 2 {
+
+        if parts.len() >= 2 {
             Some(ModuleIdentifier {
                 main_name: parts[0].to_string(),
                 rest: Some(parts[1..].iter().map(|s| s.to_string()).collect()),
