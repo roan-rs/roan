@@ -9,7 +9,7 @@ impl Module {
     /// Interpret an access expression.
     ///
     /// # Arguments
-    /// * `access` - [Access] expression to interpret.
+    /// * `access` - [AccessExpr] expression to interpret.
     /// * `ctx` - The context in which to interpret the access expression.
     /// * `vm` - The virtual machine to use.
     ///

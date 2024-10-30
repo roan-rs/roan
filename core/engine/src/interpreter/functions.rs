@@ -5,9 +5,9 @@ use crate::{
     vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
-use roan_ast::{CallExpr, Expr, GetSpan};
+use roan_ast::{CallExpr, GetSpan};
 use roan_error::{
-    error::PulseError::{InvalidSpread, MissingParameter, TypeMismatch, UndefinedFunctionError},
+    error::PulseError::{MissingParameter, TypeMismatch, UndefinedFunctionError},
     frame::Frame,
     print_diagnostic, TextSpan,
 };

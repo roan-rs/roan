@@ -1038,27 +1038,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dirs"
-version = "5.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
-name = "dirs-sys"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
-dependencies = [
- "libc",
- "option-ext",
- "redox_users",
- "windows-sys 0.48.0",
-]
-
-[[package]]
 name = "dispatch"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2482,12 +2461,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "option-ext"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
-
-[[package]]
 name = "orbclient"
 version = "0.3.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2779,17 +2752,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "redox_users"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
-dependencies = [
- "getrandom",
- "libredox",
- "thiserror",
-]
-
-[[package]]
 name = "regex"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2868,7 +2830,6 @@ dependencies = [
  "anyhow",
  "colored",
  "indexmap",
- "log",
  "roan-error",
  "tracing",
 ]
@@ -2882,19 +2843,14 @@ dependencies = [
  "backtrace",
  "clap",
  "colored",
- "dirs",
- "log",
  "project-root",
  "roan-engine",
  "serde",
  "tar",
- "thiserror",
  "toml",
  "tracing",
  "tracing-appender",
- "tracing-attributes",
  "tracing-subscriber",
- "vit_logger",
 ]
 
 [[package]]
@@ -2908,7 +2864,6 @@ dependencies = [
  "roan-ast",
  "roan-error",
  "tracing",
- "tracing-attributes",
  "uuid",
 ]
 
@@ -2920,7 +2875,6 @@ dependencies = [
  "colored",
  "log",
  "thiserror",
- "tracing",
 ]
 
 [[package]]
@@ -3557,19 +3511,6 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
-
-[[package]]
-name = "vit_logger"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "104802635bd28df07356a1aced9bf7cdeb3e24f4f685cb3546761a408ff53d2b"
-dependencies = [
- "chrono",
- "colored",
- "lazy_static",
- "log",
- "time",
-]
 
 [[package]]
 name = "walkdir"

@@ -41,7 +41,7 @@ pub enum PulseError {
     IndexOutOfBounds(usize, usize, TextSpan),
     #[error("Type mismatch: {0}")]
     TypeMismatch(String, TextSpan),
-    #[error("Invalid assigment {0}")]
+    #[error("Invalid assignment {0}")]
     InvalidAssignment(String, TextSpan),
     #[error("Attempted to access non-existent property: {0}")]
     PropertyNotFoundError(String, TextSpan),

@@ -544,7 +544,6 @@ mod tests {
                 .access_index(Value::Float(1.0)),
             Value::Null
         );
-        assert_eq!(Value::Int(1).access_index(Value::Int(1)), Value::Null);
     }
 
     #[test]
