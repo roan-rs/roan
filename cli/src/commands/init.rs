@@ -30,6 +30,11 @@ pub fn init_cmd() -> Command {
             .short('f')
             .action(ArgAction::SetTrue),
         )
+        .arg(
+            opt("no-git", "Do not initialize git repository")
+                .long("no-git")
+                .action(ArgAction::SetTrue),
+        )
 }
 
 #[derive(Debug)]
@@ -65,12 +70,11 @@ pub fn init_command(ctx: &mut GlobalContext, args: &ArgMatches) -> Result<()> {
 
     let project_dir = ctx.cwd.join(name.clone());
 
-    if force {
-        ctx.shell.warn("Force flag is enabled")?;
-
-        fs::remove_dir_all(project_dir)?;
-    } else {
-        if project_dir.exists() {
+    if project_dir.exists() {
+        if force {
+            ctx.shell.warn("Force flag is enabled")?;
+            fs::remove_dir_all(project_dir)?;
+        } else {
             bail!("Project directory already exists");
         }
     }
@@ -92,7 +96,10 @@ pub fn init_command(ctx: &mut GlobalContext, args: &ArgMatches) -> Result<()> {
 
     std::fs::create_dir(&project_dir)?;
 
-    create_gitignore(ctx, &project_dir)?;
+    if !args.get_flag("no-git") {
+        init_git(ctx, &project_dir)?;
+        create_gitignore(ctx, &project_dir)?;
+    }
 
     Ok(())
 }
@@ -133,6 +140,24 @@ fn create_gitignore(ctx: &mut GlobalContext, project_dir: &std::path::Path) -> R
 
     ctx.shell.status("Creating", ".gitignore")?;
     std::fs::write(&gitignore, GITIGNORE)?;
+
+    Ok(())
+}
+
+fn init_git(ctx: &mut GlobalContext, project_dir: &std::path::Path) -> Result<()> {
+    ctx.shell.status("Initializing", "git repository")?;
+
+    let output = std::process::Command::new("git")
+        .arg("init")
+        .current_dir(project_dir)
+        .output()?;
+
+    if !output.status.success() {
+        ctx.shell.error(format!(
+            "Failed to initialize git repository: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ))?;
+    }
 
     Ok(())
 }

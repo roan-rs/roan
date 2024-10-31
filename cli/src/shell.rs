@@ -54,7 +54,7 @@ impl Shell {
 
         let mut buffer = Vec::new();
         if justified {
-            write!(&mut buffer, "{style}{status:>12}{style:#}")?;
+            write!(&mut buffer, "{style}{status:>15}{style:#}")?;
         } else {
             write!(&mut buffer, "{style}{status}{style:#}{dim}:{dim:#}")?;
         }
