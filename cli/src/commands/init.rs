@@ -1,12 +1,17 @@
+use crate::{
+    cli::{opt, positional},
+    context::GlobalContext,
+    style::WARN,
+};
 use anstyle::Style;
-use crate::{cli::opt, context::GlobalContext};
-use anyhow::Result;
-use clap::{ArgAction, Command};
-use crate::style::WARN;
+use anyhow::{anyhow, bail, Result};
+use clap::{ArgAction, ArgMatches, Command};
+use std::{fmt::Display, fs};
 
 pub fn init_cmd() -> Command {
     Command::new("init")
         .about("Initialize a new project")
+        .arg(positional("name", "The name of the project"))
         .arg(
             opt("bin", "Create a binary project")
                 .short('b')
@@ -17,9 +22,117 @@ pub fn init_cmd() -> Command {
                 .short('l')
                 .action(ArgAction::SetTrue),
         )
+        .arg(
+            opt(
+                "force",
+                "Force initialization even if the directory is not empty",
+            )
+            .short('f')
+            .action(ArgAction::SetTrue),
+        )
 }
 
-pub fn init_command(ctx: &mut GlobalContext) -> Result<()> {
+#[derive(Debug)]
+pub enum ProjectType {
+    Bin,
+    Lib,
+}
+
+impl Display for ProjectType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProjectType::Bin => write!(f, "binary"),
+            ProjectType::Lib => write!(f, "library"),
+        }
+    }
+}
+
+pub fn init_command(ctx: &mut GlobalContext, args: &ArgMatches) -> Result<()> {
+    let name = args.get_one::<String>("name");
+
+    if name.is_none() {
+        bail!("Project name is required");
+    }
+    let name = name.unwrap().clone();
+
+    let project_type = match (args.get_flag("bin"), args.get_flag("lib")) {
+        (true, false) => ProjectType::Bin,
+        (false, true) => ProjectType::Lib,
+        (false, false) => ProjectType::Bin,
+        (true, true) => bail!("Cannot create both binary and library project"),
+    };
+    let force = args.get_flag("force");
+
+    let project_dir = ctx.cwd.join(name.clone());
+
+    if force {
+        ctx.shell.warn("Force flag is enabled")?;
+
+        fs::remove_dir_all(project_dir)?;
+    } else {
+        if project_dir.exists() {
+            bail!("Project directory already exists");
+        }
+    }
+
+    ctx.shell
+        .status("Creating", format!("{} project", project_type))?;
+
+    if name == "std" {
+        ctx.shell
+            .warn("'std' is a part of the standard library and it is recommended to not use it as a project name")?;
+    }
+
+    if name.chars().any(|ch| ch > '\x7f') {
+        ctx.shell
+            .warn("Project name contains non-ascii characters")?;
+    }
+
+    let project_dir = ctx.cwd.join(name.clone());
+
+    std::fs::create_dir(&project_dir)?;
+
+    create_gitignore(ctx, &project_dir)?;
+
+    Ok(())
+}
+
+const GITIGNORE: &str = r#"# Logs
+
+logs
+
+# Coverage directory used by tools like istanbul
+
+coverage
+*.lcov
+
+# dotenv environment variable files
+
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Stores VSCode versions used for testing VSCode extensions
+
+.vscode-test
+
+# IntelliJ based IDEs
+.idea
+
+# Finder (MacOS) folder config
+.DS_Store
+
+# Build folder
+build
+"#;
+
+fn create_gitignore(ctx: &mut GlobalContext, project_dir: &std::path::Path) -> Result<()> {
+    let gitignore = project_dir.join(".gitignore");
+
+    ctx.shell.status("Creating", ".gitignore")?;
+    std::fs::write(&gitignore, GITIGNORE)?;
 
     Ok(())
 }

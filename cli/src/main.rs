@@ -6,6 +6,7 @@ use commands::run::run_command;
 use logger::setup_tracing;
 use panic_handler::setup_panic_handler;
 use std::{env, process::exit};
+use tracing_subscriber::fmt::format;
 use crate::commands::init::init_command;
 
 pub mod cli;
@@ -49,13 +50,13 @@ fn main() -> Result<()> {
 
     if let Err(err) = match cmd.0 {
         "run" => run_command(&mut ctx, cmd.1),
-        "init" => init_command(&mut ctx),
+        "init" => init_command(&mut ctx, cmd.1),
         _ => {
             cli().print_help()?;
             exit(1);
         }
     } {
-        tracing::error!("{}", err);
+        ctx.shell.error(format!("{}", err))?;
 
         Ok(())
     } else {

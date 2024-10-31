@@ -8,6 +8,10 @@ pub fn opt(name: &'static str, help: &'static str) -> Arg {
     Arg::new(name).long(name).help(help).action(ArgAction::Set)
 }
 
+pub fn positional(name: &'static str, help: &'static str) -> Arg {
+    Arg::new(name).help(help).index(1)
+}
+
 pub fn cli() -> Command {
     let styles = {
         Styles::styled()

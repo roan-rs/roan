@@ -1,9 +1,9 @@
-use crate::{config_file::RoanConfig, fs::walk_for_file};
+use crate::{config_file::RoanConfig, fs::walk_for_file, shell::Shell};
+use anstream::ColorChoice;
 use anyhow::{anyhow, Context, Result};
+use clap::ArgMatches;
 use roan_engine::path::normalize_path;
 use std::{fs::read_to_string, path::PathBuf, time::Instant};
-use anstream::ColorChoice;
-use crate::shell::Shell;
 
 #[derive(Debug)]
 pub struct GlobalContext {
@@ -11,19 +11,17 @@ pub struct GlobalContext {
     pub cwd: PathBuf,
     pub config: Option<RoanConfig>,
     pub start: Instant,
-    pub shell: Shell
+    pub shell: Shell,
 }
 
 impl GlobalContext {
-    pub fn default(
-        color_choice: ColorChoice
-    ) -> Result<Self> {
+    pub fn default(color_choice: ColorChoice) -> Result<Self> {
         Ok(Self {
             verbose: false,
             cwd: std::env::current_dir().context("Failed to get current directory")?,
             config: None,
             start: Instant::now(),
-            shell: Shell::new(color_choice)
+            shell: Shell::new(color_choice),
         })
     }
 
@@ -94,11 +92,11 @@ impl GlobalContext {
     pub fn project_type(&self) -> Result<&str> {
         Ok(self.get_config()?.project.r#type.as_ref().unwrap())
     }
-    
+
     pub fn build_dir(&self) -> Result<PathBuf> {
         Ok(self.cwd.join("build"))
     }
-    
+
     pub fn deps_dir(&self) -> Result<PathBuf> {
         Ok(self.build_dir()?.join("deps"))
     }

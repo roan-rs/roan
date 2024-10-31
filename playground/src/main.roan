@@ -1,17 +1,7 @@
 use { println } from "std::debug";
 
 pub fn main() -> int {
-    let data = { "A": 1, "B": 2, "C": 3 };
-
-    println("Data: {}", data.A);
-
-    data.A = 10;
-
-    println("Data: {}", data.A);
-
-    data.D = 4;
-
-    println("Data: {}", data.D);
+    let data = Person::new("John Doe", 30, "Software Engineer");
 
     println("Data: {}", data);
 

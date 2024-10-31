@@ -50,12 +50,13 @@ impl Shell {
         justified: bool,
     ) -> Result<()> {
         let bold = anstyle::Style::new() | anstyle::Effects::BOLD;
+        let dim = anstyle::Style::new() | anstyle::Effects::DIMMED;
 
         let mut buffer = Vec::new();
         if justified {
             write!(&mut buffer, "{style}{status:>12}{style:#}")?;
         } else {
-            write!(&mut buffer, "{style}{status}{style:#}{bold}:{bold:#}")?;
+            write!(&mut buffer, "{style}{status}{style:#}{dim}:{dim:#}")?;
         }
         match message {
             Some(message) => writeln!(buffer, " {message}")?,
