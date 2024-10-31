@@ -8,8 +8,7 @@ use crate::{
 use anyhow::Result;
 use bon::bon;
 use roan_error::print_diagnostic;
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
-use std::path::PathBuf;
+use std::{cell::RefCell, fmt::Debug, path::PathBuf, rc::Rc};
 use tracing::debug;
 
 /// Struct to interact with the runtime.
@@ -50,7 +49,7 @@ use tracing::debug;
 #[derive(Clone, Debug)]
 pub struct Context {
     pub module_loader: Rc<RefCell<dyn ModuleLoader>>,
-    pub cwd: PathBuf
+    pub cwd: PathBuf,
 }
 
 #[bon]
@@ -62,8 +61,7 @@ impl Context {
             default = Rc::new(RefCell::new(BasicModuleLoader::new()))
         )]
         module_loader: Rc<RefCell<dyn ModuleLoader>>,
-        #[builder(default = std::env::current_dir().unwrap())]
-        cwd: PathBuf,
+        #[builder(default = std::env::current_dir().unwrap())] cwd: PathBuf,
     ) -> Self {
         Self { module_loader, cwd }
     }
@@ -77,31 +75,61 @@ impl Default for Context {
 }
 
 impl Context {
-    /// Evaluate a module.
+    /// Evaluate a module by parsing and interpreting it.
     ///
     /// # Arguments
     ///
     /// * `module` - The module to evaluate.
+    /// * `vm` - The virtual machine instance.
     ///
     /// # Returns
     ///
     /// The result of the evaluation.
     pub fn eval(&mut self, module: &mut Module, vm: &mut VM) -> Result<()> {
-        {
-            match {
-                module.parse()?;
-                module.interpret(self, vm)?;
-                Ok(())
-            } {
-                Ok(_) => {}
-                Err(e) => {
-                    print_diagnostic(e, Some(module.source().content()));
-                    std::process::exit(1);
-                }
-            }
-        }
+        self.parse(module)?;
+
+        self.interpret(module, vm)?;
 
         Ok(())
+    }
+
+    /// Parse a module to prepare it for interpretation.
+    ///
+    /// # Arguments
+    ///
+    /// * `module` - The module to parse.
+    ///
+    /// # Returns
+    ///
+    /// An empty result if successful, otherwise returns an error.
+    pub fn parse(&mut self, module: &mut Module) -> Result<()> {
+        match module.parse() {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                print_diagnostic(e, Some(module.source().content()));
+                std::process::exit(1);
+            }
+        }
+    }
+
+    /// Interpret a parsed module in the virtual machine.
+    ///
+    /// # Arguments
+    ///
+    /// * `module` - The module to interpret.
+    /// * `vm` - The virtual machine instance.
+    ///
+    /// # Returns
+    ///
+    /// An empty result if successful, otherwise returns an error.
+    pub fn interpret(&mut self, module: &mut Module, vm: &mut VM) -> Result<()> {
+        match module.interpret(self, vm) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                print_diagnostic(e, Some(module.source().content()));
+                std::process::exit(1);
+            }
+        }
     }
 
     /// Insert a module into the context.

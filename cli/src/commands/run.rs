@@ -21,6 +21,10 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
     global.load_config()?;
     let path = global.get_main_file()?;
 
+    global
+        .shell
+        .status("Running", &path.display().to_string())?;
+
     if global.project_type()? == "lib" {
         return Err(anyhow!("Cannot run a library project."));
     }
@@ -41,7 +45,21 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
     let vm = &mut VM::new();
     let mut module = Module::new(source);
 
-    match ctx.eval(&mut module, vm) {
+    let result = {
+        let parse_start = std::time::Instant::now();
+        module.parse()?;
+
+        global.shell.status(
+            "Finished",
+            format!("parsing in {:?}", parse_start.elapsed()),
+        )?;
+
+        module.interpret(&mut ctx, vm)?;
+
+        Ok(())
+    };
+
+    match result {
         Ok(_) => {}
         Err(e) => {
             print_diagnostic(e, Some(content));

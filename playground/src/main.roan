@@ -1,9 +1,8 @@
 use { println } from "std::debug";
 
 pub fn main() -> int {
-    let data = Person::new("John Doe", 30, "Software Engineer");
 
-    println("Data: {}", data);
+    println("Data: {}", { "A": "dwa" });
 
     return 0;
 }
