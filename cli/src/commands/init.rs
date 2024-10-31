@@ -37,7 +37,7 @@ pub fn init_cmd() -> Command {
         )
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ProjectType {
     Bin,
     Lib,
@@ -101,7 +101,8 @@ pub fn init_command(ctx: &mut GlobalContext, args: &ArgMatches) -> Result<()> {
         create_gitignore(ctx, &project_dir)?;
     }
 
-    create_roan_toml(ctx, &project_dir, &name, project_type)?;
+    create_roan_toml(ctx, &project_dir, &name, project_type.clone())?;
+    create_source_files(ctx, &project_dir, project_type)?;
 
     Ok(())
 }
@@ -191,5 +192,39 @@ fn create_roan_toml(
 
     fs::write(&roan_toml, toml)?;
 
+    Ok(())
+}
+
+const BIN_CONTENT: &str = r#"
+use { println } from "std::debug";
+
+fn main() {
+    println("Hello, {}!", "universe");
+}
+
+main();
+"#;
+
+const LIB_CONTENT: &str = r#"
+pub fn add(a: int, b: int) -> int {
+    a + b
+}
+"#;
+
+fn create_source_files(
+    ctx: &mut GlobalContext,
+    project_dir: &std::path::Path,
+    project_type: ProjectType,
+) -> Result<()> {
+    let src_dir = project_dir.join("src");
+    ctx.shell.status("Creating", "source files")?;
+    std::fs::create_dir(&src_dir)?;
+
+    let (content, file) = match project_type {
+        ProjectType::Bin => (BIN_CONTENT, src_dir.join("main.roan")),
+        ProjectType::Lib => (LIB_CONTENT, src_dir.join("lib.roan")),
+    };
+
+    fs::write(&file, content)?;
     Ok(())
 }
