@@ -2849,6 +2849,7 @@ dependencies = [
  "serde",
  "tar",
  "toml",
+ "toml_edit",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

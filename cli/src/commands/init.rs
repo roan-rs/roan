@@ -101,6 +101,8 @@ pub fn init_command(ctx: &mut GlobalContext, args: &ArgMatches) -> Result<()> {
         create_gitignore(ctx, &project_dir)?;
     }
 
+    create_roan_toml(ctx, &project_dir, &name, project_type)?;
+
     Ok(())
 }
 
@@ -158,6 +160,36 @@ fn init_git(ctx: &mut GlobalContext, project_dir: &std::path::Path) -> Result<()
             String::from_utf8_lossy(&output.stderr)
         ))?;
     }
+
+    Ok(())
+}
+
+fn create_roan_toml(
+    ctx: &mut GlobalContext,
+    project_dir: &std::path::Path,
+    name: &str,
+    project_type: ProjectType,
+) -> Result<()> {
+    let r#type = match project_type {
+        ProjectType::Bin => "bin",
+        ProjectType::Lib => "lib",
+    };
+
+    let mut file = toml_edit::DocumentMut::new();
+
+    file["project"] = toml_edit::Item::Table(toml_edit::Table::default());
+    file["project"]["name"] = toml_edit::value(name);
+    file["project"]["version"] = toml_edit::value("0.1.0");
+    file["project"]["type"] = toml_edit::value(r#type);
+    file["dependencies"] = toml_edit::Item::Table(toml_edit::Table::default());
+
+    let toml = file.to_string();
+
+    let roan_toml = project_dir.join("roan.toml");
+
+    ctx.shell.status("Creating", "roan.toml")?;
+
+    fs::write(&roan_toml, toml)?;
 
     Ok(())
 }
