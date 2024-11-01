@@ -3,7 +3,7 @@ use roan_ast::{GetSpan, If, ThenElse};
 use tracing::debug;
 
 use anyhow::Result;
-use roan_error::{error::PulseError::NonBooleanCondition, TextSpan};
+use roan_error::{error::RoanError::NonBooleanCondition, TextSpan};
 
 impl Module {
     /// Interpret a then-else expression.

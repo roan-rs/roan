@@ -2,7 +2,7 @@ use crate::{frame::Frame, span::TextSpan};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum PulseError {
+pub enum RoanError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Invalid token: {0}")]

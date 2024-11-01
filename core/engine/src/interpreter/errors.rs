@@ -1,7 +1,7 @@
 use crate::{context::Context, module::Module, value::Value, vm::VM};
 use anyhow::Result;
 use roan_ast::{Throw, Try};
-use roan_error::error::PulseError;
+use roan_error::error::RoanError;
 use tracing::debug;
 
 impl Module {
@@ -20,8 +20,8 @@ impl Module {
 
         match try_result {
             Ok(_) => return Ok(()),
-            Err(e) => match e.downcast_ref::<PulseError>() {
-                Some(PulseError::Throw(msg, _)) => {
+            Err(e) => match e.downcast_ref::<RoanError>() {
+                Some(RoanError::Throw(msg, _)) => {
                     self.enter_scope();
 
                     let var_name = try_stmt.error_ident.literal();
@@ -52,6 +52,6 @@ impl Module {
         self.interpret_expr(&throw.value, ctx, vm)?;
         let val = vm.pop().unwrap();
 
-        return Err(PulseError::Throw(val.to_string(), Vec::from(vm.frames())).into());
+        return Err(RoanError::Throw(val.to_string(), Vec::from(vm.frames())).into());
     }
 }

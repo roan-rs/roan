@@ -11,4 +11,4 @@ pub mod value;
 pub mod vm;
 
 pub use roan_ast::*;
-pub use roan_error::{diagnostic::*, error::PulseError::*, span::*};
+pub use roan_error::{diagnostic::*, error::RoanError::*, span::*};

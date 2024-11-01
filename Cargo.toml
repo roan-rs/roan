@@ -28,3 +28,5 @@ uuid = { version = "1.11.0", features = ["v4"] }
 indexmap = "2.6.0"
 anstream = "0.6.17"
 toml_edit = "0.22.22"
+octocrab = "0.41.2"
+http-body-util = "0.1.2"

@@ -3,7 +3,7 @@ use crate::{
     Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
 };
 use indexmap::IndexMap;
-use roan_error::error::PulseError::{ExpectedToken, UnexpectedToken};
+use roan_error::error::RoanError::{ExpectedToken, UnexpectedToken};
 use tracing::debug;
 
 impl Parser {

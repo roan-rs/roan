@@ -7,7 +7,7 @@ use crate::{
 use anyhow::Result;
 use roan_ast::{CallExpr, GetSpan};
 use roan_error::{
-    error::PulseError::{MissingParameter, TypeMismatch, UndefinedFunctionError},
+    error::RoanError::{MissingParameter, TypeMismatch, UndefinedFunctionError},
     frame::Frame,
     print_diagnostic, TextSpan,
 };

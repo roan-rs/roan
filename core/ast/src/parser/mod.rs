@@ -6,7 +6,7 @@ use crate::{
     Ast,
 };
 use anyhow::Result;
-use roan_error::error::PulseError::ExpectedToken;
+use roan_error::error::RoanError::ExpectedToken;
 use tracing::debug;
 
 #[derive(Debug, PartialEq, Eq)]

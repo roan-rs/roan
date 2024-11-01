@@ -1,4 +1,7 @@
-use crate::context::GlobalContext;
+use crate::{
+    commands::{init::init_command, install::install_command},
+    context::GlobalContext,
+};
 use anstream::ColorChoice;
 use anyhow::{Ok, Result};
 use cli::cli;
@@ -7,7 +10,6 @@ use logger::setup_tracing;
 use panic_handler::setup_panic_handler;
 use std::{env, process::exit};
 use tracing_subscriber::fmt::format;
-use crate::commands::init::init_command;
 
 pub mod cli;
 pub mod commands;
@@ -16,11 +18,13 @@ mod context;
 mod fs;
 pub mod logger;
 pub mod panic_handler;
+pub mod pm;
 pub mod shell;
 pub mod stds;
 pub mod style;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     setup_panic_handler();
     let args = cli().try_get_matches()?;
     let verbose = args.get_flag("verbose");
@@ -51,12 +55,13 @@ fn main() -> Result<()> {
     if let Err(err) = match cmd.0 {
         "run" => run_command(&mut ctx, cmd.1),
         "init" => init_command(&mut ctx, cmd.1),
+        "install" => install_command(&mut ctx, cmd.1).await,
         _ => {
             cli().print_help()?;
             exit(1);
         }
     } {
-        ctx.shell.error(format!("{}", err))?;
+        ctx.shell.error(format!("{:?}", err))?;
 
         Ok(())
     } else {

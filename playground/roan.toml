@@ -2,3 +2,6 @@
 name = "roan"
 version = "0.1.0"
 type = "bin"
+
+[dependencies.git2-rs]
+github = "rust-lang/git2-rs"

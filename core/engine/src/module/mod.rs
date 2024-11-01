@@ -9,7 +9,7 @@ use roan_ast::{
     source::Source, Ast, Expr, Fn, Lexer, Parser, StructField, StructImpl, Token, TraitDef,
     TraitImpl,
 };
-use roan_error::{error::PulseError::VariableNotFoundError, print_diagnostic, TextSpan};
+use roan_error::{error::RoanError::VariableNotFoundError, print_diagnostic, TextSpan};
 use std::{
     collections::HashMap,
     fmt::Debug,

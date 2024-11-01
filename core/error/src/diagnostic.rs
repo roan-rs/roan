@@ -1,4 +1,4 @@
-use crate::{error::PulseError, span::TextSpan};
+use crate::{error::RoanError, span::TextSpan};
 use colored::Colorize;
 use log::Level;
 use std::io::{BufWriter, Stderr, Write};
@@ -132,12 +132,12 @@ impl Diagnostic {
 /// print_diagnostic(anyhow::Error::new(err), Some(source_code));
 /// ```
 pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
-    let pulse_error = err.downcast_ref::<PulseError>();
+    let pulse_error = err.downcast_ref::<RoanError>();
 
     if let Some(err) = pulse_error {
         let err_str = err.to_string();
 
-        if let PulseError::Throw(content, frames) = err {
+        if let RoanError::Throw(content, frames) = err {
             let mut buff = BufWriter::new(std::io::stderr());
             write!(buff, "{}{}", "error".bright_red(), ": ".dimmed()).expect("Error writing level");
             writeln!(buff, "{}", content).expect("Error writing text");
@@ -148,7 +148,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
         }
 
         let diagnostic = match err {
-            PulseError::Io(_) => Diagnostic {
+            RoanError::Io(_) => Diagnostic {
                 title: "IO error".to_string(),
                 text: Some(err_str),
                 level: Level::Error,
@@ -156,15 +156,15 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content: None,
             },
-            PulseError::RestParameterNotLast(span)
-            | PulseError::RestParameterNotLastPosition(span)
-            | PulseError::MultipleRestParameters(span)
-            | PulseError::SelfParameterCannotBeRest(span)
-            | PulseError::SelfParameterNotFirst(span)
-            | PulseError::MultipleSelfParameters(span)
-            | PulseError::StaticContext(span)
-            | PulseError::StaticMemberAccess(span)
-            | PulseError::StaticMemberAssignment(span) => Diagnostic {
+            RoanError::RestParameterNotLast(span)
+            | RoanError::RestParameterNotLastPosition(span)
+            | RoanError::MultipleRestParameters(span)
+            | RoanError::SelfParameterCannotBeRest(span)
+            | RoanError::SelfParameterNotFirst(span)
+            | RoanError::MultipleSelfParameters(span)
+            | RoanError::StaticContext(span)
+            | RoanError::StaticMemberAccess(span)
+            | RoanError::StaticMemberAssignment(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -172,13 +172,13 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content,
             },
-            PulseError::InvalidToken(_, span)
-            | PulseError::SemanticError(_, span)
-            | PulseError::UnexpectedToken(_, span)
-            | PulseError::InvalidEscapeSequence(_, span)
-            | PulseError::NonBooleanCondition(_, span)
-            | PulseError::StructNotFoundError(_, span)
-            | PulseError::TraitNotFoundError(_, span) => Diagnostic {
+            RoanError::InvalidToken(_, span)
+            | RoanError::SemanticError(_, span)
+            | RoanError::UnexpectedToken(_, span)
+            | RoanError::InvalidEscapeSequence(_, span)
+            | RoanError::NonBooleanCondition(_, span)
+            | RoanError::StructNotFoundError(_, span)
+            | RoanError::TraitNotFoundError(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -186,7 +186,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content,
             },
-            PulseError::TraitMethodNotImplemented(name, methods, span) => Diagnostic {
+            RoanError::TraitMethodNotImplemented(name, methods, span) => Diagnostic {
                 title: format!(
                     "Trait {name} doesn't implement these methods: {}",
                     methods.join(", ")
@@ -197,7 +197,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: Some("Method not implemented".to_string()),
                 content,
             },
-            PulseError::StructAlreadyImplementsTrait(_, _, span) => Diagnostic {
+            RoanError::StructAlreadyImplementsTrait(_, _, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -205,7 +205,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: Some("Struct already implements this trait".to_string()),
                 content,
             },
-            PulseError::ExpectedToken(expected, hint, span) => Diagnostic {
+            RoanError::ExpectedToken(expected, hint, span) => Diagnostic {
                 title: format!("Expected {}", expected),
                 text: None,
                 level: Level::Error,
@@ -213,7 +213,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: Some(hint.clone()),
                 content,
             },
-            PulseError::InvalidType(_, _, span) => Diagnostic {
+            RoanError::InvalidType(_, _, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -221,7 +221,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content,
             },
-            PulseError::ResolverError(_) => Diagnostic {
+            RoanError::ResolverError(_) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -229,7 +229,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content: None,
             },
-            PulseError::ModuleError(_) => Diagnostic {
+            RoanError::ModuleError(_) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -237,15 +237,15 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content: None,
             },
-            PulseError::ModuleNotFoundError(_, span)
-            | PulseError::UndefinedFunctionError(_, span)
-            | PulseError::VariableNotFoundError(_, span)
-            | PulseError::ImportError(_, span)
-            | PulseError::PropertyNotFoundError(_, span)
-            | PulseError::TypeMismatch(_, span)
-            | PulseError::InvalidAssignment(_, span)
-            | PulseError::MissingParameter(_, span)
-            | PulseError::InvalidUnaryOperation(_, span) => Diagnostic {
+            RoanError::ModuleNotFoundError(_, span)
+            | RoanError::UndefinedFunctionError(_, span)
+            | RoanError::VariableNotFoundError(_, span)
+            | RoanError::ImportError(_, span)
+            | RoanError::PropertyNotFoundError(_, span)
+            | RoanError::TypeMismatch(_, span)
+            | RoanError::InvalidAssignment(_, span)
+            | RoanError::MissingParameter(_, span)
+            | RoanError::InvalidUnaryOperation(_, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -253,7 +253,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content,
             },
-            PulseError::InvalidBreakOrContinue(span) => Diagnostic {
+            RoanError::InvalidBreakOrContinue(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -263,7 +263,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 ),
                 content,
             },
-            PulseError::LoopBreak(span) | PulseError::LoopContinue(span) => Diagnostic {
+            RoanError::LoopBreak(span) | RoanError::LoopContinue(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -273,7 +273,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 ),
                 content,
             },
-            PulseError::InvalidSpread(span) => Diagnostic {
+            RoanError::InvalidSpread(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -283,7 +283,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 ),
                 content,
             },
-            PulseError::InvalidPropertyAccess(span) => Diagnostic {
+            RoanError::InvalidPropertyAccess(span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -291,7 +291,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: Some("Only string literals or call expressions are allowed".to_string()),
                 content,
             },
-            PulseError::IndexOutOfBounds(_, _, span) => Diagnostic {
+            RoanError::IndexOutOfBounds(_, _, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,

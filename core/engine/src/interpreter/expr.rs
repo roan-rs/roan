@@ -7,8 +7,8 @@ use roan_ast::{
     UnOpKind, Unary, VecExpr,
 };
 use roan_error::error::{
-    PulseError,
-    PulseError::{InvalidSpread, StaticMemberAssignment, VariableNotFoundError},
+    RoanError,
+    RoanError::{InvalidSpread, StaticMemberAssignment, VariableNotFoundError},
 };
 
 impl Module {
@@ -107,11 +107,9 @@ impl Module {
                 Value::Bool(!b)
             }
             _ => {
-                return Err(PulseError::InvalidUnaryOperation(
-                    u.operator.kind.to_string(),
-                    u.span(),
+                return Err(
+                    RoanError::InvalidUnaryOperation(u.operator.kind.to_string(), u.span()).into(),
                 )
-                .into())
             }
         };
 
@@ -315,7 +313,7 @@ impl Module {
                                 self.set_variable(&var_name, Value::Object(fields))?;
                                 Ok(new_val)
                             } else {
-                                Err(PulseError::InvalidAssignment(
+                                Err(RoanError::InvalidAssignment(
                                     "Unable to determine variable for assignment".into(),
                                     access.base.span(),
                                 )
@@ -323,7 +321,7 @@ impl Module {
                             }
                         }
                         Value::Struct(_, _) => todo!("Finish field assignment for struct"),
-                        _ => Err(PulseError::TypeMismatch(
+                        _ => Err(RoanError::TypeMismatch(
                             "Left side of assignment must be a struct or object".into(),
                             access.base.span(),
                         )
@@ -344,7 +342,7 @@ impl Module {
                     {
                         let idx = index as usize;
                         if idx >= vec.len() {
-                            return Err(PulseError::IndexOutOfBounds(
+                            return Err(RoanError::IndexOutOfBounds(
                                 idx,
                                 vec.len(),
                                 index_expr.span(),
@@ -358,14 +356,14 @@ impl Module {
                             self.set_variable(&var_name, Value::Vec(vec))?;
                             Ok(new_val)
                         } else {
-                            Err(PulseError::InvalidAssignment(
+                            Err(RoanError::InvalidAssignment(
                                 "Unable to determine variable for assignment".into(),
                                 access.base.span(),
                             )
                             .into())
                         }
                     } else {
-                        Err(PulseError::TypeMismatch(
+                        Err(RoanError::TypeMismatch(
                             "Left side of assignment must be a vector with integer index".into(),
                             access.base.span(),
                         )

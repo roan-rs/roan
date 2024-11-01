@@ -1,6 +1,6 @@
 use crate::{Lexer, TokenKind};
 use anyhow::Result;
-use roan_error::{error::PulseError::InvalidEscapeSequence, TextSpan};
+use roan_error::{error::RoanError::InvalidEscapeSequence, TextSpan};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StringLiteral {}

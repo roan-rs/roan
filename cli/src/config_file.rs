@@ -1,14 +1,14 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Serialize)]
 pub struct RoanConfig {
     pub project: ProjectConfig,
     pub tasks: Option<HashMap<String, String>>,
     pub dependencies: Option<HashMap<String, Dependency>>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Serialize)]
 pub struct ProjectConfig {
     pub name: String,
     pub version: String,
@@ -23,9 +23,10 @@ pub struct ProjectConfig {
     pub bin: Option<PathBuf>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Serialize)]
 pub struct Dependency {
-    pub version: String,
+    pub version: Option<String>,
     pub path: Option<String>,
-    pub git: Option<String>,
+    pub github: Option<String>,
+    pub branch: Option<String>,
 }

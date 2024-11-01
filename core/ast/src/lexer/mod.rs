@@ -8,7 +8,7 @@ use crate::{
     source::Source,
 };
 use anyhow::Result;
-use roan_error::{error::PulseError::InvalidToken, position::Position, span::TextSpan};
+use roan_error::{error::RoanError::InvalidToken, position::Position, span::TextSpan};
 
 mod identifier;
 mod number;

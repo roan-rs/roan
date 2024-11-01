@@ -7,7 +7,7 @@ use crate::{
 use anyhow::Result;
 use log::debug;
 use roan_ast::{Struct, StructConstructor, StructImpl, TraitDef, TraitImpl};
-use roan_error::{error::PulseError, TextSpan};
+use roan_error::{error::RoanError, TextSpan};
 use std::collections::HashMap;
 
 impl Module {
@@ -63,7 +63,7 @@ impl Module {
             .iter()
             .any(|t| t.def.trait_name.literal() == trait_name)
         {
-            return Err(PulseError::StructAlreadyImplementsTrait(
+            return Err(RoanError::StructAlreadyImplementsTrait(
                 for_name,
                 trait_name,
                 impl_stmt.trait_name.span.clone(),
@@ -79,7 +79,7 @@ impl Module {
             .collect();
 
         if !missing_methods.is_empty() {
-            return Err(PulseError::TraitMethodNotImplemented(
+            return Err(RoanError::TraitMethodNotImplemented(
                 trait_name,
                 missing_methods,
                 impl_stmt.trait_name.span.clone(),
@@ -119,14 +119,14 @@ impl Module {
             .iter()
             .find(|t| t.name.literal() == name)
             .cloned()
-            .ok_or_else(|| PulseError::TraitNotFoundError(name.into(), span))?)
+            .ok_or_else(|| RoanError::TraitNotFoundError(name.into(), span))?)
     }
 
     pub fn get_struct(&self, name: &str, span: TextSpan) -> Result<StoredStruct> {
         let x = self.structs.iter().find(|s| s.name.literal() == name);
 
         Ok(x.cloned()
-            .ok_or_else(|| PulseError::StructNotFoundError(name.into(), span))?)
+            .ok_or_else(|| RoanError::StructNotFoundError(name.into(), span))?)
     }
 
     /// Interpret a struct definition.

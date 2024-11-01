@@ -1,6 +1,6 @@
 use crate::{
     context::Context,
-    module::{ExportType, Module, StoredConst, StoredFunction},
+    module::{loaders::remove_surrounding_quotes, ExportType, Module, StoredConst, StoredFunction},
     value::Value,
     vm::VM,
 };
@@ -8,13 +8,12 @@ use anyhow::Result;
 use roan_ast::{Block, Fn, GetSpan, Let, Loop, Stmt, Token, Use, While};
 use roan_error::{
     error::{
-        PulseError,
-        PulseError::{ImportError, ModuleNotFoundError, NonBooleanCondition},
+        RoanError,
+        RoanError::{ImportError, ModuleNotFoundError, NonBooleanCondition},
     },
     print_diagnostic, TextSpan,
 };
 use tracing::debug;
-use crate::module::loaders::remove_surrounding_quotes;
 
 impl Module {
     /// Interpret statement from the module.
@@ -32,11 +31,11 @@ impl Module {
             Stmt::If(if_stmt) => self.interpret_if(if_stmt, ctx, vm)?,
             Stmt::Break(token) => {
                 debug!("Interpreting break statement");
-                return Err(PulseError::LoopBreak(token.span).into());
+                return Err(RoanError::LoopBreak(token.span).into());
             }
             Stmt::Continue(token) => {
                 debug!("Interpreting continue statement");
-                return Err(PulseError::LoopContinue(token.span).into());
+                return Err(RoanError::LoopContinue(token.span).into());
             }
             Stmt::Throw(throw) => self.interpret_throw(throw, ctx, vm)?,
             Stmt::Try(try_stmt) => self.interpret_try(try_stmt, ctx, vm)?,
@@ -106,7 +105,7 @@ impl Module {
                         }
                     }
                     _ => {
-                        return Err(PulseError::TypeMismatch(
+                        return Err(RoanError::TypeMismatch(
                             format!(
                                 "Expected array of type {} but got {}",
                                 type_name,
@@ -142,16 +141,16 @@ impl Module {
 
     /// Handle the result of a loop statement.
     ///
-    /// [PulseError::LoopBreak] and [PulseError::LoopContinue] are handled if they are inside a loop otherwise they are returned as an error.
+    /// [RoanError::LoopBreak] and [RoanError::LoopContinue] are handled if they are inside a loop otherwise they are returned as an error.
     ///
     /// # Arguments
     /// * `result` - [Result<()>] - The result to handle.
     pub fn handle_loop_result(&mut self, result: Result<()>) -> Result<()> {
         match result {
             Ok(_) => {}
-            Err(e) => match e.downcast::<PulseError>() {
-                Ok(PulseError::LoopBreak(_)) => {}
-                Ok(PulseError::LoopContinue(_)) => {}
+            Err(e) => match e.downcast::<RoanError>() {
+                Ok(RoanError::LoopBreak(_)) => {}
+                Ok(RoanError::LoopContinue(_)) => {}
                 Ok(other) => return Err(other.into()),
                 Err(e) => return Err(e),
             },

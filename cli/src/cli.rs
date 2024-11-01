@@ -1,5 +1,5 @@
 use crate::{
-    commands::{init::init_cmd, run::run_cmd},
+    commands::{init::init_cmd, install::install_cmd, run::run_cmd},
     style,
 };
 use clap::{builder::Styles, Arg, ArgAction, Command};
@@ -41,4 +41,5 @@ pub fn cli() -> Command {
         )
         .subcommand(run_cmd())
         .subcommand(init_cmd())
+        .subcommand(install_cmd())
 }

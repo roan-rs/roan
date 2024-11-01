@@ -1,7 +1,7 @@
 use crate::{context::Context, module::Module, value::Value, vm::VM};
 use anyhow::Result;
 use roan_ast::{AccessExpr, AccessKind, Expr, GetSpan};
-use roan_error::error::PulseError::{
+use roan_error::error::RoanError::{
     PropertyNotFoundError, StaticContext, StaticMemberAccess, UndefinedFunctionError,
 };
 

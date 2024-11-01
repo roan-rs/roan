@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::Result;
 use colored::Colorize;
-use roan_error::error::PulseError::{
+use roan_error::error::RoanError::{
     ExpectedToken, InvalidType, MultipleRestParameters, MultipleSelfParameters,
     RestParameterNotLastPosition, SelfParameterCannotBeRest, SelfParameterNotFirst,
 };

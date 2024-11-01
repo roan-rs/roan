@@ -27,7 +27,7 @@ use crate::{
 use anyhow::Result;
 use indexmap::IndexMap;
 use roan_ast::{Literal, LiteralType};
-use roan_error::{error::PulseError::TypeMismatch, TextSpan};
+use roan_error::{error::RoanError::TypeMismatch, TextSpan};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
