@@ -1,13 +1,20 @@
 [workspace]
-members = ["core/engine", "cli", "core/error", "core/ast", "tools/git", "tools/logs"]
+members = [
+    "core/engine",
+    "cli",
+    "core/error",
+    "core/ast",
+    "tools/git",
+    "tools/logs",
+]
 resolver = "1"
 
 [workspace.dependencies]
 
 # Core dependencies
-roan-engine = { path = "core/engine" }
-roan-error = { path = "core/error" }
-roan-ast = { path = "core/ast" }
+roan-engine = { path = "core/engine", version = "0.1.0" }
+roan-error = { path = "core/error", version = "0.1.0" }
+roan-ast = { path = "core/ast", version = "0.1.0" }
 
 # Other dependencies
 anyhow = "1.0.91"
@@ -16,7 +23,11 @@ log = "0.4.22"
 thiserror = "1.0.65"
 bon = "2.3.0"
 tracing = { version = "0.1.40", default-features = false, features = ["std"] }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "chrono", "time"] }
+tracing-subscriber = { version = "0.3.18", features = [
+    "env-filter",
+    "chrono",
+    "time",
+] }
 tracing-appender = "0.2"
 backtrace = "0.3.74"
 clap = { version = "4.5.20", features = ["derive"] }

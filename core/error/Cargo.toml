@@ -2,6 +2,8 @@
 name = "roan-error"
 version = "0.1.0"
 edition = "2021"
+description = "Error handling for the Roan project"
+license = "MIT"
 
 [dependencies]
 thiserror = { workspace = true }
