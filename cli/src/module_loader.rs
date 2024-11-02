@@ -1,23 +1,25 @@
-use crate::{
+use crate::context::GlobalContext;
+use anstream::ColorChoice;
+use roan_engine::{
     context::Context,
     module::{
         loaders::{ident::ModuleIdentifier, remove_surrounding_quotes, ModuleLoader},
         Module,
     },
     path::canonicalize_path,
+    source::Source,
 };
-use roan_ast::source::Source;
 use std::collections::HashMap;
 use tracing::debug;
 
 /// A basic implementation of the `ModuleLoader` trait that caches modules in memory.
 #[derive(Debug)]
-pub struct BasicModuleLoader {
+pub struct RoanModuleLoader {
     modules: HashMap<String, Module>,
 }
 
-impl BasicModuleLoader {
-    /// Creates a new [`BasicModuleLoader`] with an empty cache of modules.
+impl RoanModuleLoader {
+    /// Creates a new [`RoanModuleLoader`] with an empty cache of modules.
     pub fn new() -> Self {
         debug!("Creating new BasicModuleLoader");
         Self {
@@ -25,7 +27,7 @@ impl BasicModuleLoader {
         }
     }
 
-    /// Creates a new [`BasicModuleLoader`] with the specified cache of modules.
+    /// Creates a new [`RoanModuleLoader`] with the specified cache of modules.
     pub fn with_modules(cache: HashMap<String, Module>) -> Self {
         debug!("Creating new BasicModuleLoader with provided module cache");
         Self { modules: cache }
@@ -37,7 +39,7 @@ impl BasicModuleLoader {
     }
 }
 
-impl ModuleLoader for BasicModuleLoader {
+impl ModuleLoader for RoanModuleLoader {
     /// Loads a module based on the specification `spec` relative to the `referrer` module.
     ///
     /// If the module is already in the cache, it returns the cached module.
@@ -54,14 +56,19 @@ impl ModuleLoader for BasicModuleLoader {
 
         // If no module was found in cache we try to parse it as a module identifier.
         let resolved_path = if let Some(ident) = ModuleIdentifier::parse_module_identifier(spec) {
-            let path = ctx
+            let project_cwd = ctx
                 .cwd
                 .join("build")
                 .join("deps")
-                .join(ident.main_name.clone())
-                .join(ident.file_name());
+                .join(ident.main_name.clone());
 
-            canonicalize_path(path)?
+            let mut global = GlobalContext::from_cwd(project_cwd, ColorChoice::Auto)?;
+            
+            global.load_config()?;
+            global.assert_type("lib")?;
+            let parent = global.get_main_dir()?;
+
+            canonicalize_path(global.get_main_file()?)?
         } else {
             canonicalize_path(self.resolve_referrer(referrer, spec)?)?
         };

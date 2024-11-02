@@ -213,6 +213,14 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: Some(hint.clone()),
                 content,
             },
+            RoanError::FailedToImportModule(_, _, span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: None,
+                content,
+            },
             RoanError::InvalidType(_, _, span) => Diagnostic {
                 title: err_str,
                 text: None,
@@ -237,7 +245,6 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content: None,
             },
-            RoanError::ModuleNotFoundError(_, span)
             | RoanError::UndefinedFunctionError(_, span)
             | RoanError::VariableNotFoundError(_, span)
             | RoanError::ImportError(_, span)

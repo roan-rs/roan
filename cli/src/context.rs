@@ -5,7 +5,8 @@ use crate::{
     shell::Shell,
 };
 use anstream::ColorChoice;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
+use colored::Colorize;
 use flate2::read::GzDecoder;
 use http_body_util::BodyExt;
 use octocrab::{
@@ -13,7 +14,7 @@ use octocrab::{
     params::repos::{Commitish, Reference},
     Octocrab,
 };
-use roan_engine::path::normalize_path;
+use roan_engine::path::{canonicalize_path, normalize_path, normalize_without_canonicalize};
 use std::{
     collections::HashMap,
     fs::{read_to_string, File},
@@ -39,6 +40,17 @@ impl GlobalContext {
         Ok(Self {
             verbose: false,
             cwd: std::env::current_dir().context("Failed to get current directory")?,
+            config: None,
+            start: Instant::now(),
+            shell: Shell::new(color_choice),
+            octocrab: octocrab::instance(),
+        })
+    }
+
+    pub fn from_cwd(cwd: PathBuf, color_choice: ColorChoice) -> Result<Self> {
+        Ok(Self {
+            verbose: false,
+            cwd,
             config: None,
             start: Instant::now(),
             shell: Shell::new(color_choice),
@@ -102,16 +114,33 @@ impl GlobalContext {
             _ => unreachable!(),
         };
 
-        let path = normalize_path(file, self.cwd.clone())?;
+        let path = normalize_without_canonicalize(file, self.cwd.clone());
         if !path.exists() {
             return Err(anyhow!("Main file does not exist: {}", path.display()));
         }
 
-        Ok(path)
+        Ok(canonicalize_path(path)?)
+    }
+
+    // Parent directory of the main file
+    pub fn get_main_dir(&self) -> Result<PathBuf> {
+        Ok(self.get_main_file()?.parent().unwrap().to_path_buf())
     }
 
     pub fn project_type(&self) -> Result<&str> {
         Ok(self.get_config()?.project.r#type.as_ref().unwrap())
+    }
+
+    pub fn assert_type(&self, r#type: &str) -> Result<()> {
+        if self.project_type()? != r#type {
+            bail!(
+                "Expected project {} to be of type {}",
+                self.cwd.display().to_string().dimmed(),
+                r#type.bright_magenta()
+            );
+        }
+
+        Ok(())
     }
 
     pub fn build_dir(&self) -> Result<PathBuf> {
@@ -235,7 +264,7 @@ impl GlobalContext {
             let dest_path = to.join(entry_path);
 
             debug!("Unpacking: {:?}", dest_path);
-            
+
             if let Some(parent) = dest_path.parent() {
                 std::fs::create_dir_all(parent)?;
             }

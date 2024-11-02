@@ -9,7 +9,7 @@ use roan_ast::{Block, Fn, GetSpan, Let, Loop, Stmt, Token, Use, While};
 use roan_error::{
     error::{
         RoanError,
-        RoanError::{ImportError, ModuleNotFoundError, NonBooleanCondition},
+        RoanError::{FailedToImportModule, ImportError, NonBooleanCondition},
     },
     print_diagnostic, TextSpan,
 };
@@ -256,7 +256,13 @@ impl Module {
 
         let mut loaded_module = ctx
             .load_module(&self.clone(), remove_surrounding_quotes(&u.from.literal()))
-            .map_err(|_| ModuleNotFoundError(u.from.literal().to_string(), u.from.span.clone()))?;
+            .map_err(|err| {
+                FailedToImportModule(
+                    u.from.literal().to_string(),
+                    err.to_string(),
+                    u.from.span.clone(),
+                )
+            })?;
 
         match loaded_module.parse() {
             Ok(_) => {}

@@ -19,8 +19,8 @@ pub enum RoanError {
     ModuleError(String),
     #[error("Tried to import a item that does not exist: {0}")]
     ImportError(String, TextSpan),
-    #[error("Tried to import module that does not exist: {0}")]
-    ModuleNotFoundError(String, TextSpan),
+    #[error("Failed to import {0}. {1}")]
+    FailedToImportModule(String, String, TextSpan),
     #[error("Couldn't find variable: {0}")]
     VariableNotFoundError(String, TextSpan),
     #[error("Call to undefined function: {0}")]

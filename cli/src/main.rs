@@ -17,6 +17,7 @@ mod config_file;
 mod context;
 mod fs;
 pub mod logger;
+mod module_loader;
 pub mod panic_handler;
 pub mod pm;
 pub mod shell;

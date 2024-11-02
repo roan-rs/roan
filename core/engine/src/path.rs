@@ -23,3 +23,10 @@ pub fn canonicalize_path(path: PathBuf) -> Result<PathBuf> {
     let path = path.canonicalize()?;
     Ok(remove_prefix(&path))
 }
+
+pub fn normalize_without_canonicalize(mut path: PathBuf, root: PathBuf) -> PathBuf {
+    if path.is_relative() {
+        path = root.join(path);
+    }
+    path
+}

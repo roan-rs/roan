@@ -1,4 +1,6 @@
-use crate::{cli::opt, context::GlobalContext, stds::ensure_lib_dir};
+use crate::{
+    cli::opt, context::GlobalContext, module_loader::RoanModuleLoader, stds::ensure_lib_dir,
+};
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, ArgMatches, Command};
 use colored::Colorize;
@@ -6,7 +8,11 @@ use roan_engine::{
     context::Context, module::Module, path::canonicalize_path, print_diagnostic, source::Source,
     vm::VM,
 };
-use std::fs::{create_dir, read_to_string};
+use std::{
+    cell::RefCell,
+    fs::{create_dir, read_to_string},
+    rc::Rc,
+};
 use tracing::debug;
 
 pub fn run_cmd() -> Command {
@@ -25,9 +31,7 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
         .shell
         .status("Running", &path.display().to_string())?;
 
-    if global.project_type()? == "lib" {
-        return Err(anyhow!("Cannot run a library project."));
-    }
+    global.assert_type("bin")?;
 
     let build_dir = global.build_dir()?;
 
@@ -40,7 +44,10 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
 
     let content = read_to_string(&path)?;
 
-    let mut ctx = Context::builder().cwd(global.cwd.clone()).build();
+    let mut ctx = Context::builder()
+        .cwd(global.cwd.clone())
+        .module_loader(Rc::new(RefCell::new(RoanModuleLoader::new())))
+        .build();
     let source = Source::from_string(content.clone()).with_path(path);
     let vm = &mut VM::new();
     let mut module = Module::new(source);

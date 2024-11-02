@@ -1,8 +1,5 @@
 use crate::{
-    module::{
-        loaders::{basic::BasicModuleLoader, ModuleLoader},
-        Module,
-    },
+    module::{loaders::ModuleLoader, Module},
     vm::VM,
 };
 use anyhow::Result;
@@ -57,20 +54,10 @@ impl Context {
     /// Create a new context.
     #[builder]
     pub fn new(
-        #[builder(
-            default = Rc::new(RefCell::new(BasicModuleLoader::new()))
-        )]
-        module_loader: Rc<RefCell<dyn ModuleLoader>>,
+        #[builder] module_loader: Rc<RefCell<dyn ModuleLoader>>,
         #[builder(default = std::env::current_dir().unwrap())] cwd: PathBuf,
     ) -> Self {
         Self { module_loader, cwd }
-    }
-}
-
-impl Default for Context {
-    fn default() -> Self {
-        tracing::debug!("Creating default context");
-        Self::builder().build()
     }
 }
 
@@ -159,7 +146,7 @@ impl Context {
     /// - `referrer` - The module that is requesting the module.
     /// - `spec` - The name of the module to load.
     pub fn load_module(&mut self, referrer: &Module, spec: &str) -> Result<Module> {
-        self.module_loader.borrow_mut().load(referrer, spec, self)
+        Ok(self.module_loader.borrow_mut().load(referrer, spec, self)?)
     }
 
     pub fn module_keys(&self) -> Vec<String> {
@@ -170,31 +157,5 @@ impl Context {
     pub fn upsert_module(&mut self, name: String, module: Module) {
         debug!("Upserting module: {}", name);
         self.module_loader.borrow_mut().insert(name, module);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{module::Module, source::Source, value::Value, vm::VM};
-
-    #[test]
-    fn test_eval() {
-        let mut ctx = Context::builder().build();
-        let src_code = r#"
-fn main() -> int {
-    return 3;
-}
-
-main();
-"#;
-
-        let source = Source::from_string(src_code.to_string());
-        let mut module = Module::new(source);
-
-        let mut vm = VM::new();
-        let result = ctx.eval(&mut module, &mut vm);
-
-        assert_eq!(vm.pop(), Some(Value::Int(3)));
     }
 }

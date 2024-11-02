@@ -5,7 +5,6 @@ use crate::{
 use std::{fmt::Debug, path::PathBuf};
 use tracing::debug;
 
-pub mod basic;
 pub mod ident;
 
 /// Trait that defines the interface for a module loader.
