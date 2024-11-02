@@ -6,7 +6,7 @@ use crate::{
 use anstyle::Style;
 use anyhow::{anyhow, bail, Result};
 use clap::{ArgAction, ArgMatches, Command};
-use std::{fmt::Display, fs};
+use std::{fmt::Display, fs, process};
 
 pub fn init_cmd() -> Command {
     Command::new("init")
@@ -150,7 +150,7 @@ fn create_gitignore(ctx: &mut GlobalContext, project_dir: &std::path::Path) -> R
 fn init_git(ctx: &mut GlobalContext, project_dir: &std::path::Path) -> Result<()> {
     ctx.shell.status("Initializing", "git repository")?;
 
-    let output = std::process::Command::new("git")
+    let output = process::Command::new("git")
         .arg("init")
         .current_dir(project_dir)
         .output()?;
@@ -183,6 +183,11 @@ fn create_roan_toml(
     file["project"]["version"] = toml_edit::value("0.1.0");
     file["project"]["type"] = toml_edit::value(r#type);
     file["dependencies"] = toml_edit::Item::Table(toml_edit::Table::default());
+
+    let mut std_dep = toml_edit::InlineTable::default();
+    std_dep.insert("version", toml_edit::value("0.1.0").into_value().unwrap());
+    std_dep.insert("github", toml_edit::value("roan-rs/std").into_value().unwrap());
+    file["dependencies"]["std"] = toml_edit::Item::Value(toml_edit::Value::InlineTable(std_dep));
 
     let toml = file.to_string();
 

@@ -63,12 +63,11 @@ impl ModuleLoader for RoanModuleLoader {
                 .join(ident.main_name.clone());
 
             let mut global = GlobalContext::from_cwd(project_cwd, ColorChoice::Auto)?;
-            
+
             global.load_config()?;
             global.assert_type("lib")?;
             let parent = global.get_main_dir()?;
-
-            canonicalize_path(global.get_main_file()?)?
+            canonicalize_path(parent.join(ident.file_name()))?
         } else {
             canonicalize_path(self.resolve_referrer(referrer, spec)?)?
         };

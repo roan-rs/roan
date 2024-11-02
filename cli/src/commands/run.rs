@@ -1,6 +1,4 @@
-use crate::{
-    cli::opt, context::GlobalContext, module_loader::RoanModuleLoader, stds::ensure_lib_dir,
-};
+use crate::{cli::opt, context::GlobalContext, module_loader::RoanModuleLoader};
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, ArgMatches, Command};
 use colored::Colorize;
@@ -39,8 +37,6 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
         create_dir(&build_dir)?;
         debug!("Created build directory at {:?}", build_dir);
     }
-
-    ensure_lib_dir(global)?;
 
     let content = read_to_string(&path)?;
 

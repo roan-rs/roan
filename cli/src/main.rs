@@ -21,7 +21,6 @@ mod module_loader;
 pub mod panic_handler;
 pub mod pm;
 pub mod shell;
-pub mod stds;
 pub mod style;
 
 #[tokio::main]
