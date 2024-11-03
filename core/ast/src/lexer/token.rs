@@ -219,3 +219,91 @@ pub enum TokenKind {
     Bad,
     Comment,
 }
+
+impl TokenKind {
+    pub fn is_keyword(&self) -> bool {
+        matches!(
+            self,
+            TokenKind::Fn
+                | TokenKind::Let
+                | TokenKind::If
+                | TokenKind::Else
+                | TokenKind::While
+                | TokenKind::For
+                | TokenKind::In
+                | TokenKind::Return
+                | TokenKind::Break
+                | TokenKind::Continue
+                | TokenKind::Use
+                | TokenKind::Pub
+                | TokenKind::From
+                | TokenKind::Throw
+                | TokenKind::Try
+                | TokenKind::Catch
+                | TokenKind::Loop
+                | TokenKind::True
+                | TokenKind::False
+                | TokenKind::Null
+                | TokenKind::Impl
+                | TokenKind::Struct
+                | TokenKind::Trait
+                | TokenKind::Then
+                | TokenKind::Const
+        )
+    }
+    
+    pub fn is_operator(&self) -> bool {
+        matches!(
+            self,
+            TokenKind::Plus
+                | TokenKind::Minus
+                | TokenKind::Asterisk
+                | TokenKind::Slash
+                | TokenKind::Equals
+                | TokenKind::Ampersand
+                | TokenKind::Pipe
+                | TokenKind::Caret
+                | TokenKind::DoubleAsterisk
+                | TokenKind::Percent
+                | TokenKind::Tilde
+                | TokenKind::GreaterThan
+                | TokenKind::LessThan
+                | TokenKind::GreaterThanEquals
+                | TokenKind::LessThanEquals
+                | TokenKind::EqualsEquals
+                | TokenKind::BangEquals
+                | TokenKind::Bang
+                | TokenKind::And
+                | TokenKind::Or
+                | TokenKind::Increment
+                | TokenKind::Decrement
+                | TokenKind::MinusEquals
+                | TokenKind::PlusEquals
+                | TokenKind::MultiplyEquals
+                | TokenKind::DivideEquals
+                | TokenKind::DoubleLessThan
+                | TokenKind::DoubleGreaterThan
+                | TokenKind::QuestionMark
+        )
+    }
+    
+    pub fn is_separator(&self) -> bool {
+        matches!(
+            self,
+            TokenKind::LeftParen
+                | TokenKind::RightParen
+                | TokenKind::LeftBrace
+                | TokenKind::RightBrace
+                | TokenKind::LeftBracket
+                | TokenKind::RightBracket
+                | TokenKind::Comma
+                | TokenKind::Dot
+                | TokenKind::Colon
+                | TokenKind::Semicolon
+                | TokenKind::Arrow
+                | TokenKind::DoubleDot
+                | TokenKind::TripleDot
+                | TokenKind::DoubleColon
+        )
+    }
+}
