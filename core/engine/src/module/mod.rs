@@ -102,6 +102,7 @@ pub struct Module {
     pub traits: Vec<TraitDef>,
     pub consts: Vec<StoredConst>,
     pub id: String,
+    pub lex_comments: bool
 }
 
 impl Debug for Module {
@@ -144,7 +145,12 @@ impl Module {
             traits: vec![],
             consts: vec![],
             id: Uuid::new_v4().to_string(),
+            lex_comments: false,
         }
+    }
+    
+    pub fn set_lex_comments(&mut self, lex_comments: bool) {
+        self.lex_comments = lex_comments;
     }
 
     /// Get module id
@@ -174,7 +180,7 @@ impl Module {
         debug!("Parsing module from source");
         let mut lexer = Lexer::new(self.source.clone());
 
-        let tokens = lexer.lex()?;
+        let tokens = lexer.lex(self.lex_comments)?;
         debug!("Parsed {} tokens", tokens.len());
         self.tokens = tokens;
 

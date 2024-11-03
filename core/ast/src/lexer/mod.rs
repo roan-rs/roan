@@ -54,12 +54,12 @@ impl Lexer {
     /// and convert it into a list of tokens. The lexer will skip whitespace and comments.
     ///
     /// When EOF is reached, the lexer will return the list of tokens.
-    pub fn lex(&mut self) -> Result<Vec<Token>> {
+    pub fn lex(&mut self, lex_comments: bool) -> Result<Vec<Token>> {
         loop {
             let token = self.next_token()?;
 
             if let Some(token) = token {
-                if token.kind == TokenKind::Comment || token.kind == TokenKind::Whitespace {
+                if (token.kind == TokenKind::Comment && !lex_comments) || token.kind == TokenKind::Whitespace {
                     continue;
                 }
 
