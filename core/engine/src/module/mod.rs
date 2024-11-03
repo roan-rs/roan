@@ -183,7 +183,6 @@ impl Module {
         debug!("Parsing tokens into AST");
         let ast = parser.parse()?;
         self.ast = ast;
-        self.tokens = vec![];
 
         Ok(())
     }
