@@ -8,6 +8,7 @@ use cli::cli;
 use commands::run::run_command;
 use logger::setup_tracing;
 use panic_handler::setup_panic_handler;
+use roan_engine::print_diagnostic;
 use std::{env, process::exit};
 use tracing_subscriber::fmt::format;
 
@@ -52,7 +53,7 @@ async fn main() -> Result<()> {
     let mut ctx = GlobalContext::default(color_choice)?;
     ctx.verbose = verbose;
 
-    if let Err(err) = match cmd.0 {
+    match cmd.0 {
         "run" => run_command(&mut ctx, cmd.1),
         "init" => init_command(&mut ctx, cmd.1),
         "install" => install_command(&mut ctx, cmd.1).await,
@@ -60,11 +61,7 @@ async fn main() -> Result<()> {
             cli().print_help()?;
             exit(1);
         }
-    } {
-        ctx.shell.error(format!("{:?}", err))?;
+    }.ok();
 
-        Ok(())
-    } else {
-        Ok(())
-    }
+    Ok(())
 }

@@ -48,9 +48,16 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
     let vm = &mut VM::new();
     let mut module = Module::new(source);
 
-    let result = {
+    let result: Result<(), anyhow::Error> = {
         let parse_start = std::time::Instant::now();
-        module.parse()?;
+        
+        match module.parse() {
+            Ok(..) => {}
+            Err(err) => {
+                print_diagnostic(err, Some(content));
+                return Err(anyhow!("Failed to parse"));
+            }
+        }
 
         global.shell.status(
             "Finished",

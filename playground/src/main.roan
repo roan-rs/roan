@@ -1,9 +1,16 @@
-use { println } from "std::debug";
+/// Struct for string manipulation
+pub struct String {};
 
-pub fn main() -> int {
-    println("Data: {}", { "A": "dwa" });
+impl String {
+    pub fn new() -> string {
+        return "";
+    }
 
-    return 0;
+    // TODO: refactor this to use match in future
+    pub fn to_bool(s: string) -> bool? {
+        if s == "true" {
+            return true;
+        } else if s == "false" {
+        }
+    }
 }
-
-main();

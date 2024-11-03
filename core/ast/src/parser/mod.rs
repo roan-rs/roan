@@ -145,7 +145,9 @@ impl Parser {
     /// # Returns
     /// * A copy of the current token.
     pub fn peek(&self) -> Token {
-        self.tokens[self.current].clone()
+        self.tokens.get(self.current).cloned().unwrap_or_else(|| {
+            Token::new(TokenKind::EOF, self.tokens.last().unwrap().span.clone())
+        })
     }
 
     /// Peeks at the next token without consuming the current one.
