@@ -205,8 +205,8 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: Some("Struct already implements this trait".to_string()),
                 content,
             },
-            RoanError::ExpectedToken(expected, hint, span) => Diagnostic {
-                title: format!("Expected {}", expected),
+            RoanError::ExpectedToken(_, hint, span) => Diagnostic {
+                title: err_str,
                 text: None,
                 level: Level::Error,
                 location: Some(span.clone()),

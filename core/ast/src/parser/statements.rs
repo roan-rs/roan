@@ -86,7 +86,7 @@ impl Parser {
             TokenKind::LeftBrace => {
                 self.consume();
                 let block = self.parse_block()?;
-                self.expect(TokenKind::RightBrace)?;
+                self.expect_punct(TokenKind::RightBrace)?;
                 Some(Stmt::Block(block))
             }
             TokenKind::Return => self.parse_return()?,
@@ -109,7 +109,7 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_impl(&mut self, impl_keyword: Token, ident: Token) -> Result<Stmt> {
         debug!("Parsing impl block");
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
 
         let mut methods: Vec<crate::Fn> = vec![];
 
@@ -119,7 +119,7 @@ impl Parser {
             methods.push(func);
         }
 
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         Ok(Stmt::new_struct_impl(impl_keyword, ident, methods))
     }
@@ -137,7 +137,7 @@ impl Parser {
 
         let trait_name = self.expect(TokenKind::Identifier)?;
 
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
 
         let mut methods: Vec<crate::Fn> = vec![];
 
@@ -147,7 +147,7 @@ impl Parser {
             methods.push(func);
         }
 
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         Ok(Stmt::new_trait_impl(
             impl_keyword,
@@ -185,7 +185,7 @@ impl Parser {
 
         let name = self.expect(TokenKind::Identifier)?;
 
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
 
         let mut methods: Vec<crate::Fn> = vec![];
 
@@ -194,7 +194,7 @@ impl Parser {
             methods.push(func);
         }
 
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         Ok(Stmt::new_trait_def(trait_token, name, methods, public))
     }
@@ -232,7 +232,7 @@ impl Parser {
         let (struct_token, public) = self.parse_pub(TokenKind::Struct)?;
         let name = self.expect(TokenKind::Identifier)?;
 
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
 
         let mut fields: Vec<StructField> = vec![];
 
@@ -249,7 +249,7 @@ impl Parser {
             }
         }
 
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         Ok(Stmt::new_struct(struct_token, name, fields, public))
     }
@@ -269,9 +269,9 @@ impl Parser {
         let condition = self.parse_expr()?;
         self.pop_context();
 
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
         let block = self.parse_block()?;
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         Ok(Some(Stmt::new_while(while_token, condition, block)))
     }
@@ -304,17 +304,17 @@ impl Parser {
         debug!("Parsing try statement");
         let try_token = self.consume();
 
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
         let try_block = self.parse_block()?;
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         self.expect(TokenKind::Catch)?;
 
         let error_ident = self.expect(TokenKind::Identifier)?;
 
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
         let catch_block = self.parse_block()?;
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         Ok(Stmt::new_try(
             try_token,
@@ -379,10 +379,9 @@ impl Parser {
 
         self.pop_context();
 
-        self.expect(TokenKind::LeftBrace)?;
-
+        self.expect_punct(TokenKind::LeftBrace)?;
         let body = self.parse_block()?;
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         let mut elseif_blocks = vec![];
         let mut else_block: Option<ElseBlock> = None;
@@ -400,9 +399,9 @@ impl Parser {
 
                 self.possible_check(TokenKind::RightParen);
 
-                self.expect(TokenKind::LeftBrace)?;
+                self.expect_punct(TokenKind::LeftBrace)?;
                 let elseif_body = self.parse_block()?;
-                self.expect(TokenKind::RightBrace)?;
+                self.expect_punct(TokenKind::RightBrace)?;
 
                 elseif_blocks.push(ElseBlock {
                     condition: Box::new(elseif_condition),
@@ -410,9 +409,9 @@ impl Parser {
                     else_if: true,
                 });
             } else {
-                self.expect(TokenKind::LeftBrace)?;
+                self.expect_punct(TokenKind::LeftBrace)?;
                 let else_body = self.parse_block()?;
-                self.expect(TokenKind::RightBrace)?;
+                self.expect_punct(TokenKind::RightBrace)?;
 
                 else_block = Some(ElseBlock {
                     condition: Box::new(condition.clone()),
@@ -444,7 +443,7 @@ impl Parser {
 
         let mut items = vec![];
 
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
 
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let item = self.expect(TokenKind::Identifier)?;
@@ -456,7 +455,7 @@ impl Parser {
             items.push(item);
         }
 
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         self.expect(TokenKind::From)?;
 
@@ -527,7 +526,17 @@ impl Parser {
     pub fn parse_return_type(&mut self) -> Result<Option<FunctionType>> {
         debug!("Parsing return type");
 
-        if self.peek().kind != TokenKind::Arrow {
+        if self.peek().kind != TokenKind::Arrow && self.peek().kind != TokenKind::LeftBrace {
+            return Err(ExpectedToken(
+                "arrow or left brace".to_string(),
+                format!(
+                    "Expected '->' or '{{' after function parameters, found '{}'",
+                    self.peek().literal()
+                ),
+                self.peek().span.clone(),
+            )
+            .into());
+        } else if self.peek().kind == TokenKind::LeftBrace {
             return Ok(None);
         }
 
@@ -659,14 +668,9 @@ impl Parser {
 
         let return_type = self.parse_return_type()?;
 
-        let mut body = Block { stmts: vec![] };
-        if self.peek().kind != TokenKind::LeftBrace {
-            self.expect(TokenKind::Semicolon)?;
-        } else {
-            self.expect(TokenKind::LeftBrace)?;
-            body = self.parse_block()?;
-            self.expect(TokenKind::RightBrace)?;
-        }
+        self.expect_punct(TokenKind::LeftBrace)?;
+        let body = self.parse_block()?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         Ok(Stmt::new_fn(
             fn_token,

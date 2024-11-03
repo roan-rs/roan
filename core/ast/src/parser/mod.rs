@@ -146,7 +146,10 @@ impl Parser {
     /// * A copy of the current token.
     pub fn peek(&self) -> Token {
         self.tokens.get(self.current).cloned().unwrap_or_else(|| {
-            Token::new(TokenKind::EOF, self.tokens.last().unwrap().span.clone())
+            Token::new(
+                TokenKind::EOF,
+                self.tokens.get(self.tokens.len() - 1).unwrap().span.clone(),
+            )
         })
     }
 
@@ -197,7 +200,38 @@ impl Parser {
             Err(ExpectedToken(
                 kind.to_string(),
                 format!("Expected token of kind: {}", kind),
-                token.span.clone(),
+                self.previous().span.clone(),
+            )
+            .into())
+        }
+    }
+
+    /// Expects the current token to be of a specific punctuation kind and consumes it.
+    ///
+    /// If the token matches the expected kind, it is consumed and returned.
+    /// The span is moved to the right by the length of the token.
+    ///
+    /// # Arguments
+    /// * `kind` - The expected kind of the current token.
+    ///
+    /// # Returns
+    /// * `Ok(Token)` - The token that was consumed.
+    /// * `Err` - An error if the current token is not of the expected kind.
+    pub fn expect_punct(&mut self, kind: TokenKind) -> Result<Token> {
+        let token = self.peek();
+
+        debug!("Expected token: {:?}, found: {:?}", kind, token.kind);
+        if token.kind == kind {
+            Ok(self.consume())
+        } else {
+            let prev = self.previous();
+            let len = kind.to_string().len();
+            Err(ExpectedToken(
+                kind.to_string(),
+                format!("Expected token of kind: {}", kind),
+                prev.span
+                    .move_right(len + prev.span.literal.len())
+                    .shorten(len),
             )
             .into())
         }

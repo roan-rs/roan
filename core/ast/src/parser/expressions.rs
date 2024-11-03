@@ -208,7 +208,7 @@ impl Parser {
     /// - `Ok(Expr)`: The parsed struct constructor expression if successful.
     /// - `Err(anyhow::Error)`: An error if parsing fails.
     pub fn parse_struct_constructor(&mut self, identifier: Token) -> anyhow::Result<Expr> {
-        self.expect(TokenKind::LeftBrace)?;
+        self.expect_punct(TokenKind::LeftBrace)?;
 
         let mut fields = vec![];
 
@@ -224,7 +224,7 @@ impl Parser {
             }
         }
 
-        self.expect(TokenKind::RightBrace)?;
+        self.expect_punct(TokenKind::RightBrace)?;
 
         Ok(Expr::new_struct_constructor(
             identifier.literal(),
@@ -286,7 +286,7 @@ impl Parser {
                     }
                 }
 
-                let closing_brace = self.expect(TokenKind::RightBrace)?;
+                let closing_brace = self.expect_punct(TokenKind::RightBrace)?;
 
                 Ok(Expr::new_object(fields, (token, closing_brace)))
             }

@@ -76,6 +76,16 @@ impl Position {
     pub fn index(&self) -> usize {
         self.index
     }
+
+    /// Moves right by the given number of characters.
+    pub fn move_right(&self, count: usize) -> Position {
+        Position::new(self.line, self.column + count as u32, self.index + count)
+    }
+
+    /// Moves left by the given number of characters.
+    pub fn move_left(&self, start: usize, count: usize) -> Position {
+        Position::new(self.line, (start + count) as u32, self.index - count)
+    }
 }
 
 impl fmt::Display for Position {

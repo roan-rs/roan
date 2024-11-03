@@ -99,6 +99,45 @@ impl TextSpan {
     pub fn literal<'a>(&self, input: &'a str) -> &'a str {
         &input[self.start.index..self.end.index]
     }
+
+    /// Moves the span right by the given number of characters.
+    ///
+    /// # Arguments
+    ///
+    /// * `count` - The number of characters to move the span to the right.
+    ///
+    /// # Returns
+    ///
+    /// A new `TextSpan` with the starting and ending positions moved to the right by `count` characters.
+    /// The literal text is updated to reflect the new positions.
+    pub fn move_right(&self, count: usize) -> TextSpan {
+        TextSpan::new(
+            self.start.move_right(count),
+            self.end.move_right(count),
+            self.literal.clone(),
+        )
+    }
+
+    /// Shortens the span to the given length starting from the end position.
+    ///
+    /// # Arguments
+    ///
+    /// * `length` - The length to shorten the span to.
+    ///
+    /// # Returns
+    ///
+    /// A new `TextSpan` with the starting position unchanged and the ending position moved to the left by `length` characters.
+    /// The literal text is updated to reflect the new positions.
+    pub fn shorten(&self, length: usize) -> TextSpan {
+        TextSpan::new(
+            self.start,
+            self.end.move_left(self.start.column as usize, length),
+            self.literal
+                .chars()
+                .take(self.literal.len() - length)
+                .collect(),
+        )
+    }
 }
 
 impl Default for TextSpan {
