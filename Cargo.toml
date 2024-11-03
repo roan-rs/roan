@@ -13,7 +13,7 @@ resolver = "1"
 
 # Core dependencies
 roan-engine = { path = "core/engine", version = "0.1.6" }
-roan-error = { path = "core/error", version = "0.1.0" }
+roan-error = { path = "core/error", version = "0.1.1" }
 roan-ast = { path = "core/ast", version = "0.1.3" }
 
 # Other dependencies

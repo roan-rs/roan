@@ -82,3 +82,45 @@ pub enum RoanError {
     #[error("Invalid type provided: {0}. Available types: {1}")]
     InvalidType(String, String, TextSpan),
 }
+
+pub fn get_span_from_err(err: &RoanError) -> Option<TextSpan> {
+    match err {
+        RoanError::Io(_) | RoanError::ResolverError(_) | RoanError::ModuleError(_) => None,
+        RoanError::RestParameterNotLast(span)
+        | RoanError::RestParameterNotLastPosition(span)
+        | RoanError::MultipleRestParameters(span)
+        | RoanError::SelfParameterCannotBeRest(span)
+        | RoanError::SelfParameterNotFirst(span)
+        | RoanError::MultipleSelfParameters(span)
+        | RoanError::StaticContext(span)
+        | RoanError::StaticMemberAccess(span)
+        | RoanError::StaticMemberAssignment(span) => Some(span.clone()),
+        RoanError::InvalidToken(_, span)
+        | RoanError::SemanticError(_, span)
+        | RoanError::UnexpectedToken(_, span)
+        | RoanError::InvalidEscapeSequence(_, span)
+        | RoanError::NonBooleanCondition(_, span)
+        | RoanError::StructNotFoundError(_, span)
+        | RoanError::TraitNotFoundError(_, span) => Some(span.clone()),
+        RoanError::TraitMethodNotImplemented(_, _, span)
+        | RoanError::StructAlreadyImplementsTrait(_, _, span)
+        | RoanError::ExpectedToken(_, _, span)
+        | RoanError::FailedToImportModule(_, _, span)
+        | RoanError::InvalidType(_, _, span)
+        | RoanError::IndexOutOfBounds(_, _, span) => Some(span.clone()),
+        RoanError::UndefinedFunctionError(_, span)
+        | RoanError::VariableNotFoundError(_, span)
+        | RoanError::ImportError(_, span)
+        | RoanError::PropertyNotFoundError(_, span)
+        | RoanError::TypeMismatch(_, span)
+        | RoanError::InvalidAssignment(_, span)
+        | RoanError::MissingParameter(_, span)
+        | RoanError::InvalidUnaryOperation(_, span) => Some(span.clone()),
+        RoanError::InvalidPropertyAccess(span)
+        | RoanError::InvalidSpread(span)
+        | RoanError::InvalidBreakOrContinue(span)
+        | RoanError::LoopBreak(span)
+        | RoanError::LoopContinue(span) => Some(span.clone()),
+        _ => None,
+    }
+}
