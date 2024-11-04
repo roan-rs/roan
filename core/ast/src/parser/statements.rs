@@ -234,8 +234,19 @@ impl Parser {
 
         self.expect_punct(TokenKind::LeftBrace)?;
 
-        let mut fields: Vec<StructField> = vec![];
+        if self.peek().kind != TokenKind::RightBrace && self.peek().kind != TokenKind::Identifier {
+            return Err(ExpectedToken(
+                "field declaration".to_string(),
+                format!(
+                    "Expected field declaration or '}}' after struct declaration, found '{}'",
+                    self.peek().literal()
+                ),
+                self.previous().span.clone(),
+            )
+            .into());
+        }
 
+        let mut fields: Vec<StructField> = vec![];
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let ident = self.expect(TokenKind::Identifier)?;
             let type_annotation = self.parse_type_annotation()?;
@@ -244,8 +255,18 @@ impl Parser {
                 type_annotation,
             });
 
-            if self.peek().kind != TokenKind::RightBrace {
-                self.expect(TokenKind::Comma)?;
+            if self.peek().kind != TokenKind::RightBrace && self.peek().kind != TokenKind::Comma {
+                return Err(ExpectedToken(
+                    "comma or '}}'".to_string(),
+                    format!(
+                        "Every field except the last one must be followed by a comma, found '{}'",
+                        self.peek().literal()
+                    ),
+                    self.previous().span.clone(),
+                )
+                .into());
+            } else {
+                self.possible_check(TokenKind::Comma);
             }
         }
 
@@ -506,6 +527,31 @@ impl Parser {
     /// - `Err`: If there is a parsing error.
     pub fn parse_type_annotation(&mut self) -> Result<TypeAnnotation> {
         debug!("Parsing type annotation");
+
+        if self.peek().kind != TokenKind::Colon {
+            return Err(ExpectedToken(
+                "colon and type name".to_string(),
+                format!(
+                    "Expected ':' followed by a type name, found '{}'",
+                    self.peek().literal()
+                ),
+                self.peek().span.clone(),
+            )
+            .into());
+        }
+
+        if self.peek().kind == TokenKind::Colon && self.peek_next().kind != TokenKind::Identifier {
+            return Err(ExpectedToken(
+                "type name".to_string(),
+                format!(
+                    "Expected type name after ':', found '{}'",
+                    self.peek().literal()
+                ),
+                self.peek().span.clone(),
+            )
+            .into());
+        }
+
         let colon = self.expect(TokenKind::Colon)?;
         let (type_name, is_array) = self.parse_type()?;
 

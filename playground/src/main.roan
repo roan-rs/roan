@@ -1,5 +1,8 @@
 /// Struct for string manipulation
-pub struct String {};
+pub struct String {
+    value: string,
+    xd: int
+}
 
 impl String {
     pub fn new() -> string {
