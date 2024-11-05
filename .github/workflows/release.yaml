@@ -41,9 +41,10 @@ jobs:
           - name: linux-amd64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          #          - name: win-amd64
-          #            os: windows-latest
-          #            target: x86_64-pc-windows-msvc
+          # Uncomment if needed
+          # - name: win-amd64
+          #   os: windows-latest
+          #   target: x86_64-pc-windows-msvc
           - name: macos-amd64
             os: macos-latest
             target: x86_64-apple-darwin
@@ -85,7 +86,7 @@ jobs:
       - name: Upload Binary
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}
+          name: ${{ env.BINARIES_DIR }}
           path: ${{ env.BINARIES_DIR }}
 
   release:
@@ -99,14 +100,14 @@ jobs:
       - name: Download Binaries
         uses: actions/download-artifact@v4
         with:
-          name:
+          name: ${{ env.BINARIES_DIR }}
 
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ${{ env.BINARIES_DIR }}-*
+            ${{ env.BINARIES_DIR }}/*
             CHANGES.md
           tag_name: ${{ github.ref }}
           name: ${{ github.ref }}
@@ -115,3 +116,20 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  core_publish:
+    name: Publish core crates to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Publish core crates
+        run: |
+          for crate_dir in core/*; do
+            if [ -f "$crate_dir/Cargo.toml" ]; then
+              cd "$crate_dir"
+              cargo publish --token "${{ secrets.CRATES_IO_TOKEN }}" || echo "Skipping: already published"
+              cd -
+            fi
+          done
