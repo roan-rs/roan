@@ -1,0 +1,12 @@
+{
+  "installation": {
+    "version": "20.0.8",
+    "plugins": {}
+  },
+  "release": {
+    "projects": [
+      "core/*",
+      "cli"
+    ]
+  }
+}
