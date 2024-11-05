@@ -28,7 +28,7 @@ jobs:
           config: cliff.toml
           args: -vv --latest --strip header
         env:
-          OUTPUT: CHANGES.md
+          OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
 
   build:
@@ -117,10 +117,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release_binaries-*/${{ env.PROJECT_NAME }}-*
-            CHANGES.md
-          tag_name: ${{ github.ref }}
-          name: ${{ github.ref }}
+            ${{ env.BINARIES_DIR }}/*
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: ${{ needs.changelog.outputs.release_body }}
           draft: false
           prerelease: false
