@@ -103,16 +103,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release_binaries-linux-amd64
+          path: ${{ env.BINARIES_DIR }}
 
       - name: Download macOS AMD64 Binaries
         uses: actions/download-artifact@v4
         with:
           name: release_binaries-macos-amd64
+          path: ${{ env.BINARIES_DIR }}
 
       - name: Download macOS ARM64 Binaries
         uses: actions/download-artifact@v4
         with:
           name: release_binaries-macos-arm64
+          path: ${{ env.BINARIES_DIR }}
 
       - name: List contents of release_binaries
         run: ls
