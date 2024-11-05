@@ -81,12 +81,12 @@ jobs:
       - name: Archive Binary
         run: |
           mkdir -p ${{ env.BINARIES_DIR }}
-          cp target/${{ matrix.target }}/release/${{ env.PROJECT_NAME}} ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.name }}
+          cp target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }} ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.name }}
 
       - name: Upload Binary
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BINARIES_DIR }}
+          name: ${{ env.BINARIES_DIR }}-${{ matrix.name }}
           path: ${{ env.BINARIES_DIR }}
 
   release:
@@ -100,14 +100,17 @@ jobs:
       - name: Download Binaries
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.BINARIES_DIR }}
+          name: |
+            ${{ env.BINARIES_DIR }}-linux-amd64
+            ${{ env.BINARIES_DIR }}-macos-amd64
+            ${{ env.BINARIES_DIR }}-macos-arm64
 
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ${{ env.BINARIES_DIR }}/*
+            ${{ env.BINARIES_DIR }}-*/${{ env.PROJECT_NAME }}-*
             CHANGES.md
           tag_name: ${{ github.ref }}
           name: ${{ github.ref }}
