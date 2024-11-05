@@ -112,17 +112,16 @@ jobs:
         with:
           name: release_binaries-macos-arm64
 
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
         with:
-          files: |
-            ${{ env.BINARIES_DIR }}/*
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          body: ${{ needs.changelog.outputs.release_body }}
+          artifacts: "release_binaries/*"
+          bodyFile: "CHANGES.md"
+          tag: "${{ github.ref_name }}"
+          name: "${{ github.ref_name }}"
           draft: false
           prerelease: false
+          allowUpdates: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
