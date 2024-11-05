@@ -208,7 +208,7 @@ impl Module {
                 ) {
                     Ok(_) => Ok(vm.pop().unwrap_or(Value::Void)),
                     Err(e) => {
-                        print_diagnostic(e, Some(def_module.source.content()));
+                        print_diagnostic(&e, Some(def_module.source.content()));
                         std::process::exit(1);
                     }
                 }

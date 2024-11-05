@@ -267,7 +267,7 @@ impl Module {
         match loaded_module.parse() {
             Ok(_) => {}
             Err(e) => {
-                print_diagnostic(e, Some(loaded_module.source().content()));
+                print_diagnostic(&e, Some(loaded_module.source().content()));
                 std::process::exit(1);
             }
         }
@@ -275,7 +275,7 @@ impl Module {
         match loaded_module.interpret(ctx, vm) {
             Ok(_) => {}
             Err(e) => {
-                print_diagnostic(e, Some(loaded_module.source().content()));
+                print_diagnostic(&e, Some(loaded_module.source().content()));
                 std::process::exit(1);
             }
         }

@@ -131,7 +131,7 @@ impl Diagnostic {
 /// let err = PulseError::SemanticError("Unexpected token".to_string(), span);
 /// print_diagnostic(anyhow::Error::new(err), Some(source_code));
 /// ```
-pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
+pub fn print_diagnostic(err: &anyhow::Error, content: Option<String>) -> Option<()> {
     let pulse_error = err.downcast_ref::<RoanError>();
 
     if let Some(err) = pulse_error {
@@ -144,7 +144,7 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
             for frame in frames {
                 writeln!(buff, "{:?}", frame).expect("Error writing text");
             }
-            return;
+            return Some(());
         }
 
         let diagnostic = match err {
@@ -306,15 +306,14 @@ pub fn print_diagnostic(err: anyhow::Error, content: Option<String>) {
                 hint: None,
                 content,
             },
-            _ => {
-                log::error!("{:?}", err);
-                return;
-            }
+            _ => return None
         };
 
         let mut buff = BufWriter::new(std::io::stderr());
         diagnostic.log_pretty(&mut buff);
+        
+        Some(())
     } else {
-        log::error!("{:?}", err);
+        None
     }
 }

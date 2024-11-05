@@ -1,44 +1,63 @@
-use crate::{cli::opt, context::GlobalContext, pm::entry::InstallEntry};
+use crate::{
+    cli::opt,
+    context::GlobalContext,
+    pm::{
+        packs::{parse_pack, PackVersion},
+        source::PackageSource,
+    },
+};
 use anyhow::Result;
 use clap::{Arg, ArgMatches, Command};
+use itertools::Itertools;
 use std::{error::Error, fs};
 
 pub fn install_cmd() -> Command {
-    Command::new("install").arg(
-        Arg::new("package")
-            .help("The packages to install")
-            .required(false)
-            .num_args(0..256),
-    )
+    Command::new("install")
+        .arg(
+            Arg::new("packs")
+                .value_name("PACK[@<VER>]")
+                .help("Select the package from the given source")
+                .value_parser(parse_pack)
+                .num_args(0..),
+        )
+        .arg(
+            opt("git", "Git URL to install the specified crate from")
+                .value_name("URL")
+                .conflicts_with_all(&["path"]),
+        )
+        .arg(
+            opt("branch", "Branch to use when installing from git")
+                .value_name("BRANCH")
+                .requires("git"),
+        )
+        .arg(
+            opt("tag", "Tag to use when installing from git")
+                .value_name("TAG")
+                .requires("git"),
+        )
+        .arg(
+            opt("rev", "Specific commit to use when installing from git")
+                .value_name("SHA")
+                .requires("git"),
+        )
+        .arg(
+            opt("path", "Filesystem path to local crate to install from")
+                .value_name("PATH")
+                .conflicts_with_all(&["git"]),
+        )
 }
 
 pub async fn install_command(ctx: &mut GlobalContext, matches: &ArgMatches) -> Result<()> {
-    let packages: Vec<String> = matches
-        .get_many::<String>("package")
-        .expect("No packages to install")
-        .map(|s| s.to_string())
-        .collect();
+    let packages = matches
+        .get_many::<PackVersion>("packs")
+        .unwrap_or_default()
+        .cloned()
+        .dedup_by(|a, b| a == b)
+        .collect::<Vec<_>>();
 
-    fs::create_dir_all(ctx.cache_dir()?)?;
-    
-    ctx.load_config()?;
+    let source = PackageSource::from_arg_matches(matches)?;
 
-    for package in packages {
-        let entry = InstallEntry::from_string(package)?;
-
-        match ctx.install(entry).await {
-            Ok(_) => {}
-            Err(err) => {
-                let err_msg = format!("{:?}", err);
-                if let Ok(err) = err.downcast::<octocrab::Error>() {
-                    ctx.shell
-                        .error(format!("{}", err.source().unwrap().to_string()))?;
-                } else {
-                    ctx.shell.error(err_msg)?;
-                }
-            }
-        }
-    }
+    println!("Installing packages: {:?}", packages);
 
     Ok(())
 }

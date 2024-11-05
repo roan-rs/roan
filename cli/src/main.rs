@@ -3,7 +3,8 @@ use crate::{
     context::GlobalContext,
 };
 use anstream::ColorChoice;
-use anyhow::{Ok, Result};
+use anyhow::Result;
+use clap::ArgMatches;
 use cli::cli;
 use commands::run::run_command;
 use logger::setup_tracing;
@@ -27,7 +28,10 @@ pub mod style;
 #[tokio::main]
 async fn main() -> Result<()> {
     setup_panic_handler();
-    let args = cli().try_get_matches()?;
+    let args = cli().try_get_matches().unwrap_or_else(|err| {
+        err.print().expect("Error printing error");
+        exit(1);
+    });
     let verbose = args.get_flag("verbose");
 
     env::set_var("ROAN_LOG", if verbose { "trace" } else { "info" });
@@ -53,15 +57,26 @@ async fn main() -> Result<()> {
     let mut ctx = GlobalContext::default(color_choice)?;
     ctx.verbose = verbose;
 
+    match run_cmd(&mut ctx, cmd).await {
+        Ok(()) => Ok(()),
+        Err(err) => {
+            if let None = print_diagnostic(&err, None) {
+                ctx.shell.error(&format!("{}", err))?;
+            }
+
+            exit(1);
+        }
+    }
+}
+
+pub async fn run_cmd(ctx: &mut GlobalContext, cmd: (&str, &ArgMatches)) -> Result<()> {
     match cmd.0 {
-        "run" => run_command(&mut ctx, cmd.1),
-        "init" => init_command(&mut ctx, cmd.1),
-        "install" => install_command(&mut ctx, cmd.1).await,
+        "run" => run_command(ctx, cmd.1),
+        "init" => init_command(ctx, cmd.1),
+        "install" => install_command(ctx, cmd.1).await,
         _ => {
             cli().print_help()?;
             exit(1);
         }
-    }.ok();
-
-    Ok(())
+    }
 }

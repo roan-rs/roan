@@ -9,6 +9,7 @@ use roan_engine::{
 use std::{
     cell::RefCell,
     fs::{create_dir, read_to_string},
+    process::exit,
     rc::Rc,
 };
 use tracing::debug;
@@ -50,12 +51,12 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
 
     let result: Result<(), anyhow::Error> = {
         let parse_start = std::time::Instant::now();
-        
+
         match module.parse() {
             Ok(..) => {}
             Err(err) => {
-                print_diagnostic(err, Some(content));
-                return Err(anyhow!("Failed to parse"));
+                print_diagnostic(&err, Some(content));
+                exit(1);
             }
         }
 
@@ -72,8 +73,8 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
     match result {
         Ok(_) => {}
         Err(e) => {
-            print_diagnostic(e, Some(content));
-            std::process::exit(1);
+            print_diagnostic(&e, Some(content));
+            exit(1);
         }
     }
 

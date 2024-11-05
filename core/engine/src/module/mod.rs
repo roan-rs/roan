@@ -198,7 +198,7 @@ impl Module {
             match self.interpret_stmt(stmt, ctx, vm) {
                 Ok(_) => {}
                 Err(e) => {
-                    print_diagnostic(e, Some(self.source.content()));
+                    print_diagnostic(&e, Some(self.source.content()));
                     std::process::exit(1);
                 }
             }

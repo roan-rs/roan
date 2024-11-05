@@ -1,7 +1,6 @@
 use crate::{
     config_file::{Dependency, RoanConfig},
     fs::walk_for_file,
-    pm::entry::InstallEntry,
     shell::Shell,
 };
 use anstream::ColorChoice;
@@ -155,129 +154,129 @@ impl GlobalContext {
         Ok(dirs::cache_dir().unwrap().join("roan"))
     }
 
-    pub async fn install(&mut self, entry: InstallEntry) -> Result<()> {
-        let repo = self.octocrab.repos(entry.user(), entry.repo());
-        let repository = repo.get().await?;
-
-        let git_ref = match (entry.branch(), entry.tag()) {
-            (Some(branch), None) => &Reference::Branch(branch.to_string()),
-            (None, Some(tag)) => &Reference::Tag(tag.to_string()),
-            (None, None) => {
-                let branch = repository.default_branch.as_deref().unwrap_or("master");
-                &Reference::Branch(branch.to_string())
-            }
-            _ => return Err(anyhow::anyhow!("Both branch and tag are specified")),
-        };
-
-        if let Some(url) = repository.html_url {
-            self.shell.status("Resolved", &url)?;
-        }
-
-        let file_path = entry.file_name();
-        let cache_dest = self.cache_dir()?.join(file_path.clone());
-        debug!("Cache destination: {:?}", cache_dest);
-        let final_dest = self.deps_dir()?.join(entry.repo());
-
-        if cache_dest.exists() {
-            self.shell.status("Using cache", &cache_dest.display())?;
-            self.unpack_tar(cache_dest.clone(), final_dest.clone())?;
-
-            self.update_dependencies(entry)?;
-
-            return Ok(());
-        }
-
-        let mut tarball_stream = repo.download_tarball(git_ref.clone()).await?;
-
-        let mut file = File::create(&cache_dest)?;
-
-        while let Some(next) = tarball_stream.frame().await {
-            let frame = next?;
-            if let Some(chunk) = frame.data_ref() {
-                file.write_all(chunk)?;
-            }
-        }
-
-        self.shell.status("Downloaded", &cache_dest.display())?;
-        self.unpack_tar(cache_dest.clone(), final_dest)?;
-
-        self.update_dependencies(entry)?;
-
-        Ok(())
-    }
-
-    pub fn update_dependencies(&mut self, entry: InstallEntry) -> Result<()> {
-        let config = self.get_config_mut()?;
-
-        let dep = Dependency {
-            github: Some(format!("{}/{}", entry.user(), entry.repo())),
-            version: entry.tag().map(|s| s.to_string()),
-            branch: entry.branch().map(|s| s.to_string()),
-            path: None,
-        };
-
-        if let Some(mut deps) = config.dependencies.clone() {
-            deps.insert(entry.repo().into(), dep);
-            config.dependencies = Some(deps)
-        } else {
-            config.dependencies = Some(HashMap::new());
-
-            config
-                .dependencies
-                .as_mut()
-                .unwrap()
-                .insert(entry.repo().into(), dep);
-        }
-
-        self.config = Some(config.clone());
-        self.update_config()?;
-
-        Ok(())
-    }
-
-    pub fn update_config(&mut self) -> Result<()> {
-        let config = self.get_config()?;
-        let path = self.cwd.clone().join("roan.toml");
-
-        let toml = toml::to_string(&config)?;
-
-        std::fs::write(path, toml)?;
-
-        Ok(())
-    }
-
-    pub fn unpack_tar(&self, path: PathBuf, to: PathBuf) -> Result<()> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-
-        let decompressed = GzDecoder::new(reader);
-        let mut archive = tar::Archive::new(decompressed);
-
-        for entry in archive.entries()? {
-            let mut entry = entry?;
-            let entry_path = entry
-                .path()?
-                .to_path_buf()
-                .components()
-                .skip(1)
-                .collect::<PathBuf>();
-            let dest_path = to.join(entry_path);
-
-            debug!("Unpacking: {:?}", dest_path);
-
-            if let Some(parent) = dest_path.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-
-            #[cfg(target_os = "windows")]
-            if entry.header().entry_type().is_symlink() {
-                debug!("Skipping symlink: {:?}", entry.path()?);
-                continue;
-            }
-
-            entry.unpack(dest_path)?;
-        }
-
-        Ok(())
-    }
+    // pub async fn install(&mut self, entry: InstallEntry) -> Result<()> {
+    //     let repo = self.octocrab.repos(entry.user(), entry.repo());
+    //     let repository = repo.get().await?;
+    //
+    //     let git_ref = match (entry.branch(), entry.tag()) {
+    //         (Some(branch), None) => &Reference::Branch(branch.to_string()),
+    //         (None, Some(tag)) => &Reference::Tag(tag.to_string()),
+    //         (None, None) => {
+    //             let branch = repository.default_branch.as_deref().unwrap_or("master");
+    //             &Reference::Branch(branch.to_string())
+    //         }
+    //         _ => return Err(anyhow::anyhow!("Both branch and tag are specified")),
+    //     };
+    //
+    //     if let Some(url) = repository.html_url {
+    //         self.shell.status("Resolved", &url)?;
+    //     }
+    //
+    //     let file_path = entry.file_name();
+    //     let cache_dest = self.cache_dir()?.join(file_path.clone());
+    //     debug!("Cache destination: {:?}", cache_dest);
+    //     let final_dest = self.deps_dir()?.join(entry.repo());
+    //
+    //     if cache_dest.exists() {
+    //         self.shell.status("Using cache", &cache_dest.display())?;
+    //         self.unpack_tar(cache_dest.clone(), final_dest.clone())?;
+    //
+    //         self.update_dependencies(entry)?;
+    //
+    //         return Ok(());
+    //     }
+    //
+    //     let mut tarball_stream = repo.download_tarball(git_ref.clone()).await?;
+    //
+    //     let mut file = File::create(&cache_dest)?;
+    //
+    //     while let Some(next) = tarball_stream.frame().await {
+    //         let frame = next?;
+    //         if let Some(chunk) = frame.data_ref() {
+    //             file.write_all(chunk)?;
+    //         }
+    //     }
+    //
+    //     self.shell.status("Downloaded", &cache_dest.display())?;
+    //     self.unpack_tar(cache_dest.clone(), final_dest)?;
+    //
+    //     self.update_dependencies(entry)?;
+    //
+    //     Ok(())
+    // }
+    //
+    // pub fn update_dependencies(&mut self, entry: InstallEntry) -> Result<()> {
+    //     let config = self.get_config_mut()?;
+    //
+    //     let dep = Dependency {
+    //         github: Some(format!("{}/{}", entry.user(), entry.repo())),
+    //         version: entry.tag().map(|s| s.to_string()),
+    //         branch: entry.branch().map(|s| s.to_string()),
+    //         path: None,
+    //     };
+    //
+    //     if let Some(mut deps) = config.dependencies.clone() {
+    //         deps.insert(entry.repo().into(), dep);
+    //         config.dependencies = Some(deps)
+    //     } else {
+    //         config.dependencies = Some(HashMap::new());
+    //
+    //         config
+    //             .dependencies
+    //             .as_mut()
+    //             .unwrap()
+    //             .insert(entry.repo().into(), dep);
+    //     }
+    //
+    //     self.config = Some(config.clone());
+    //     self.update_config()?;
+    //
+    //     Ok(())
+    // }
+    //
+    // pub fn update_config(&mut self) -> Result<()> {
+    //     let config = self.get_config()?;
+    //     let path = self.cwd.clone().join("roan.toml");
+    //
+    //     let toml = toml::to_string(&config)?;
+    //
+    //     std::fs::write(path, toml)?;
+    //
+    //     Ok(())
+    // }
+    //
+    // pub fn unpack_tar(&self, path: PathBuf, to: PathBuf) -> Result<()> {
+    //     let file = File::open(path)?;
+    //     let reader = BufReader::new(file);
+    //
+    //     let decompressed = GzDecoder::new(reader);
+    //     let mut archive = tar::Archive::new(decompressed);
+    //
+    //     for entry in archive.entries()? {
+    //         let mut entry = entry?;
+    //         let entry_path = entry
+    //             .path()?
+    //             .to_path_buf()
+    //             .components()
+    //             .skip(1)
+    //             .collect::<PathBuf>();
+    //         let dest_path = to.join(entry_path);
+    //
+    //         debug!("Unpacking: {:?}", dest_path);
+    //
+    //         if let Some(parent) = dest_path.parent() {
+    //             std::fs::create_dir_all(parent)?;
+    //         }
+    //
+    //         #[cfg(target_os = "windows")]
+    //         if entry.header().entry_type().is_symlink() {
+    //             debug!("Skipping symlink: {:?}", entry.path()?);
+    //             continue;
+    //         }
+    //
+    //         entry.unpack(dest_path)?;
+    //     }
+    //
+    //     Ok(())
+    // }
 }
