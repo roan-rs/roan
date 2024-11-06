@@ -197,6 +197,30 @@ jobs:
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
 
+      - name: Import GPG Key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: Set GPG passphrase
+        run: |
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 --edit-key "$GPG_KEY_ID" trust
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Sign Binaries with GPG
+        run: |
+          for dir in release_binaries/*; do
+          if [ -d "$dir" ]; then
+           for bin in "$dir"/*; do
+             if [ -f "$bin" ]; then
+               gpg --batch --yes --armor --output "${bin}.sig" --detach-sig "$bin"
+             fi
+           done
+          fi
+          done
+
       - name: Zip release binaries
         run: |
           for dir in release_binaries/*; do
@@ -210,6 +234,7 @@ jobs:
         with:
           artifacts: |
             release_binaries/*.zip
+            release_binaries/*.sig
           body: ${{ needs.changelog.outputs.release_body }}
           tag: "${{ github.ref_name }}"
           name: "${{ github.ref_name }}"
