@@ -120,6 +120,9 @@ jobs:
       - name: List contents of release_binaries
         run: ls
 
+      - name: Print release body
+        run: echo "${{ needs.changelog.outputs.release_body }}"
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
