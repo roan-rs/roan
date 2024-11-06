@@ -57,10 +57,11 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
+          sudo apt-get update
           if [[ "${{ matrix.build.NAME }}" = *"-musl" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends \
-              --allow-unauthenticated musl-tools
+            sudo apt-get install -y --no-install-recommends musl-tools
+          elif [[ "${{ matrix.build.TARGET }}" = "aarch64-unknown-linux-gnu" ]]; then
+            sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
           fi
 
       - name: Install Rust toolchain
