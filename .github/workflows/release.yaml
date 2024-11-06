@@ -147,8 +147,20 @@ jobs:
             echo "PKG_CONFIG_PATH=$(brew --prefix openssl)/lib/pkgconfig" >> $GITHUB_ENV
           fi
 
-      - name: Build Binary
-        run: cargo build --verbose --locked --release --target ${{ matrix.build.TARGET }} --bin ${{ env.PROJECT_NAME }}
+      - name: Build (linux/macos)
+        if: matrix.build.OS != 'windows-2022'
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --locked --target ${{ matrix.build.TARGET }} --bin ${{ env.PROJECT_NAME }}
+
+      - name: Build (windows)
+        if: matrix.build.OS == 'windows-2022'
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --locked --target ${{ matrix.build.TARGET }} --bin ${{ env.PROJECT_NAME }}
 
       - name: Archive Binary
         run: |
