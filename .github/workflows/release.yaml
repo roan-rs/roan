@@ -170,7 +170,7 @@ jobs:
       - name: Upload Binary
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ env.BINARIES_DIR }}-${{ matrix.build.TARGET }}"
+          name: "${{ matrix.build.TARGET }}"
           path: ${{ env.BINARIES_DIR }}
 
   release:
@@ -183,14 +183,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: List files
+        run: ls
+
+      - name: List uploaded binaries
+        run: ls ${{ env.BINARIES_DIR }}
+
       - name: Download Binaries
         uses: actions/download-artifact@v4
         with:
-          name: release_binaries-*
           path: ${{ env.BINARIES_DIR }}
-
-      - name: List contents of release_binaries
-        run: ls ${{ env.BINARIES_DIR }}
 
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
