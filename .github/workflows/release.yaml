@@ -197,10 +197,19 @@ jobs:
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
 
+      - name: Zip release binaries
+        run: |
+          for dir in release_binaries/*; do
+            if [ -d "$dir" ]; then
+              zip -r "${dir}.zip" "$dir"
+            fi
+          done
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "${{ env.BINARIES_DIR }}/*"
+          artifacts: |
+            release_binaries/*.zip
           body: ${{ needs.changelog.outputs.release_body }}
           tag: "${{ github.ref_name }}"
           name: "${{ github.ref_name }}"
