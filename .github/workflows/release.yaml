@@ -165,11 +165,7 @@ jobs:
       - name: Archive Binary
         run: |
           mkdir -p ${{ env.BINARIES_DIR }}
-          if [[ "${{ matrix.build.OS }}" == "windows-2022" ]]; then
-            cp target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}.exe ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}.exe
-          else
-            cp target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }} ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}
-          fi
+          cp target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}${{ matrix.build.OS == 'windows-2022' && '.exe' || '' }} ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}${{ matrix.build.OS == 'windows-2022' && '.exe' || '' }}
 
       - name: Upload Binary
         uses: actions/upload-artifact@v4
