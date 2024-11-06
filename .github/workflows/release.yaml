@@ -186,13 +186,13 @@ jobs:
       - name: List files
         run: ls
 
-      - name: List uploaded binaries
-        run: ls ${{ env.BINARIES_DIR }}
-
       - name: Download Binaries
         uses: actions/download-artifact@v4
         with:
           path: ${{ env.BINARIES_DIR }}
+
+      - name: List uploaded binaries
+        run: ls ${{ env.BINARIES_DIR }}
 
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
