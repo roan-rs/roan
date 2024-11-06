@@ -91,7 +91,7 @@ jobs:
 
   release:
     name: Create a new release
-    needs: build
+    needs: [ build, changelog ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
