@@ -212,6 +212,9 @@ jobs:
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
 
+      - name: Clean up binaries
+        run: rm -rf binaries
+
       - name: Zip release binaries
         run: |
           for dir in ./binaries/*; do
