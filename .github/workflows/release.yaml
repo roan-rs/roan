@@ -7,7 +7,7 @@ on:
 
 env:
   PROJECT_NAME: roan-cli
-  BINARIES_DIR: ./
+  BINARIES_DIR: binaries
 
 jobs:
   changelog:
