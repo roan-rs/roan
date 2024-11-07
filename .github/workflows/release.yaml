@@ -207,7 +207,7 @@ jobs:
         run: |
           for bin in ${{ env.BINARIES_DIR }}/*; do
             if [ -f "$bin" ]; then
-              gpg --output "${bin}.gpg" --sign "$bin"
+              gpg --batch --yes --default-key "${{ steps.gpg.outputs.fingerprint }}" --output "${bin}.gpg" --sign "$bin"
             fi
           done
 
