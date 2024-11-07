@@ -180,7 +180,6 @@ jobs:
             echo "Copying non-Windows binary: $binary_path"
             cp "$binary_path" "${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}"
           fi
-          tree ${{ env.BINARIES_DIR }}
 
       - name: Upload Binary
         uses: actions/upload-artifact@v4
@@ -205,9 +204,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: binaries
-
-      - name: List uploaded binaries
-        run: tree binaries
 
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
