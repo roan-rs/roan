@@ -203,11 +203,14 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: List GPG Keys
+        run: gpg --list-secret-keys --keyid-format LONG
+
       - name: Sign Binaries with GPG
         run: |
           for bin in ${{ env.BINARIES_DIR }}/*; do
             if [ -f "$bin" ]; then
-              gpg --batch --yes --default-key "${{ steps.gpg.outputs.fingerprint }}" --output "${bin}.gpg" --sign "$bin"
+              gpg --batch --yes --local-user "${{ steps.gpg.outputs.fingerprint }}" --output "${bin}.gpg" --sign "$bin"
             fi
           done
 
