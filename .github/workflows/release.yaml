@@ -196,24 +196,6 @@ jobs:
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
 
-      - id: gpg
-        name: Setup GPG
-        uses: crazy-max/ghaction-import-gpg@v5
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: List GPG Keys
-        run: gpg --list-secret-keys --keyid-format LONG
-
-      - name: Sign Binaries with GPG
-        run: |
-          for bin in ${{ env.BINARIES_DIR }}/*; do
-            if [ -f "$bin" ]; then
-              gpg --batch --yes --local-user "${{ steps.gpg.outputs.fingerprint }}" --output "${bin}.gpg" --sign "$bin"
-            fi
-          done
-
       - name: Zip release binaries
         run: |
           for dir in ./*; do
@@ -222,12 +204,21 @@ jobs:
             fi
           done
 
+      - name: Sign the release
+        if: matrix.build.OS == 'ubuntu-22.04' || matrix.build.OS == 'macos-14'
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode > private.key
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback \
+            --passphrase-fd 0 --import private.key
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback \
+            --passphrase-fd 0 --detach-sign \
+            ${{ matrix.build.TARGET }}.zip
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
             ./*.zip
-            ./*.sig
           body: ${{ needs.changelog.outputs.release_body }}
           tag: "${{ github.ref_name }}"
           name: "${{ github.ref_name }}"
