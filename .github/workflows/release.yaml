@@ -162,6 +162,9 @@ jobs:
           command: build
           args: --release --locked --target ${{ matrix.build.TARGET }} --bin ${{ env.PROJECT_NAME }}
 
+      - name: Create binaries directory
+        run: mkdir -p ${{ env.BINARIES_DIR }}
+
       - name: Archive Binary
         shell: bash
         run: |
