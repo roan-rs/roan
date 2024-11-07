@@ -7,7 +7,7 @@ on:
 
 env:
   PROJECT_NAME: roan-cli
-  BINARIES_DIR: release_binaries
+  BINARIES_DIR: ./
 
 jobs:
   changelog:
@@ -164,7 +164,6 @@ jobs:
 
       - name: Archive Binary
         run: |
-          mkdir -p ${{ env.BINARIES_DIR }}
           cp target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}${{ matrix.build.OS == 'windows-2022' && '.exe' || '' }} ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}${{ matrix.build.OS == 'windows-2022' && '.exe' || '' }}
 
       - name: Upload Binary
@@ -208,13 +207,13 @@ jobs:
         run: |
           for bin in ${{ env.BINARIES_DIR }}/*; do
             if [ -f "$bin" ]; then
-              gpg --batch --yes --detach-sign --armor --output "$bin.sig" "$bin"
+              gpg --output "${bin}.gpg" --sign "$bin"
             fi
           done
 
       - name: Zip release binaries
         run: |
-          for dir in release_binaries/*; do
+          for dir in ./*; do
             if [ -d "$dir" ]; then
               zip -r "${dir}.zip" "$dir"
             fi
@@ -224,8 +223,8 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
-            release_binaries/*.zip
-            release_binaries/*.sig
+            ./*.zip
+            ./*.sig
           body: ${{ needs.changelog.outputs.release_body }}
           tag: "${{ github.ref_name }}"
           name: "${{ github.ref_name }}"
