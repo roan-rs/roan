@@ -164,7 +164,8 @@ jobs:
 
       - name: Archive Binary
         run: |
-          cp target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}${{ matrix.build.OS == 'windows-2022' && '.exe' || '' }} ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}${{ matrix.build.OS == 'windows-2022' && '.exe' || '' }}
+          binary_path="target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}${{ matrix.build.OS == 'windows-2022' && '.exe' || '' }}"
+          cp $binary_path ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}${{ matrix.build.OS == 'windows-2022' && '.exe' || '' }}
 
       - name: Upload Binary
         uses: actions/upload-artifact@v4
@@ -207,12 +208,13 @@ jobs:
       - name: Sign the release
         if: matrix.build.OS == 'ubuntu-22.04' || matrix.build.OS == 'macos-14'
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode > private.key
-          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback \
-            --passphrase-fd 0 --import private.key
-          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback \
-            --passphrase-fd 0 --detach-sign \
-            ${{ matrix.build.TARGET }}.zip
+          for dir in ./*.zip; do
+            echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode > private.key
+            echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback \
+              --passphrase-fd 0 --import private.key
+            echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback \
+              --passphrase-fd 0 --detach-sign "$dir"
+          done
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
