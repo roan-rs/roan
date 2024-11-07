@@ -39,42 +39,42 @@ jobs:
       fail-fast: false
       matrix:
         build:
-          - {
-            NAME: linux-x64-glibc,
-            OS: ubuntu-22.04,
-            TOOLCHAIN: stable,
-            TARGET: x86_64-unknown-linux-gnu,
-          }
-          - {
-            NAME: linux-x64-musl,
-            OS: ubuntu-22.04,
-            TOOLCHAIN: stable,
-            TARGET: x86_64-unknown-linux-musl,
-          }
-          - {
-            NAME: linux-x86-glibc,
-            OS: ubuntu-22.04,
-            TOOLCHAIN: stable,
-            TARGET: i686-unknown-linux-gnu,
-          }
-          - {
-            NAME: linux-x86-musl,
-            OS: ubuntu-22.04,
-            TOOLCHAIN: stable,
-            TARGET: i686-unknown-linux-musl,
-          }
-          - {
-            NAME: linux-arm64-glibc,
-            OS: ubuntu-22.04,
-            TOOLCHAIN: stable,
-            TARGET: aarch64-unknown-linux-gnu,
-          }
-          - {
-            NAME: linux-arm64-musl,
-            OS: ubuntu-22.04,
-            TOOLCHAIN: stable,
-            TARGET: aarch64-unknown-linux-musl,
-          }
+          #          - {
+          #            NAME: linux-x64-glibc,
+          #            OS: ubuntu-22.04,
+          #            TOOLCHAIN: stable,
+          #            TARGET: x86_64-unknown-linux-gnu,
+          #          }
+          #          - {
+          #            NAME: linux-x64-musl,
+          #            OS: ubuntu-22.04,
+          #            TOOLCHAIN: stable,
+          #            TARGET: x86_64-unknown-linux-musl,
+          #          }
+          #          - {
+          #            NAME: linux-x86-glibc,
+          #            OS: ubuntu-22.04,
+          #            TOOLCHAIN: stable,
+          #            TARGET: i686-unknown-linux-gnu,
+          #          }
+          #          - {
+          #            NAME: linux-x86-musl,
+          #            OS: ubuntu-22.04,
+          #            TOOLCHAIN: stable,
+          #            TARGET: i686-unknown-linux-musl,
+          #          }
+          #          - {
+          #            NAME: linux-arm64-glibc,
+          #            OS: ubuntu-22.04,
+          #            TOOLCHAIN: stable,
+          #            TARGET: aarch64-unknown-linux-gnu,
+          #          }
+          #          - {
+          #            NAME: linux-arm64-musl,
+          #            OS: ubuntu-22.04,
+          #            TOOLCHAIN: stable,
+          #            TARGET: aarch64-unknown-linux-musl,
+          #          }
           - {
             NAME: win32-x64-mingw,
             OS: windows-2022,
@@ -99,18 +99,18 @@ jobs:
             TOOLCHAIN: stable,
             TARGET: aarch64-pc-windows-msvc,
           }
-          - {
-            NAME: darwin-x64,
-            OS: macos-14,
-            TOOLCHAIN: stable,
-            TARGET: x86_64-apple-darwin,
-          }
-          - {
-            NAME: darwin-arm64,
-            OS: macos-14,
-            TOOLCHAIN: stable,
-            TARGET: aarch64-apple-darwin,
-          }
+    #          - {
+    #            NAME: darwin-x64,
+    #            OS: macos-14,
+    #            TOOLCHAIN: stable,
+    #            TARGET: x86_64-apple-darwin,
+    #          }
+    #          - {
+    #            NAME: darwin-arm64,
+    #            OS: macos-14,
+    #            TOOLCHAIN: stable,
+    #            TARGET: aarch64-apple-darwin,
+    #          }
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -165,12 +165,17 @@ jobs:
       - name: Archive Binary
         shell: bash
         run: |
+          echo "Target: ${{ matrix.build.TARGET }}"
+          echo "Project: ${{ env.PROJECT_NAME }}"
+          echo "Binary Path: $binary_path"
           if [[ "${{ matrix.build.OS }}" == "windows-2022" ]]; then
             binary_path="target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}.exe"
-            cp $binary_path ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}.exe
+            echo "Copying Windows binary: $binary_path"
+            cp "$binary_path" "${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}.exe"
           else
             binary_path="target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}"
-            cp $binary_path ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}
+            echo "Copying non-Windows binary: $binary_path"
+            cp "$binary_path" "${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}"
           fi
 
       - name: Upload Binary
