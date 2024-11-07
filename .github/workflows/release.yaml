@@ -163,6 +163,7 @@ jobs:
           args: --release --locked --target ${{ matrix.build.TARGET }} --bin ${{ env.PROJECT_NAME }}
 
       - name: Archive Binary
+        shell: bash
         run: |
           if [[ "${{ matrix.build.OS }}" == "windows-2022" ]]; then
             binary_path="target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}.exe"
