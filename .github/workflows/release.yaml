@@ -203,24 +203,24 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
-      - name: Setup GPG
-        uses: crazy-max/ghaction-import-gpg@v5
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Import GPG Key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          export GPG_FINGERPRINT=$(gpg --list-secret-keys --with-colons | grep "^fpr" | head -n1 | cut -d':' -f10)
+          echo "GPG_FINGERPRINT=$GPG_FINGERPRINT" >> $GITHUB_ENV
+
+      - name: Set GPG Key as Default
+        run: |
+          gpg --batch --yes --edit-key "$GPG_FINGERPRINT" trust quit
 
       - name: Sign Binaries with GPG
         run: |
-          for dir in release_binaries/*; do
-          if [ -d "$dir" ]; then
-           for bin in "$dir"/*; do
-             if [ -f "$bin" ]; then
-               gpg --batch --yes --armor --output "${bin}.sig" --detach-sig "$bin"
-             fi
-           done
-          fi
+          for bin in ${{ env.BINARIES_DIR }}/*; do
+            if [ -f "$bin" ]; then
+              gpg --batch --yes --armor --default-key "$GPG_FINGERPRINT" --output "${bin}.sig" --detach-sig "$bin"
+            fi
           done
-
+          
       - name: Zip release binaries
         run: |
           for dir in release_binaries/*; do
