@@ -198,9 +198,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: List files
-        run: ls
-
       - name: Clean up binaries
         run: rm -rf binaries
 
@@ -210,7 +207,7 @@ jobs:
           path: binaries
 
       - name: List uploaded binaries
-        run: ls ${{ env.BINARIES_DIR }}
+        run: tree binaries
 
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
