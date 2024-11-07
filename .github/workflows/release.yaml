@@ -226,7 +226,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
-            ./*.zip
+            ./binaries/*.zip
           body: ${{ needs.changelog.outputs.release_body }}
           tag: "${{ github.ref_name }}"
           name: "${{ github.ref_name }}"
