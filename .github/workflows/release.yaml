@@ -164,9 +164,9 @@ jobs:
 
       - name: Archive Binary
         run: |
-          if [ "${{ matrix.build.OS }}" == "windows-2022" ]; then
-            $binary_path="target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}.exe"
-            Copy-Item $binary_path -Destination "${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}.exe"
+          if [[ "${{ matrix.build.OS }}" == "windows-2022" ]]; then
+            binary_path="target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}.exe"
+            cp $binary_path ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}.exe
           else
             binary_path="target/${{ matrix.build.TARGET }}/release/${{ env.PROJECT_NAME }}"
             cp $binary_path ${{ env.BINARIES_DIR }}/${{ env.PROJECT_NAME }}-${{ matrix.build.TARGET }}
