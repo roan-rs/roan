@@ -201,19 +201,19 @@ jobs:
       - name: List files
         run: ls
 
+      - name: Clean up binaries
+        run: rm -rf binaries
+
       - name: Download Binaries
         uses: actions/download-artifact@v4
         with:
-          path: ${{ env.BINARIES_DIR }}/binaries
+          path: binaries
 
       - name: List uploaded binaries
         run: ls ${{ env.BINARIES_DIR }}
 
       - name: Print release body
         run: echo "${{ needs.changelog.outputs.release_body }}"
-
-      - name: Clean up binaries
-        run: rm -rf binaries
 
       - name: Zip release binaries
         run: |
