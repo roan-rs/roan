@@ -20,19 +20,20 @@ get_processor_architecture() {
     esac
 }
 
-get_detected_architecture() {
-    case "$(get_processor_architecture)" in
-        "x86_64")
-            echo "x86_64"
+# Determine the operating system and choose the correct artifact format
+get_os_artifact_suffix() {
+    case "$(uname -s)" in
+        "Linux")
+            echo "unknown-linux-gnu"
             ;;
-        "i686")
-            echo "i686"
+        "Darwin")
+            echo "apple-darwin"
             ;;
-        "aarch64")
-            echo "aarch64"
+        "MINGW"* | "MSYS"* | "CYGWIN"*)
+            echo "pc-windows-msvc"
             ;;
         *)
-            echo "unknown"
+            echo "unknown-os"
             ;;
     esac
 }
@@ -68,8 +69,15 @@ install_roan() {
     local bin_dir="$roan_dir/bin"
     mkdir -p "$bin_dir"
 
-    local arch=$(get_detected_architecture)
-    local filename="${arch}-unknown-linux-gnu.zip"
+    local arch=$(get_processor_architecture)
+    local os_suffix=$(get_os_artifact_suffix)
+
+    if [[ $arch == "unknown" || $os_suffix == "unknown-os" ]]; then
+        echo "Install Failed - Unsupported architecture or operating system."
+        return 1
+    fi
+
+    local filename="${arch}-${os_suffix}.zip"
     local download_path="$roan_dir/$filename"
 
     # Remove existing executable
@@ -78,7 +86,7 @@ install_roan() {
     fi
 
     # Download and install
-    echo "📦 Downloading Roan $version for $arch..."
+    echo "📦 Downloading Roan $version for $arch-$os_suffix..."
 
     local url="https://github.com/roan-rs/roan/releases/$(
         if [[ $version == "latest" ]]; then
@@ -104,12 +112,12 @@ install_roan() {
     # Extract and setup binary
     if unzip -o "$download_path" -d "$bin_dir"; then
         echo "📚 Unzipped executable to $bin_dir"
-        mv "$bin_dir/roan-cli-${arch}-unknown-linux-gnu" "$bin_dir/roan" || {
+        mv "$bin_dir/roan-cli-${arch}-${os_suffix}" "$bin_dir/roan" || {
             echo "Install Failed - Unable to rename the executable"
             return 1
         }
         rm -f "$download_path"
-        echo "🎉 Successfully installed Roan $version for $arch"
+        echo "🎉 Successfully installed Roan $version for $arch-$os_suffix"
         add_bin_dir_to_path "$bin_dir"
     else
         echo "Install Failed - Unable to unzip $download_path"
