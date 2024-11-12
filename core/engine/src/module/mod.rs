@@ -1,5 +1,6 @@
 use crate::{
     context::Context,
+    interpreter::passes::{imports::ImportPass, resolver::ResolverPass, Pass},
     natives::get_stored_function,
     value::Value,
     vm::{native_fn::NativeFunction, VM},
@@ -102,14 +103,15 @@ pub struct Module {
     pub traits: Vec<TraitDef>,
     pub consts: Vec<StoredConst>,
     pub id: String,
-    pub lex_comments: bool
+    pub lex_comments: bool,
+    pub passes: Vec<Box<dyn Pass>>,
 }
 
 impl Debug for Module {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Module")
             .field("path", &self.path)
-            .field("source", &self.source)
+            // .field("source", &self.source)
             // .field("tokens", &self.tokens)
             // .field("ast", &self.ast)
             // .field("functions", &self.functions)
@@ -146,9 +148,10 @@ impl Module {
             consts: vec![],
             id: Uuid::new_v4().to_string(),
             lex_comments: false,
+            passes: vec![Box::new(ImportPass {}), Box::new(ResolverPass {})],
         }
     }
-    
+
     pub fn set_lex_comments(&mut self, lex_comments: bool) {
         self.lex_comments = lex_comments;
     }
@@ -176,7 +179,7 @@ impl Module {
     /// Parses the module.
     ///
     /// First, the module is lexed into tokens. Then, the tokens are parsed into an AST.
-    pub fn parse(&mut self) -> Result<()> {
+    pub fn parse(&mut self, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         debug!("Parsing module from source");
         let mut lexer = Lexer::new(self.source.clone());
 
@@ -189,6 +192,11 @@ impl Module {
         debug!("Parsing tokens into AST");
         let ast = parser.parse()?;
         self.ast = ast;
+
+        let mut passes = self.passes.clone();
+        for pass in passes.iter_mut() {
+            pass.run(self, ctx, vm)?;
+        }
 
         Ok(())
     }

@@ -73,7 +73,7 @@ impl Context {
     ///
     /// The result of the evaluation.
     pub fn eval(&mut self, module: &mut Module, vm: &mut VM) -> Result<()> {
-        self.parse(module)?;
+        self.parse(module, vm)?;
 
         self.interpret(module, vm)?;
 
@@ -89,8 +89,8 @@ impl Context {
     /// # Returns
     ///
     /// An empty result if successful, otherwise returns an error.
-    pub fn parse(&mut self, module: &mut Module) -> Result<()> {
-        match module.parse() {
+    pub fn parse(&mut self, module: &mut Module, vm: &mut VM) -> Result<()> {
+        match module.parse(self, vm) {
             Ok(_) => Ok(()),
             Err(e) => {
                 print_diagnostic(&e, Some(module.source().content()));

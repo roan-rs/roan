@@ -41,7 +41,7 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
 
     let content = read_to_string(&path)?;
 
-    let mut ctx = Context::builder()
+    let mut ctx = &mut Context::builder()
         .cwd(global.cwd.clone())
         .module_loader(Rc::new(RefCell::new(RoanModuleLoader::new())))
         .build();
@@ -52,7 +52,7 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
     let result: Result<(), anyhow::Error> = {
         let parse_start = std::time::Instant::now();
 
-        match module.parse() {
+        match module.parse(ctx, vm) {
             Ok(..) => {}
             Err(err) => {
                 print_diagnostic(&err, Some(content));
@@ -65,7 +65,7 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
             format!("parsing in {:?}", parse_start.elapsed()),
         )?;
 
-        module.interpret(&mut ctx, vm)?;
+        module.interpret(ctx, vm)?;
 
         Ok(())
     };

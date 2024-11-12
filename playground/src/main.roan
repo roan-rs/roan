@@ -1,19 +1,8 @@
-/// Struct for string manipulation
-pub struct String {
-    value: string,
-    xd: int
+use { base64 } from "std::base64";
+use { println } from "std::debug";
+
+fn main() {
+    println("{}", base64.encode("Hello, World!"));
 }
 
-impl String {
-    pub fn new() -> string {
-        return "";
-    }
-
-    // TODO: refactor this to use match in future
-    pub fn to_bool(s: string) -> bool? {
-        if s == "true" {
-            return true;
-        } else if s == "false" {
-        }
-    }
-}
+main();

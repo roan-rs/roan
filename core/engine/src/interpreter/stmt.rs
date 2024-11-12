@@ -23,8 +23,6 @@ impl Module {
     /// * `ctx` - [`Context`] - The context in which to interpret the statement.
     pub fn interpret_stmt(&mut self, stmt: Stmt, ctx: &mut Context, vm: &mut VM) -> Result<()> {
         match stmt {
-            Stmt::Fn(f) => self.interpret_function(f, ctx)?,
-            Stmt::Use(u) => self.interpret_use(u, ctx, vm)?,
             Stmt::While(while_stmt) => self.interpret_while(while_stmt, ctx, vm)?,
             Stmt::Loop(loop_stmt) => self.interpret_loop(loop_stmt, ctx, vm)?,
             Stmt::Block(block) => self.execute_block(block, ctx, vm)?,
@@ -50,31 +48,7 @@ impl Module {
                     vm.push(Value::Void);
                 }
             }
-            Stmt::Struct(struct_stmt) => self.interpret_struct(struct_stmt, ctx)?,
-            Stmt::TraitDef(trait_stmt) => self.interpret_trait(trait_stmt, ctx)?,
-            Stmt::StructImpl(impl_stmt) => self.interpret_struct_impl(impl_stmt, ctx)?,
-            Stmt::TraitImpl(impl_stmt) => self.interpret_trait_impl(impl_stmt, ctx)?,
-            Stmt::Const(c) => {
-                let def_expr = c.expr.clone();
-                let ident_literal = c.ident.literal();
-                let is_public = c.public;
-
-                self.interpret_expr(&def_expr, ctx, vm)?;
-
-                let val = vm.pop().expect("Expected value on stack");
-
-                let stored_val = StoredConst {
-                    ident: c.ident.clone(),
-                    value: val.clone(),
-                };
-
-                self.consts.push(stored_val.clone());
-
-                if is_public {
-                    self.exports
-                        .push((ident_literal, ExportType::Const(stored_val)));
-                }
-            }
+            _ => {}
         }
 
         Ok(())
@@ -217,98 +191,6 @@ impl Module {
             self.exit_scope();
 
             self.handle_loop_result(result)?
-        }
-
-        Ok(())
-    }
-
-    /// Interpret a function declaration.
-    ///
-    /// # Arguments
-    /// * `function` - [`Fn`] - The function to interpret.
-    /// * `ctx` - [`Context`] - The context in which to interpret the function.
-    pub fn interpret_function(&mut self, function: Fn, ctx: &mut Context) -> Result<()> {
-        debug!("Interpreting function: {}", function.name);
-
-        self.functions.push(StoredFunction::Function {
-            function: function.clone(),
-            defining_module: self.id(),
-        });
-
-        if function.public {
-            self.exports.push((
-                function.name.clone(),
-                ExportType::Function(function.clone()),
-            ));
-        }
-
-        ctx.upsert_module(self.id().clone(), self.clone());
-        Ok(())
-    }
-
-    /// Interpret an use statement.
-    ///
-    /// # Arguments
-    /// * `use_stmt` - [`Use`] - The use statement to interpret.
-    /// * `ctx` - [`Context`] - The context in which to interpret the statement.
-    pub fn interpret_use(&mut self, u: Use, ctx: &mut Context, vm: &mut VM) -> Result<()> {
-        debug!("Interpreting use: {}", u.from.literal());
-
-        let mut loaded_module = ctx
-            .load_module(&self.clone(), remove_surrounding_quotes(&u.from.literal()))
-            .map_err(|err| {
-                FailedToImportModule(
-                    u.from.literal().to_string(),
-                    err.to_string(),
-                    u.from.span.clone(),
-                )
-            })?;
-
-        match loaded_module.parse() {
-            Ok(_) => {}
-            Err(e) => {
-                print_diagnostic(&e, Some(loaded_module.source().content()));
-                std::process::exit(1);
-            }
-        }
-
-        match loaded_module.interpret(ctx, vm) {
-            Ok(_) => {}
-            Err(e) => {
-                print_diagnostic(&e, Some(loaded_module.source().content()));
-                std::process::exit(1);
-            }
-        }
-
-        // Collect the items to import
-        let imported_items: Vec<(String, &Token)> =
-            u.items.iter().map(|i| (i.literal(), i)).collect();
-
-        for (name, item) in imported_items {
-            let export = loaded_module.exports.iter().find(|(n, _)| n == &name);
-
-            if let Some((name, value)) = export {
-                debug!("Importing {} from {}", name, u.from.literal());
-                match value {
-                    ExportType::Function(f) => {
-                        self.functions.push(StoredFunction::Function {
-                            function: f.clone(),
-                            defining_module: loaded_module.id(),
-                        });
-                    }
-                    ExportType::Struct(s) => {
-                        self.structs.push(s.clone());
-                    }
-                    ExportType::Trait(t) => {
-                        self.traits.push(t.clone());
-                    }
-                    ExportType::Const(c) => {
-                        self.consts.push(c.clone());
-                    }
-                }
-            } else {
-                return Err(ImportError(name, item.span.clone()).into());
-            }
         }
 
         Ok(())
