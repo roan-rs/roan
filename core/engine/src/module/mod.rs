@@ -1,6 +1,6 @@
 use crate::{
     context::Context,
-    interpreter::passes::{imports::ImportPass, resolver::ResolverPass, Pass},
+    interpreter::passes::{imports::ImportPass, resolver::ResolverPass, types::TypePass, Pass},
     natives::get_stored_function,
     value::Value,
     vm::{native_fn::NativeFunction, VM},
@@ -148,7 +148,7 @@ impl Module {
             consts: vec![],
             id: Uuid::new_v4().to_string(),
             lex_comments: false,
-            passes: vec![Box::new(ImportPass {}), Box::new(ResolverPass {})],
+            passes: vec![Box::new(ImportPass {}), Box::new(ResolverPass {}), Box::new(TypePass {})],
         }
     }
 

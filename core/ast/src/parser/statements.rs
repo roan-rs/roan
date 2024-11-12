@@ -1,6 +1,6 @@
 use crate::{
-    Block, ElseBlock, FnParam, FunctionType, ParseContext, Parser, Stmt, StructField, Token,
-    TokenKind, TypeAnnotation,
+    Block, ElseBlock, FnParam, ParseContext, Parser, Stmt, StructField, Token, TokenKind,
+    TypeAnnotation,
 };
 use anyhow::Result;
 use colored::Colorize;
@@ -9,10 +9,6 @@ use roan_error::error::RoanError::{
     RestParameterNotLastPosition, SelfParameterCannotBeRest, SelfParameterNotFirst,
 };
 use tracing::debug;
-
-static VALID_TYPE_NAMES: [&str; 8] = [
-    "bool", "int", "float", "string", "void", "anytype", "char", "object",
-];
 
 impl Parser {
     /// Parses a statement from the tokens.
@@ -249,7 +245,7 @@ impl Parser {
         let mut fields: Vec<StructField> = vec![];
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let ident = self.expect(TokenKind::Identifier)?;
-            let type_annotation = self.parse_type_annotation()?;
+            let type_annotation = self.parse_type_annotation(true)?;
             fields.push(StructField {
                 ident,
                 type_annotation,
@@ -505,9 +501,8 @@ impl Parser {
     }
 
     /// Helper method to parse a type with optional array and nullability.
-    fn parse_type(&mut self) -> Result<(Token, bool)> {
+    fn parse_type(&mut self) -> Result<(Token, bool, bool, Vec<TypeAnnotation>)> {
         let type_name = self.expect(TokenKind::Identifier)?;
-        Parser::validate_type_name(type_name.clone())?;
 
         let is_array = if self.peek().kind == TokenKind::LeftBracket {
             self.consume();
@@ -517,7 +512,23 @@ impl Parser {
             false
         };
 
-        Ok((type_name, is_array))
+        let is_generic = if self.peek().kind == TokenKind::LessThan {
+            self.consume();
+            let mut generics = vec![];
+            while self.peek().kind != TokenKind::GreaterThan {
+                let type_annotation = self.parse_type_annotation(false)?;
+                generics.push(type_annotation);
+                if self.peek().kind != TokenKind::GreaterThan {
+                    self.expect(TokenKind::Comma)?;
+                }
+            }
+            self.expect(TokenKind::GreaterThan)?;
+            generics
+        } else {
+            vec![]
+        };
+
+        Ok((type_name, is_array, !is_generic.is_empty(), is_generic))
     }
 
     /// Parses a type annotation following a variable or parameter.
@@ -525,51 +536,46 @@ impl Parser {
     /// # Returns
     /// - `Ok(TypeAnnotation)`: A parsed type annotation.
     /// - `Err`: If there is a parsing error.
-    pub fn parse_type_annotation(&mut self) -> Result<TypeAnnotation> {
+    pub fn parse_type_annotation(&mut self, expect_colon: bool) -> Result<TypeAnnotation> {
         debug!("Parsing type annotation");
 
-        if self.peek().kind != TokenKind::Colon {
-            return Err(ExpectedToken(
-                "colon and type name".to_string(),
-                format!(
-                    "Expected ':' followed by a type name, found '{}'",
-                    self.peek().literal()
-                ),
-                self.peek().span.clone(),
-            )
-            .into());
-        }
+        let colon = if expect_colon {
+            if self.peek().kind != TokenKind::Colon {
+                return Err(ExpectedToken(
+                    "colon and type name".to_string(),
+                    format!(
+                        "Expected ':' followed by a type name, found '{}'",
+                        self.peek().literal()
+                    ),
+                    self.peek().span.clone(),
+                )
+                    .into());
+            }
 
-        if self.peek().kind == TokenKind::Colon && self.peek_next().kind != TokenKind::Identifier {
-            return Err(ExpectedToken(
-                "type name".to_string(),
-                format!(
-                    "Expected type name after ':', found '{}'",
-                    self.peek().literal()
-                ),
-                self.peek().span.clone(),
-            )
-            .into());
-        }
-
-        let colon = self.expect(TokenKind::Colon)?;
-        let (type_name, is_array) = self.parse_type()?;
+            Some(self.expect(TokenKind::Colon)?)
+        } else {
+            None
+        };
+        let (type_name, is_array, is_generic, generics) = self.parse_type()?;
 
         Ok(TypeAnnotation {
             type_name,
             is_array,
             is_nullable: self.is_nullable(),
-            colon,
+            separator: colon,
+            is_generic,
+            generics,
+            module_id: None,
         })
     }
 
     /// Parses the return type of function.
     ///
     /// # Returns
-    /// - `Ok(Some(FunctionType))`: If the return type is parsed.
+    /// - `Ok(Some(TypeAnnotation))`: If the return type is parsed.
     /// - `Ok(None)`: If no return type is provided.
     /// - `Err`: If the syntax is incorrect.
-    pub fn parse_return_type(&mut self) -> Result<Option<FunctionType>> {
+    pub fn parse_return_type(&mut self) -> Result<Option<TypeAnnotation>> {
         debug!("Parsing return type");
 
         if self.peek().kind != TokenKind::Arrow && self.peek().kind != TokenKind::LeftBrace {
@@ -587,37 +593,17 @@ impl Parser {
         }
 
         let arrow = self.consume(); // consume the arrow
-        let (type_name, is_array) = self.parse_type()?;
+        let (type_name, is_array, is_generic, generics) = self.parse_type()?;
 
-        Ok(Some(FunctionType {
+        Ok(Some(TypeAnnotation {
             type_name,
             is_array,
             is_nullable: self.is_nullable(),
-            arrow,
+            separator: Some(arrow),
+            is_generic,
+            generics,
+            module_id: None,
         }))
-    }
-
-    /// Validates if the provided string is valid type name.
-    ///
-    /// # Returns
-    /// - `Ok(())`: If the type name is valid.
-    /// - `Err`: If the type name is invalid.
-    pub fn validate_type_name(token: Token) -> Result<()> {
-        let name = token.literal();
-
-        debug!("Validating type name: {}", name);
-
-        if !VALID_TYPE_NAMES.contains(&&*name) {
-            debug!("Invalid type name: {}", name);
-            return Err(InvalidType(
-                name.cyan().to_string(),
-                VALID_TYPE_NAMES.join(", "),
-                token.span.clone(),
-            )
-            .into());
-        }
-
-        Ok(())
     }
 
     /// Parses a block of statements enclosed by curly braces `{}`.

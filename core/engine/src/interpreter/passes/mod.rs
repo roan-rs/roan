@@ -1,10 +1,10 @@
 pub mod imports;
 pub mod resolver;
+pub mod types;
 
-use crate::{context::Context, module::Module};
+use crate::{context::Context, module::Module, vm::VM};
 use dyn_clone::{clone_trait_object, DynClone};
 use roan_ast::Stmt;
-use crate::vm::VM;
 
 pub trait Pass: DynClone {
     fn run(&mut self, module: &mut Module, ctx: &mut Context, vm: &mut VM) -> anyhow::Result<()> {

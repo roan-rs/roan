@@ -283,7 +283,7 @@ impl Stmt {
         params: Vec<FnParam>,
         body: Block,
         public: bool,
-        return_type: Option<FunctionType>,
+        return_type: Option<TypeAnnotation>,
         is_static: bool,
     ) -> Self {
         Stmt::Fn(Fn {
@@ -553,14 +553,20 @@ impl FnParam {
 /// A type annotation consists of a colon and the type name.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeAnnotation {
-    /// The token representing the colon (`:`) in the type annotation.
-    pub colon: Token,
+    /// The token representing the colon (`:`) or arrow (`->`) separator.
+    pub separator: Option<Token>,
     /// The token representing the type name.
     pub type_name: Token,
     /// Is this type an array?
     pub is_array: bool,
     /// Is nullable?
     pub is_nullable: bool,
+    /// Stores id to module for type
+    pub module_id: Option<String>,
+    /// Is generic?
+    pub is_generic: bool,
+    /// Generic type name
+    pub generics: Vec<TypeAnnotation>,
 }
 
 impl TypeAnnotation {
@@ -571,42 +577,10 @@ impl TypeAnnotation {
 
 impl GetSpan for TypeAnnotation {
     fn span(&self) -> TextSpan {
-        TextSpan::combine(vec![self.colon.span.clone(), self.type_name.span.clone()]).unwrap()
-    }
-}
-
-/// Represents a function type annotation in the AST.
-///
-/// A function type includes an arrow (`->`) and the return type.
-#[derive(Debug, Clone, PartialEq)]
-pub struct FunctionType {
-    /// The token representing the arrow (`->`) in the function type.
-    pub arrow: Token,
-    /// The token representing the return type.
-    pub type_name: Token,
-    /// Is this type an array?
-    pub is_array: bool,
-    /// Is nullable?
-    pub is_nullable: bool,
-}
-
-impl FunctionType {
-    /// Creates a new function type annotation.
-    ///
-    /// # Arguments
-    ///
-    /// * `arrow` - The token representing the arrow (`->`).
-    /// * `type_name` - The token representing the return type.
-    ///
-    /// # Returns
-    ///
-    /// A new `FunctionType` instance.
-    pub fn new(arrow: Token, type_name: Token, is_array: bool, is_nullable: bool) -> Self {
-        Self {
-            arrow,
-            type_name,
-            is_array,
-            is_nullable,
+        if let Some(separator) = &self.separator {
+            TextSpan::combine(vec![separator.span.clone(), self.type_name.span.clone()]).unwrap()
+        } else {
+            self.type_name.span.clone()
         }
     }
 }
@@ -627,7 +601,7 @@ pub struct Fn {
     /// Indicates whether the function is public.
     pub public: bool,
     /// An optional return type annotation.
-    pub return_type: Option<FunctionType>,
+    pub return_type: Option<TypeAnnotation>,
     /// Indicates whether the function is static.
     pub is_static: bool,
 }

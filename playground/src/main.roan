@@ -1,8 +1,8 @@
-use { base64 } from "std::base64";
-use { println } from "std::debug";
+fn test(x: Name<string>) {
+    println("{}", x);
+}
 
 fn main() {
-    println("{}", base64.encode("Hello, World!"));
 }
 
 main();

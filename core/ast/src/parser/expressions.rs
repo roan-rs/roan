@@ -386,7 +386,7 @@ impl Parser {
     /// - `Ok(None)`: If no type annotation is present.
     pub fn parse_optional_type_annotation(&mut self) -> anyhow::Result<Option<TypeAnnotation>> {
         if self.peek().kind == TokenKind::Colon {
-            Ok(Some(self.parse_type_annotation()?))
+            Ok(Some(self.parse_type_annotation(true)?))
         } else {
             Ok(None)
         }
