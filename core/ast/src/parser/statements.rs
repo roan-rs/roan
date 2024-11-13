@@ -549,17 +549,18 @@ impl Parser {
                     ),
                     self.peek().span.clone(),
                 )
-                    .into());
+                .into());
             }
 
             Some(self.expect(TokenKind::Colon)?)
         } else {
             None
         };
-        let (type_name, is_array, is_generic, generics) = self.parse_type()?;
+        let (token, is_array, is_generic, generics) = self.parse_type()?;
 
         Ok(TypeAnnotation {
-            type_name,
+            token_name: Some(token.clone()),
+            type_name: token.literal(),
             is_array,
             is_nullable: self.is_nullable(),
             separator: colon,
@@ -593,10 +594,11 @@ impl Parser {
         }
 
         let arrow = self.consume(); // consume the arrow
-        let (type_name, is_array, is_generic, generics) = self.parse_type()?;
+        let (token, is_array, is_generic, generics) = self.parse_type()?;
 
         Ok(Some(TypeAnnotation {
-            type_name,
+            token_name: Some(token.clone()),
+            type_name: token.literal(),
             is_array,
             is_nullable: self.is_nullable(),
             separator: Some(arrow),
@@ -678,7 +680,7 @@ impl Parser {
                     }
                 }
 
-                let type_annotation = self.parse_optional_type_annotation()?;
+                let type_annotation = self.parse_type_annotation(true)?;
 
                 if has_rest_param && self.peek().kind != TokenKind::RightParen {
                     return Err(RestParameterNotLastPosition(param.span.clone()).into());

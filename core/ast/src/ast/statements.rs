@@ -141,8 +141,22 @@ pub struct Let {
     pub ident: Token,
     /// The expression used to initialize the variable.
     pub initializer: Box<Expr>,
-    /// An optional type annotation specifying the type of the variable.
+    /// An optional type annotation specifying the type of the variable. Can be inferred.
     pub type_annotation: Option<TypeAnnotation>,
+}
+
+impl GetSpan for Let {
+    fn span(&self) -> TextSpan {
+        let mut spans = vec![self.ident.span.clone()];
+
+        if let Some(type_annotation) = &self.type_annotation {
+            spans.push(type_annotation.span());
+        }
+
+        spans.push(self.initializer.span());
+
+        TextSpan::combine(spans).unwrap()
+    }
 }
 
 impl From<Expr> for Stmt {
@@ -510,20 +524,14 @@ pub struct FnParam {
     /// The token representing the parameter identifier.
     pub ident: Token,
     /// The type annotation of the parameter.
-    pub type_annotation: Option<TypeAnnotation>,
+    pub type_annotation: TypeAnnotation,
     /// Indicates whether the parameter is a rest parameter.
     pub is_rest: bool,
 }
 
 impl GetSpan for FnParam {
     fn span(&self) -> TextSpan {
-        let mut span = vec![self.ident.span.clone()];
-
-        if let Some(type_annotation) = &self.type_annotation {
-            span.push(type_annotation.span());
-        }
-
-        TextSpan::combine(span).unwrap()
+        TextSpan::combine(vec![self.ident.span.clone(), self.type_annotation.span()]).unwrap()
     }
 }
 
@@ -539,7 +547,7 @@ impl FnParam {
     /// # Returns
     ///
     /// A new `FnParam` instance.
-    pub fn new(ident: Token, type_annotation: Option<TypeAnnotation>, is_rest: bool) -> Self {
+    pub fn new(ident: Token, type_annotation: TypeAnnotation, is_rest: bool) -> Self {
         Self {
             ident,
             type_annotation,
@@ -556,7 +564,9 @@ pub struct TypeAnnotation {
     /// The token representing the colon (`:`) or arrow (`->`) separator.
     pub separator: Option<Token>,
     /// The token representing the type name.
-    pub type_name: Token,
+    pub token_name: Option<Token>,
+    /// Type name
+    pub type_name: String,
     /// Is this type an array?
     pub is_array: bool,
     /// Is nullable?
@@ -571,17 +581,37 @@ pub struct TypeAnnotation {
 
 impl TypeAnnotation {
     pub fn is_any(&self) -> bool {
-        self.type_name.literal() == "anytype"
+        self.type_name == "anytype"
+    }
+
+    pub fn is_generic(&self, generic: &str, args: Vec<&str>) -> bool {
+        let generics_names = self
+            .generics
+            .iter()
+            .map(|g| g.type_name.as_str())
+            .collect::<Vec<&str>>();
+
+        self.is_generic && self.type_name == generic && generics_names == args
     }
 }
 
 impl GetSpan for TypeAnnotation {
     fn span(&self) -> TextSpan {
-        if let Some(separator) = &self.separator {
-            TextSpan::combine(vec![separator.span.clone(), self.type_name.span.clone()]).unwrap()
-        } else {
-            self.type_name.span.clone()
+        let mut spans = vec![];
+
+        if let Some(token) = &self.separator {
+            spans.push(token.span.clone());
         }
+
+        if let Some(token) = &self.token_name {
+            spans.push(token.span.clone());
+        }
+
+        for generic in &self.generics {
+            spans.push(generic.span());
+        }
+
+        TextSpan::combine(spans).unwrap()
     }
 }
 

@@ -3,6 +3,10 @@ fn test(x: Name<string>) {
 }
 
 fn main() {
+    let x = true then "dwa" else "daw";
+
+    let vec: vec<anytype> = [1, 2, 3, 4, "daw"];
+    let obj: object<anytype> = { "name": "roan", "age": 18 };
 }
 
 main();

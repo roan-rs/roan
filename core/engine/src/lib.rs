@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 #[allow(unused_mut)]
 extern crate core;
 

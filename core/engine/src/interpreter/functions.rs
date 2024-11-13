@@ -75,71 +75,66 @@ impl Module {
                     if expr.is_none() {
                         def_module.declare_variable(ident, Value::Vec(rest));
                     } else {
-                        if let Some(_type) = param.type_annotation.as_ref() {
-                            for arg in &rest {
-                                if _type.is_any() {
-                                    continue;
-                                };
+                        let _type = param.type_annotation.clone();
 
-                                arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
-                            }
+                        for arg in &rest {
+                            if _type.is_any() {
+                                continue;
+                            };
+
+                            arg.check_type(&_type.type_name, expr.unwrap().clone())?;
                         }
 
                         def_module.declare_variable(ident, Value::Vec(rest));
                     }
                 } else {
-                    if let Some(_type) = param.type_annotation.as_ref() {
-                        if arg.is_null() && _type.is_nullable {
-                            def_module.declare_variable(ident, Value::Null);
-                            continue;
-                        }
+                    let _type = param.type_annotation.clone();
 
-                        if expr.is_none() {
-                            return Err(MissingParameter(ident.clone(), call.span()).into());
-                        }
+                    if arg.is_null() && _type.is_nullable {
+                        def_module.declare_variable(ident, Value::Null);
+                        continue;
+                    }
 
-                        if arg.is_null() && !_type.is_nullable {
-                            return Err(TypeMismatch(
-                                format!("Expected type {} but got null", _type.type_name.literal()),
-                                expr.unwrap().clone(),
-                            )
-                            .into());
-                        }
+                    if expr.is_none() {
+                        return Err(MissingParameter(ident.clone(), call.span()).into());
+                    }
 
-                        if _type.is_array {
-                            match arg {
-                                Value::Vec(vec) => {
-                                    for arg in vec {
-                                        if _type.is_any() {
-                                            continue;
-                                        };
+                    if arg.is_null() && !_type.is_nullable {
+                        return Err(TypeMismatch(
+                            format!("Expected type {} but got null", _type.type_name),
+                            expr.unwrap().clone(),
+                        )
+                        .into());
+                    }
 
-                                        arg.check_type(
-                                            &_type.type_name.literal(),
-                                            expr.unwrap().clone(),
-                                        )?;
-                                    }
-                                    def_module.declare_variable(ident.clone(), arg.clone());
+                    if _type.is_array {
+                        match arg {
+                            Value::Vec(vec) => {
+                                for arg in vec {
+                                    if _type.is_any() {
+                                        continue;
+                                    };
+
+                                    arg.check_type(&_type.type_name, expr.unwrap().clone())?;
                                 }
-                                _ => {
-                                    return Err(TypeMismatch(
-                                        format!(
-                                            "Expected array type {} but got {}",
-                                            _type.type_name.literal(),
-                                            arg.type_name()
-                                        ),
-                                        expr.unwrap().clone(),
-                                    )
-                                    .into());
-                                }
+                                def_module.declare_variable(ident.clone(), arg.clone());
                             }
-                        } else {
-                            if arg.is_null() && !_type.is_nullable && !_type.is_any() {
-                                arg.check_type(&_type.type_name.literal(), expr.unwrap().clone())?;
+                            _ => {
+                                return Err(TypeMismatch(
+                                    format!(
+                                        "Expected array type {} but got {}",
+                                        _type.type_name,
+                                        arg.type_name()
+                                    ),
+                                    expr.unwrap().clone(),
+                                )
+                                .into());
                             }
-                            def_module.declare_variable(ident, arg.clone());
                         }
                     } else {
+                        if arg.is_null() && !_type.is_nullable && !_type.is_any() {
+                            arg.check_type(&_type.type_name, expr.unwrap().clone())?;
+                        }
                         def_module.declare_variable(ident, arg.clone());
                     }
                 }

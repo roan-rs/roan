@@ -34,7 +34,7 @@ impl Lexer {
     /// use roan_ast::source::Source;
     /// let source = Source::from_string("let x = 10;".to_string());
     /// let mut lexer = Lexer::new(source);
-    /// let tokens = lexer.lex().expect("Failed to lex source code");
+    /// let tokens = lexer.lex(false).expect("Failed to lex source code");
     ///
     /// assert_eq!(tokens.first().unwrap().kind, TokenKind::Let);
     /// ```
