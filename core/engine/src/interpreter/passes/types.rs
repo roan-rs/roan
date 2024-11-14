@@ -1,8 +1,9 @@
 use crate::{context::Context, interpreter::passes::Pass, module::Module, vm::VM};
 use anyhow::Result;
 use colored::Colorize;
-use roan_ast::{Expr, GetSpan, LiteralType, Stmt, TypeAnnotation, UnOpKind};
+use roan_ast::{BinOpKind, Expr, GetSpan, LiteralType, Stmt, TypeAnnotation, UnOpKind};
 use roan_error::error::RoanError::{MissingField, TypeMismatch};
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
 pub struct TypePass;
@@ -43,6 +44,23 @@ pub enum ResolvedType {
     Object(Box<ResolvedType>),
     Vector(Box<ResolvedType>),
     Any,
+}
+
+impl Display for ResolvedType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResolvedType::Int => write!(f, "int"),
+            ResolvedType::Float => write!(f, "float"),
+            ResolvedType::Bool => write!(f, "bool"),
+            ResolvedType::String => write!(f, "string"),
+            ResolvedType::Char => write!(f, "char"),
+            ResolvedType::Struct(name, _) => write!(f, "{}", name),
+            ResolvedType::Null => write!(f, "null"),
+            ResolvedType::Object(t) => write!(f, "object<{}>", t),
+            ResolvedType::Vector(t) => write!(f, "vec<{}>", t),
+            ResolvedType::Any => write!(f, "any"),
+        }
+    }
 }
 
 impl ResolvedType {
@@ -296,7 +314,8 @@ impl TypePass {
                     module.get_struct(&constructor.name, constructor.token.span.clone())?;
 
                 for (name, field) in &struct_type.fields {
-                    let constructor_field = constructor.fields.iter().find(|(n, _)| n.clone() == name);
+                    let constructor_field =
+                        constructor.fields.iter().find(|(n, _)| n.clone() == name);
 
                     if let Some((name, expr)) = constructor_field {
                         let expr_type = self.validate_and_get_type_expr(
@@ -322,11 +341,12 @@ impl TypePass {
                             .into());
                         }
                     } else if !field.type_annotation.is_nullable {
-                         return Err(MissingField(
+                        return Err(MissingField(
                             name.clone().bright_magenta().to_string(),
                             constructor.name.clone().bright_magenta().to_string(),
                             constructor.token.span.clone(),
-                         ).into())
+                        )
+                        .into());
                     }
                 }
 
@@ -335,6 +355,84 @@ impl TypePass {
                     module.id().clone(),
                 ))
             }
+            Expr::Binary(binary) => {
+                let left_type = self.validate_and_get_type_expr(
+                    &binary.left,
+                    module,
+                    ctx,
+                    global_type.clone(),
+                )?;
+                let right_type = self.validate_and_get_type_expr(
+                    &binary.right,
+                    module,
+                    ctx,
+                    global_type.clone(),
+                )?;
+
+                match binary.operator {
+                    _ if binary.operator.is_number_operator() => {
+                        match (left_type.clone(), binary.operator, right_type.clone()) {
+                            (
+                                ResolvedType::String | ResolvedType::Char,
+                                BinOpKind::Plus,
+                                ResolvedType::String | ResolvedType::Char,
+                            ) => Ok(ResolvedType::String),
+                            (ResolvedType::Int, _, ResolvedType::Int) => Ok(ResolvedType::Int),
+                            (ResolvedType::Float, _, ResolvedType::Float) => {
+                                Ok(ResolvedType::Float)
+                            }
+                            (ResolvedType::Int, _, ResolvedType::Float)
+                            | (ResolvedType::Float, _, ResolvedType::Int) => {
+                                Ok(ResolvedType::Float)
+                            }
+                            _ => Err(TypeMismatch(
+                                format!(
+                                    "Invalid binary operation between {} and {}",
+                                    left_type.to_string().bright_magenta(),
+                                    right_type.to_string().bright_magenta()
+                                ),
+                                binary.span().clone(),
+                            )
+                            .into()),
+                        }
+                    }
+                    _ if binary.operator.is_boolean_operator() => {
+                        match (left_type.clone(), binary.operator, right_type.clone()) {
+                            (
+                                ResolvedType::String | ResolvedType::Char,
+                                BinOpKind::Equals,
+                                ResolvedType::String | ResolvedType::Char,
+                            ) => Ok(ResolvedType::Bool),
+                            (ResolvedType::Int, _, ResolvedType::Int) => Ok(ResolvedType::Bool),
+                            (ResolvedType::Float, _, ResolvedType::Float) => Ok(ResolvedType::Bool),
+                            (ResolvedType::Int, _, ResolvedType::Float)
+                            | (ResolvedType::Float, _, ResolvedType::Int) => Ok(ResolvedType::Bool),
+                            (ResolvedType::Bool, _, ResolvedType::Bool) => Ok(ResolvedType::Bool),
+                            (ResolvedType::Null, _, ResolvedType::Null) => Ok(ResolvedType::Bool),
+                            (ResolvedType::Vector(_), _, ResolvedType::Vector(_)) => {
+                                Ok(ResolvedType::Bool)
+                            }
+                            _ => Err(TypeMismatch(
+                                format!(
+                                    "Invalid boolean operation between {} and {}",
+                                    left_type.to_string().bright_magenta(),
+                                    right_type.to_string().bright_magenta()
+                                ),
+                                binary.span().clone(),
+                            )
+                            .into()),
+                        }
+                    }
+                    _ => {
+                        todo!("{:?}", binary)
+                    }
+                }
+            }
+
+            Expr::Assign(assign) => {
+                todo!("{:?}", assign)
+            }
+
             _ => Ok(ResolvedType::Null),
         }
     }

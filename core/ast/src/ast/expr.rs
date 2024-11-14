@@ -84,26 +84,56 @@ pub enum BinOpKind {
     GreaterThan,
     /// Greater-than-or-equal operator (`>=`).
     GreaterThanOrEqual,
+    /// Equality operator (`==`).
+    EqualsEquals,
+    /// Inequality operator (`!=`).
+    BangEquals,
     // Logical operators
     /// Logical AND operator (`&&`).
     And,
     /// Logical OR operator (`||`).
     Or,
-    // Equality operators (duplicated? Consider removing duplicates)
-    /// Equality operator (`==`).
-    EqualsEquals,
-    /// Inequality operator (`!=`).
-    BangEquals,
     // Increment/Decrement operators
     /// Increment operator (`++`).
     Increment,
     /// Decrement operator (`--`).
     Decrement,
-    // Assignment operators
-    /// Subtraction assignment operator (`-=`).
-    MinusEquals,
-    /// Addition assignment operator (`+=`).
-    PlusEquals,
+}
+
+impl BinOpKind {
+    pub fn is_number_operator(&self) -> bool {
+        match self {
+            BinOpKind::Plus
+            | BinOpKind::Minus
+            | BinOpKind::Multiply
+            | BinOpKind::Divide
+            | BinOpKind::Power
+            | BinOpKind::Modulo
+            | BinOpKind::Increment
+            | BinOpKind::Decrement
+            | BinOpKind::BitwiseAnd
+            | BinOpKind::BitwiseOr
+            | BinOpKind::BitwiseXor
+            | BinOpKind::ShiftLeft
+            | BinOpKind::ShiftRight => true,
+            _ => false,
+        }
+    }
+    
+    pub fn is_boolean_operator(&self) -> bool {
+        match self {
+            BinOpKind::Equals
+            | BinOpKind::LessThan
+            | BinOpKind::LessThanOrEqual
+            | BinOpKind::GreaterThan
+            | BinOpKind::GreaterThanOrEqual
+            | BinOpKind::EqualsEquals
+            | BinOpKind::BangEquals
+            | BinOpKind::And
+            | BinOpKind::Or => true,
+            _ => false,
+        }
+    }
 }
 
 /// Represents a binary expression in the AST.
@@ -334,8 +364,6 @@ impl BinOperator {
             BinOpKind::Or => 10,
             // Increment/Decrement operators
             BinOpKind::Increment | BinOpKind::Decrement => 9,
-            // Assignment operators
-            BinOpKind::MinusEquals | BinOpKind::PlusEquals => 8,
         }
     }
 
