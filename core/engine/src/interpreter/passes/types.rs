@@ -1,7 +1,9 @@
 use crate::{context::Context, interpreter::passes::Pass, module::Module, vm::VM};
 use anyhow::Result;
 use colored::Colorize;
-use roan_ast::{BinOpKind, Expr, GetSpan, LiteralType, Stmt, TypeAnnotation, UnOpKind};
+use roan_ast::{
+    AssignOperator, BinOpKind, Expr, GetSpan, LiteralType, Stmt, TypeAnnotation, UnOpKind,
+};
 use roan_error::error::RoanError::{MissingField, TypeMismatch};
 use std::fmt::{Display, Formatter};
 
@@ -428,11 +430,68 @@ impl TypePass {
                     }
                 }
             }
-
             Expr::Assign(assign) => {
-                todo!("{:?}", assign)
-            }
+                let left_type = self.validate_and_get_type_expr(
+                    &assign.left,
+                    module,
+                    ctx,
+                    global_type.clone(),
+                )?;
+                let right_type = self.validate_and_get_type_expr(
+                    &assign.right,
+                    module,
+                    ctx,
+                    global_type.clone(),
+                )?;
 
+                match (left_type.clone(), assign.op.clone(), right_type.clone()) {
+                    (_, AssignOperator::Assign, _) => {
+                        if !ResolvedType::matches(left_type.clone(), right_type.clone()) {
+                            return Err(TypeMismatch(
+                                format!(
+                                    "Cannot assign {} to {}",
+                                    right_type.to_string().bright_magenta(),
+                                    left_type.to_string().bright_magenta()
+                                ),
+                                assign.span().clone(),
+                            )
+                            .into());
+                        } else {
+                            Ok(left_type.clone())
+                        }
+                    }
+                    (
+                        ResolvedType::Int | ResolvedType::Float,
+                        AssignOperator::MultiplyEquals
+                        | AssignOperator::DivideEquals
+                        | AssignOperator::MinusEquals,
+                        ResolvedType::Int | ResolvedType::Float,
+                    ) => Ok(left_type.clone()),
+                    (
+                        ResolvedType::Int
+                        | ResolvedType::Float
+                        | ResolvedType::String
+                        | ResolvedType::Char,
+                        AssignOperator::PlusEquals,
+                        ResolvedType::Int
+                        | ResolvedType::Float
+                        | ResolvedType::String
+                        | ResolvedType::Char,
+                    ) => Ok(left_type.clone()),
+                    _ => {
+                        return Err(TypeMismatch(
+                            format!(
+                                "Invalid {} assignment between {} and {}",
+                                assign.op.to_string().bright_magenta(),
+                                left_type.to_string().bright_magenta(),
+                                right_type.to_string().bright_magenta()
+                            ),
+                            assign.span().clone(),
+                        )
+                        .into());
+                    }
+                }
+            }
             _ => Ok(ResolvedType::Null),
         }
     }

@@ -119,7 +119,7 @@ impl BinOpKind {
             _ => false,
         }
     }
-    
+
     pub fn is_boolean_operator(&self) -> bool {
         match self {
             BinOpKind::Equals
@@ -239,6 +239,19 @@ pub enum AssignOperator {
     DivideEquals,
 }
 
+impl Display for AssignOperator {
+    /// Formats the assignment operator as a string.
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AssignOperator::Assign => write!(f, "="),
+            AssignOperator::PlusEquals => write!(f, "+="),
+            AssignOperator::MinusEquals => write!(f, "-="),
+            AssignOperator::MultiplyEquals => write!(f, "*="),
+            AssignOperator::DivideEquals => write!(f, "/="),
+        }
+    }
+}
+
 impl AssignOperator {
     pub fn from_token_kind(kind: TokenKind) -> Self {
         match kind {
@@ -262,6 +275,15 @@ pub struct Assign {
     pub op: AssignOperator,
     /// The value being assigned.
     pub right: Box<Expr>,
+}
+
+impl GetSpan for Assign {
+    fn span(&self) -> TextSpan {
+        let left = self.left.span();
+        let right = self.right.span();
+
+        TextSpan::combine(vec![left, right]).unwrap()
+    }
 }
 
 /// Enum representing unary operator kinds (e.g., `-`, `~`).

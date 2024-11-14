@@ -17,7 +17,9 @@ fn main() {
     let person = Person { age: 18, name: "roan" };
 
     let legal_drinking_age = 18;
-    let x = 'a' + "b";
+    let x = 18;
+
+    x += 1;
 }
 
 main();
