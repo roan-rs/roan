@@ -149,7 +149,7 @@ impl Module {
             consts: vec![],
             id: Uuid::new_v4().to_string(),
             lex_comments: false,
-            passes: vec![Box::new(ImportPass {}), Box::new(ResolverPass {}), Box::new(TypePass {})],
+            passes: vec![Box::new(ImportPass {}), Box::new(ResolverPass {}), Box::new(TypePass::new())],
         }
     }
 

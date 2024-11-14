@@ -1,14 +1,65 @@
-use crate::{context::Context, interpreter::passes::Pass, module::Module, vm::VM};
+use crate::{context::Context, interpreter::passes::Pass, module::Module, value::Value, vm::VM};
 use anyhow::Result;
 use colored::Colorize;
+use indexmap::IndexMap;
 use roan_ast::{
     AssignOperator, BinOpKind, Expr, GetSpan, LiteralType, Stmt, TypeAnnotation, UnOpKind,
 };
-use roan_error::error::RoanError::{MissingField, TypeMismatch};
-use std::fmt::{Display, Formatter};
+use roan_error::{
+    error::RoanError::{MissingField, TypeMismatch, VariableNotFoundError},
+    TextSpan,
+};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Formatter},
+};
+use tracing::debug;
 
 #[derive(Clone)]
-pub struct TypePass;
+pub struct TypePass {
+    pub scopes: Vec<HashMap<String, ResolvedType>>,
+}
+
+impl TypePass {
+    pub fn new() -> Self {
+        Self {
+            scopes: vec![HashMap::new()],
+        }
+    }
+
+    pub fn enter_scope(&mut self) {
+        self.scopes.push(HashMap::new());
+    }
+
+    pub fn exit_scope(&mut self) {
+        self.scopes.pop();
+    }
+
+    pub fn declare_variable(&mut self, name: String, typ: ResolvedType) {
+        if let Some(current_scope) = self.scopes.last_mut() {
+            current_scope.insert(name, typ);
+        }
+    }
+
+    pub fn set_variable(&mut self, name: &str, val: ResolvedType) -> Result<()> {
+        for scope in self.scopes.iter_mut().rev() {
+            if scope.contains_key(name) {
+                scope.insert(name.to_string(), val);
+                return Ok(());
+            }
+        }
+        Err(VariableNotFoundError(name.to_string(), TextSpan::default()).into())
+    }
+
+    pub fn find_variable(&self, name: &str) -> Option<&ResolvedType> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(val) = scope.get(name) {
+                return Some(val);
+            }
+        }
+        None
+    }
+}
 
 impl Pass for TypePass {
     fn pass_stmt(
@@ -25,7 +76,7 @@ impl Pass for TypePass {
                 }
                 self.validate_function(&mut func, module, ctx)?;
             }
-            _ => {}
+            _ => self.validate_stmt(&stmt, module, ctx)?,
         }
 
         Ok(())
@@ -89,16 +140,31 @@ impl ResolvedType {
     }
 
     pub fn to_type_annotation(&self) -> TypeAnnotation {
+        let generics = match self {
+            ResolvedType::Object(t) | ResolvedType::Vector(t) => vec![t.to_type_annotation()],
+            _ => vec![],
+        };
+
         TypeAnnotation {
             separator: None,
             token_name: None,
-
-            type_name: "".to_string(),
+            type_name: match self {
+                ResolvedType::Int => "int".to_string(),
+                ResolvedType::Float => "float".to_string(),
+                ResolvedType::Bool => "bool".to_string(),
+                ResolvedType::String => "string".to_string(),
+                ResolvedType::Char => "char".to_string(),
+                ResolvedType::Struct(name, _) => name.clone(),
+                ResolvedType::Null => "null".to_string(),
+                ResolvedType::Object(t) => "object".to_string(),
+                ResolvedType::Vector(t) => "vec".to_string(),
+                ResolvedType::Any => "anytype".to_string(),
+            },
             is_array: matches!(self, ResolvedType::Vector(_)),
             is_nullable: false,
             module_id: None,
-            is_generic: false,
-            generics: vec![],
+            is_generic: generics.len() > 0,
+            generics,
         }
     }
 
@@ -146,7 +212,7 @@ impl TypePass {
 
     /// Checks if an annotation is a valid type and if the return statement of a function is valid.
     pub fn validate_function(
-        &self,
+        &mut self,
         func: &mut roan_ast::Fn,
         module: &mut Module,
         ctx: &mut Context,
@@ -492,80 +558,105 @@ impl TypePass {
                     }
                 }
             }
+            Expr::Variable(var) => {
+                if let Some(typ) = self.find_variable(&var.ident) {
+                    Ok(typ.clone())
+                } else {
+                    Err(VariableNotFoundError(var.ident.clone(), var.token.span.clone()).into())
+                }
+            }
             _ => Ok(ResolvedType::Null),
         }
     }
 
+    pub fn validate_stmt(
+        &mut self,
+        stmt: &Stmt,
+        module: &mut Module,
+        ctx: &mut Context,
+    ) -> Result<()> {
+        match stmt {
+            Stmt::Return(ret) if ret.expr.is_some() => {}
+            Stmt::Block(block) => {
+                self.validate_block(&block.stmts, module, ctx)?;
+            }
+            Stmt::If(if_stmt) => {
+                self.validate_block(&if_stmt.then_block.stmts, module, ctx)?;
+
+                if if_stmt.else_ifs.len() > 0 {
+                    for else_if in if_stmt.else_ifs.iter() {
+                        self.validate_block(&else_if.block.stmts, module, ctx)?;
+                    }
+                }
+
+                if let Some(else_branch) = &if_stmt.else_block {
+                    self.validate_block(&else_branch.block.stmts, module, ctx)?;
+                }
+            }
+            Stmt::While(while_stmt) => {
+                self.validate_block(&while_stmt.block.stmts, module, ctx)?;
+            }
+            Stmt::Loop(loop_stmt) => {
+                self.validate_block(&loop_stmt.block.stmts, module, ctx)?;
+            }
+            // We just validate all types of expressions
+            Stmt::Expr(expr) => {
+                self.validate_and_get_type_expr(expr.as_ref(), module, ctx, None)?;
+            }
+            Stmt::Let(let_stmt) => {
+                let mut let_stmt = let_stmt.clone();
+
+                if let Some(mut typ) = let_stmt.type_annotation.clone() {
+                    self.check_type_annotation(&mut typ, module, ctx)?;
+
+                    let mut expr_type = self
+                        .validate_and_get_type_expr(
+                            let_stmt.initializer.as_ref(),
+                            module,
+                            ctx,
+                            Some(typ),
+                        )?
+                        .to_type_annotation();
+
+                    self.check_type_annotation(&mut expr_type, module, ctx)?;
+                } else {
+                    let typ = self
+                        .validate_and_get_type_expr(
+                            let_stmt.initializer.as_ref(),
+                            module,
+                            ctx,
+                            let_stmt.type_annotation,
+                        )?
+                        .to_type_annotation();
+
+                    let mut typ_clone = typ.clone();
+                    self.check_type_annotation(&mut typ_clone, module, ctx)?;
+
+                    let_stmt.type_annotation = Some(typ);
+                }
+
+                self.declare_variable(
+                    let_stmt.ident.literal().clone(),
+                    ResolvedType::from_type_annotation(let_stmt.type_annotation.as_ref().unwrap()),
+                );
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
     pub fn validate_block(
-        &self,
+        &mut self,
         block: &Vec<Stmt>,
         module: &mut Module,
         ctx: &mut Context,
     ) -> Result<()> {
+        self.enter_scope();
         for stmt in block.iter() {
-            match stmt {
-                Stmt::Return(ret) if ret.expr.is_some() => {}
-                Stmt::Block(block) => {
-                    self.validate_block(&block.stmts, module, ctx)?;
-                }
-                Stmt::If(if_stmt) => {
-                    self.validate_block(&if_stmt.then_block.stmts, module, ctx)?;
-
-                    if if_stmt.else_ifs.len() > 0 {
-                        for else_if in if_stmt.else_ifs.iter() {
-                            self.validate_block(&else_if.block.stmts, module, ctx)?;
-                        }
-                    }
-
-                    if let Some(else_branch) = &if_stmt.else_block {
-                        self.validate_block(&else_branch.block.stmts, module, ctx)?;
-                    }
-                }
-                Stmt::While(while_stmt) => {
-                    self.validate_block(&while_stmt.block.stmts, module, ctx)?;
-                }
-                Stmt::Loop(loop_stmt) => {
-                    self.validate_block(&loop_stmt.block.stmts, module, ctx)?;
-                }
-                // We just validate all types of expressions
-                Stmt::Expr(expr) => {
-                    self.validate_and_get_type_expr(expr.as_ref(), module, ctx, None)?;
-                }
-                Stmt::Let(let_stmt) => {
-                    let mut let_stmt = let_stmt.clone();
-
-                    if let Some(mut typ) = let_stmt.type_annotation.clone() {
-                        self.check_type_annotation(&mut typ, module, ctx)?;
-
-                        let mut expr_type = self
-                            .validate_and_get_type_expr(
-                                let_stmt.initializer.as_ref(),
-                                module,
-                                ctx,
-                                Some(typ),
-                            )?
-                            .to_type_annotation();
-
-                        self.check_type_annotation(&mut expr_type, module, ctx)?;
-                    } else {
-                        let typ = self
-                            .validate_and_get_type_expr(
-                                let_stmt.initializer.as_ref(),
-                                module,
-                                ctx,
-                                let_stmt.type_annotation,
-                            )?
-                            .to_type_annotation();
-
-                        let mut typ_clone = typ.clone();
-                        self.check_type_annotation(&mut typ_clone, module, ctx)?;
-
-                        let_stmt.type_annotation = Some(typ);
-                    }
-                }
-                _ => {}
-            }
+            self.validate_stmt(stmt, module, ctx)?;
         }
+        self.exit_scope();
 
         Ok(())
     }
