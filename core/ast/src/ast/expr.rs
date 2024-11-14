@@ -458,7 +458,7 @@ pub struct StructConstructor {
     /// The name of the struct being constructed.
     pub name: String,
     /// The field values for the struct.
-    pub fields: Vec<(String, Expr)>,
+    pub fields: IndexMap<String, Expr>,
     /// The token representing the struct constructor in the source code.
     pub token: Token,
 }
@@ -868,7 +868,11 @@ impl Expr {
     /// # Returns
     ///
     /// A new `Expr::StructConstructor` variant.
-    pub fn new_struct_constructor(name: String, fields: Vec<(String, Expr)>, token: Token) -> Self {
+    pub fn new_struct_constructor(
+        name: String,
+        fields: IndexMap<String, Expr>,
+        token: Token,
+    ) -> Self {
         Expr::StructConstructor(StructConstructor {
             name,
             fields,

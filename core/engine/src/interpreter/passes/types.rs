@@ -1,7 +1,8 @@
 use crate::{context::Context, interpreter::passes::Pass, module::Module, vm::VM};
 use anyhow::Result;
+use colored::Colorize;
 use roan_ast::{Expr, GetSpan, LiteralType, Stmt, TypeAnnotation, UnOpKind};
-use roan_error::error::RoanError::TypeMismatch;
+use roan_error::error::RoanError::{MissingField, TypeMismatch};
 
 #[derive(Clone)]
 pub struct TypePass;
@@ -286,6 +287,54 @@ impl TypePass {
                     Ok(ResolvedType::Bool)
                 }
             },
+            Expr::Null(_) => Ok(ResolvedType::Null),
+            Expr::Parenthesized(expr) => {
+                self.validate_and_get_type_expr(&expr.expr, module, ctx, global_type)
+            }
+            Expr::StructConstructor(constructor) => {
+                let struct_type =
+                    module.get_struct(&constructor.name, constructor.token.span.clone())?;
+
+                for (name, field) in &struct_type.fields {
+                    let constructor_field = constructor.fields.iter().find(|(n, _)| n.clone() == name);
+
+                    if let Some((name, expr)) = constructor_field {
+                        let expr_type = self.validate_and_get_type_expr(
+                            expr,
+                            module,
+                            ctx,
+                            Some(field.type_annotation.clone()),
+                        )?;
+
+                        if !ResolvedType::matches(
+                            expr_type,
+                            ResolvedType::from_type_annotation(&field.type_annotation),
+                        ) {
+                            return Err(TypeMismatch(
+                                format!(
+                                    "Field {} of struct {} must be of type {}",
+                                    name.bright_magenta(),
+                                    constructor.name.bright_magenta(),
+                                    field.type_annotation.type_name.bright_magenta()
+                                ),
+                                expr.span().clone(),
+                            )
+                            .into());
+                        }
+                    } else if !field.type_annotation.is_nullable {
+                         return Err(MissingField(
+                            name.clone().bright_magenta().to_string(),
+                            constructor.name.clone().bright_magenta().to_string(),
+                            constructor.token.span.clone(),
+                         ).into())
+                    }
+                }
+
+                Ok(ResolvedType::Struct(
+                    constructor.name.clone(),
+                    module.id().clone(),
+                ))
+            }
             _ => Ok(ResolvedType::Null),
         }
     }

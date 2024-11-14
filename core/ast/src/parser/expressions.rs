@@ -5,6 +5,7 @@ use crate::{
 use indexmap::IndexMap;
 use roan_error::error::RoanError::{ExpectedToken, UnexpectedToken};
 use tracing::debug;
+use crate::AccessKind::Index;
 
 impl Parser {
     /// Parses any expression, starting with an assignment.
@@ -210,14 +211,14 @@ impl Parser {
     pub fn parse_struct_constructor(&mut self, identifier: Token) -> anyhow::Result<Expr> {
         self.expect_punct(TokenKind::LeftBrace)?;
 
-        let mut fields = vec![];
+        let mut fields = IndexMap::new();
 
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let field_name = self.consume();
             self.expect(TokenKind::Colon)?;
             let field_value = self.parse_expr()?;
 
-            fields.push((field_name.literal(), field_value));
+            fields.insert(field_name.literal(), field_value);
 
             if self.peek().kind != TokenKind::RightBrace {
                 self.expect(TokenKind::Comma)?;

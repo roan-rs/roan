@@ -16,6 +16,7 @@ use std::{
     fmt::Debug,
     path::{Path, PathBuf},
 };
+use indexmap::IndexMap;
 use tracing::debug;
 use uuid::Uuid;
 
@@ -26,7 +27,7 @@ pub struct StoredStruct {
     pub defining_module: String,
     pub struct_token: Token,
     pub name: Token,
-    pub fields: Vec<StructField>,
+    pub fields: IndexMap<String, StructField>,
     pub public: bool,
     pub impls: Vec<StoredImpl>,
     pub trait_impls: Vec<StoredTraitImpl>,

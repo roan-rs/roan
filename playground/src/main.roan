@@ -2,6 +2,11 @@ fn test(x: Name<string>) {
     println("{}", x);
 }
 
+struct Person {
+    age: int,
+    name: string,
+}
+
 fn main() {
     let x = true then "dwa" else "daw";
 
@@ -9,6 +14,7 @@ fn main() {
     let obj: object<anytype> = { "name": "roan", "age": 18 };
 
     let unary_test = !123;
+    let person = Person { age: 18, name: "roan" };
 }
 
 main();

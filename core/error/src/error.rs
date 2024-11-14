@@ -81,6 +81,8 @@ pub enum RoanError {
     MissingParameter(String, TextSpan),
     #[error("Invalid type provided: {0}. Available types: {1}")]
     InvalidType(String, String, TextSpan),
+    #[error("Missing field: {0} required by struct: {1}")]
+    MissingField(String, String, TextSpan),
 }
 
 pub fn get_span_from_err(err: &RoanError) -> Option<TextSpan> {
@@ -106,6 +108,7 @@ pub fn get_span_from_err(err: &RoanError) -> Option<TextSpan> {
         | RoanError::StructAlreadyImplementsTrait(_, _, span)
         | RoanError::ExpectedToken(_, _, span)
         | RoanError::FailedToImportModule(_, _, span)
+        | RoanError::MissingField(_, _, span)
         | RoanError::InvalidType(_, _, span)
         | RoanError::IndexOutOfBounds(_, _, span) => Some(span.clone()),
         RoanError::UndefinedFunctionError(_, span)

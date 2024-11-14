@@ -1,6 +1,8 @@
 use crate::{ast::expr::Expr, GetSpan, Token};
 use roan_error::TextSpan;
 use std::fmt::{Debug, Formatter};
+use std::ops::Index;
+use indexmap::IndexMap;
 
 /// Represents a statement in the AST.
 ///
@@ -56,7 +58,7 @@ pub struct Const {
 pub struct Struct {
     pub struct_token: Token,
     pub name: Token,
-    pub fields: Vec<StructField>,
+    pub fields: IndexMap<String, StructField>,
     pub public: bool,
     pub impls: Vec<StructImpl>,
     pub trait_impls: Vec<TraitImpl>,
@@ -407,7 +409,7 @@ impl Stmt {
     pub fn new_struct(
         struct_token: Token,
         name: Token,
-        fields: Vec<StructField>,
+        fields: IndexMap<String, StructField>,
         public: bool,
     ) -> Self {
         Stmt::Struct(Struct {

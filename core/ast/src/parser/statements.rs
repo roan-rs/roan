@@ -4,6 +4,7 @@ use crate::{
 };
 use anyhow::Result;
 use colored::Colorize;
+use indexmap::IndexMap;
 use roan_error::error::RoanError::{
     ExpectedToken, InvalidType, MultipleRestParameters, MultipleSelfParameters,
     RestParameterNotLastPosition, SelfParameterCannotBeRest, SelfParameterNotFirst,
@@ -242,11 +243,12 @@ impl Parser {
             .into());
         }
 
-        let mut fields: Vec<StructField> = vec![];
+        let mut fields = IndexMap::new();
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let ident = self.expect(TokenKind::Identifier)?;
             let type_annotation = self.parse_type_annotation(true)?;
-            fields.push(StructField {
+            
+            fields.insert(ident.literal(), StructField {
                 ident,
                 type_annotation,
             });

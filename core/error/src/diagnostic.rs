@@ -252,7 +252,7 @@ pub fn print_diagnostic(err: &anyhow::Error, content: Option<String>) -> Option<
             | RoanError::TypeMismatch(_, span)
             | RoanError::InvalidAssignment(_, span)
             | RoanError::MissingParameter(_, span)
-            | RoanError::InvalidUnaryOperation(_, span) => Diagnostic {
+            | RoanError::InvalidUnaryOperation(_, span) | RoanError::MissingField(_, _, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
