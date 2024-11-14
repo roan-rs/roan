@@ -7,6 +7,8 @@ fn main() {
 
     let vec: vec<anytype> = [1, 2, 3, 4, "daw"];
     let obj: object<anytype> = { "name": "roan", "age": 18 };
+
+    let unary_test = !123;
 }
 
 main();

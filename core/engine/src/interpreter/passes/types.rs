@@ -1,6 +1,6 @@
 use crate::{context::Context, interpreter::passes::Pass, module::Module, vm::VM};
 use anyhow::Result;
-use roan_ast::{Expr, GetSpan, LiteralType, Stmt, TypeAnnotation};
+use roan_ast::{Expr, GetSpan, LiteralType, Stmt, TypeAnnotation, UnOpKind};
 use roan_error::error::RoanError::TypeMismatch;
 
 #[derive(Clone)]
@@ -263,6 +263,29 @@ impl TypePass {
                 }
                 Ok(ResolvedType::Vector(Box::new(vec_type)))
             }
+            Expr::Unary(unary) => match unary.operator.kind {
+                UnOpKind::Minus | UnOpKind::BitwiseNot => {
+                    let expr_type =
+                        self.validate_and_get_type_expr(&unary.expr, module, ctx, global_type)?;
+                    if expr_type == ResolvedType::Int || expr_type == ResolvedType::Float {
+                        Ok(expr_type)
+                    } else {
+                        Err(TypeMismatch(
+                            format!(
+                                "Unary operator {} can only be applied to int or float",
+                                unary.operator.kind
+                            ),
+                            unary.span().clone(),
+                        )
+                        .into())
+                    }
+                }
+                UnOpKind::LogicalNot => {
+                    // Validate the expression but do not enforce type checking, allowing null value checks
+                    self.validate_and_get_type_expr(&unary.expr, module, ctx, global_type)?;
+                    Ok(ResolvedType::Bool)
+                }
+            },
             _ => Ok(ResolvedType::Null),
         }
     }
