@@ -247,6 +247,7 @@ pub fn print_diagnostic(err: &anyhow::Error, content: Option<String>) -> Option<
             },
             RoanError::UndefinedFunctionError(_, span)
             | RoanError::VariableNotFoundError(_, span)
+            | RoanError::PropertyAssignmentError(_, span)
             | RoanError::ImportError(_, span)
             | RoanError::PropertyNotFoundError(_, span)
             | RoanError::TypeMismatch(_, span)

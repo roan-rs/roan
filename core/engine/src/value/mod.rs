@@ -48,7 +48,7 @@ pub enum Value {
     Char(char),
     String(String),
     Vec(Vec<Value>),
-    Struct(StoredStruct, HashMap<String, Value>),
+    Struct(StoredStruct, IndexMap<String, Value>),
     Object(IndexMap<String, Value>),
     Null,
     Void,

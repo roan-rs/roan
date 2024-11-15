@@ -19,7 +19,7 @@ fn main() {
     let person = Person::static();
     person.name = "John Doe"; // unimplmeneted
 
-    println("Person: {}", base64.encode(person.name));
+    println("Person: {}", person);
 }
 
 main();

@@ -85,6 +85,8 @@ pub enum RoanError {
     MissingField(String, String, TextSpan),
     #[error("Expected {0} arguments to {1} function, got {2}")]
     TooManyArguments(usize, String, usize, TextSpan),
+    #[error("Attempted to assign value to non existing struct field {0}")]
+    PropertyAssignmentError(String, TextSpan),
 }
 
 pub fn get_span_from_err(err: &RoanError) -> Option<TextSpan> {
@@ -105,6 +107,7 @@ pub fn get_span_from_err(err: &RoanError) -> Option<TextSpan> {
         | RoanError::InvalidEscapeSequence(_, span)
         | RoanError::NonBooleanCondition(_, span)
         | RoanError::StructNotFoundError(_, span)
+        | RoanError::PropertyAssignmentError(_, span)
         | RoanError::TraitNotFoundError(_, span) => Some(span.clone()),
         RoanError::TraitMethodNotImplemented(_, _, span)
         | RoanError::StructAlreadyImplementsTrait(_, _, span)

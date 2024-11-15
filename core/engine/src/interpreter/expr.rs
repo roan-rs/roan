@@ -305,22 +305,38 @@ impl Module {
                         }
                     };
 
+                    let var_name = Self::extract_variable_name(&access.base);
+                    
+                    if var_name.is_none() {
+                        return Err(RoanError::InvalidAssignment(
+                            "Unable to determine variable for assignment".into(),
+                            access.base.span(),
+                        ).into())
+                    }
+                    
+                    let var_name = var_name.unwrap();
+
                     match base_val {
                         Value::Object(mut fields) => {
                             fields.insert(field_name, new_val.clone());
+                            self.set_variable(&var_name, Value::Object(fields))?;
 
-                            if let Some(var_name) = Self::extract_variable_name(&access.base) {
-                                self.set_variable(&var_name, Value::Object(fields))?;
-                                Ok(new_val)
-                            } else {
-                                Err(RoanError::InvalidAssignment(
-                                    "Unable to determine variable for assignment".into(),
-                                    access.base.span(),
-                                )
-                                .into())
-                            }
+                            Ok(new_val)
                         }
-                        Value::Struct(_, _) => todo!("Finish field assignment for struct"),
+                        Value::Struct(def, mut fields) => {
+                            if def.fields.get(&field_name).is_none() {
+                                return Err(RoanError::PropertyAssignmentError(
+                                    field_name,
+                                    access.span(),
+                                )
+                                .into());
+                            }
+
+                            fields.insert(field_name, new_val.clone());
+                            self.set_variable(&var_name, Value::Struct(def, fields))?;
+
+                            Ok(new_val)
+                        }
                         _ => Err(RoanError::TypeMismatch(
                             "Left side of assignment must be a struct or object".into(),
                             access.base.span(),
