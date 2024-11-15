@@ -87,7 +87,7 @@ impl Module {
 
                         Ok(vm.pop().unwrap())
                     }
-                    _ => return Err(StaticContext(expr.span()).into()),
+                    _ => Err(StaticContext(expr.span()).into()),
                 }
             }
         }

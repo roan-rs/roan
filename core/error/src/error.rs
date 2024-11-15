@@ -83,6 +83,8 @@ pub enum RoanError {
     InvalidType(String, String, TextSpan),
     #[error("Missing field: {0} required by struct: {1}")]
     MissingField(String, String, TextSpan),
+    #[error("Expected {0} arguments to {1} function, got {2}")]
+    TooManyArguments(usize, String, usize, TextSpan),
 }
 
 pub fn get_span_from_err(err: &RoanError) -> Option<TextSpan> {
@@ -124,6 +126,7 @@ pub fn get_span_from_err(err: &RoanError) -> Option<TextSpan> {
         | RoanError::InvalidBreakOrContinue(span)
         | RoanError::LoopBreak(span)
         | RoanError::LoopContinue(span) => Some(span.clone()),
+        RoanError::TooManyArguments(_, _, _, span) => Some(span.clone()),
         _ => None,
     }
 }

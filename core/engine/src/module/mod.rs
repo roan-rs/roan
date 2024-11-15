@@ -6,6 +6,7 @@ use crate::{
     vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
+use indexmap::IndexMap;
 use roan_ast::{
     source::Source, Ast, Expr, Fn, Lexer, Parser, StructField, StructImpl, Token, TraitDef,
     TraitImpl,
@@ -16,7 +17,6 @@ use std::{
     fmt::Debug,
     path::{Path, PathBuf},
 };
-use indexmap::IndexMap;
 use tracing::debug;
 use uuid::Uuid;
 
@@ -53,6 +53,10 @@ impl StoredStruct {
     pub fn find_method(&self, name: &str) -> Option<&Fn> {
         self.find_method_internal(name, false)
     }
+
+    pub fn find_field(&self, name: &str) -> Option<&StructField> {
+        self.fields.get(name)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -71,6 +75,7 @@ pub struct StoredTraitImpl {
 pub struct StoredConst {
     pub ident: Token,
     pub value: Value,
+    pub defining_module: String,
 }
 
 #[derive(Debug, Clone)]
@@ -149,7 +154,11 @@ impl Module {
             consts: vec![],
             id: Uuid::new_v4().to_string(),
             lex_comments: false,
-            passes: vec![Box::new(ImportPass {}), Box::new(ResolverPass {}), Box::new(TypePass::new())],
+            passes: vec![
+                Box::new(ImportPass {}),
+                Box::new(ResolverPass {}),
+                Box::new(TypePass::new()),
+            ],
         }
     }
 

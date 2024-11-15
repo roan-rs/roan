@@ -1,11 +1,10 @@
 use crate::{
-    AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, ParseContext, Parser, Stmt,
-    Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
+    AccessKind::Index, AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr,
+    ParseContext, Parser, Stmt, Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
 };
 use indexmap::IndexMap;
 use roan_error::error::RoanError::{ExpectedToken, UnexpectedToken};
 use tracing::debug;
-use crate::AccessKind::Index;
 
 impl Parser {
     /// Parses any expression, starting with an assignment.
@@ -220,9 +219,7 @@ impl Parser {
 
             fields.insert(field_name.literal(), field_value);
 
-            if self.peek().kind != TokenKind::RightBrace {
-                self.expect(TokenKind::Comma)?;
-            }
+            self.possible_check(TokenKind::Comma);
         }
 
         self.expect_punct(TokenKind::RightBrace)?;

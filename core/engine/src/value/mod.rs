@@ -343,7 +343,7 @@ impl Value {
         match self {
             Value::Vec(v) => match index {
                 Value::Int(i) => v.get(i as usize).cloned().unwrap_or(Value::Null),
-                _ => Value::Null,
+                _ => unreachable!("Index must be an integer"),
             },
             Value::String(s) => match index {
                 Value::Int(i) => {
@@ -356,11 +356,11 @@ impl Value {
                             .unwrap_or(Value::Null)
                     }
                 }
-                _ => Value::Null,
+                _ => unreachable!("Index must be an integer"),
             },
             Value::Object(fields) => match index {
                 Value::String(key) => fields.get(&key).cloned().unwrap_or(Value::Null),
-                _ => Value::Null,
+                _ => unreachable!("Object can be only indexed by a string"),
             },
             // TODO: proper error handling
             _ => panic!("Cannot access index of non-indexable value"),

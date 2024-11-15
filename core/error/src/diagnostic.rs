@@ -245,14 +245,15 @@ pub fn print_diagnostic(err: &anyhow::Error, content: Option<String>) -> Option<
                 hint: None,
                 content: None,
             },
-            | RoanError::UndefinedFunctionError(_, span)
+            RoanError::UndefinedFunctionError(_, span)
             | RoanError::VariableNotFoundError(_, span)
             | RoanError::ImportError(_, span)
             | RoanError::PropertyNotFoundError(_, span)
             | RoanError::TypeMismatch(_, span)
             | RoanError::InvalidAssignment(_, span)
             | RoanError::MissingParameter(_, span)
-            | RoanError::InvalidUnaryOperation(_, span) | RoanError::MissingField(_, _, span) => Diagnostic {
+            | RoanError::InvalidUnaryOperation(_, span)
+            | RoanError::MissingField(_, _, span) => Diagnostic {
                 title: err_str,
                 text: None,
                 level: Level::Error,
@@ -278,6 +279,14 @@ pub fn print_diagnostic(err: &anyhow::Error, content: Option<String>) -> Option<
                 hint: Some(
                     "Break and continue statements can only be used inside loops".to_string(),
                 ),
+                content,
+            },
+            RoanError::TooManyArguments(_, _, _, span) => Diagnostic {
+                title: err_str,
+                text: None,
+                level: Level::Error,
+                location: Some(span.clone()),
+                hint: None,
                 content,
             },
             RoanError::InvalidSpread(span) => Diagnostic {
@@ -306,12 +315,12 @@ pub fn print_diagnostic(err: &anyhow::Error, content: Option<String>) -> Option<
                 hint: None,
                 content,
             },
-            _ => return None
+            _ => return None,
         };
 
         let mut buff = BufWriter::new(std::io::stderr());
         diagnostic.log_pretty(&mut buff);
-        
+
         Some(())
     } else {
         None

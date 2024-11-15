@@ -247,11 +247,14 @@ impl Parser {
         while self.peek().kind != TokenKind::RightBrace && !self.is_eof() {
             let ident = self.expect(TokenKind::Identifier)?;
             let type_annotation = self.parse_type_annotation(true)?;
-            
-            fields.insert(ident.literal(), StructField {
-                ident,
-                type_annotation,
-            });
+
+            fields.insert(
+                ident.literal(),
+                StructField {
+                    ident,
+                    type_annotation,
+                },
+            );
 
             if self.peek().kind != TokenKind::RightBrace && self.peek().kind != TokenKind::Comma {
                 return Err(ExpectedToken(
@@ -558,6 +561,7 @@ impl Parser {
         } else {
             None
         };
+
         let (token, is_array, is_generic, generics) = self.parse_type()?;
 
         Ok(TypeAnnotation {
@@ -682,7 +686,20 @@ impl Parser {
                     }
                 }
 
-                let type_annotation = self.parse_type_annotation(true)?;
+                let type_annotation = if param.literal() == "self" {
+                    TypeAnnotation {
+                        token_name: None,
+                        type_name: "self".to_string(),
+                        is_array: false,
+                        is_nullable: false,
+                        separator: None,
+                        is_generic: false,
+                        generics: vec![],
+                        module_id: None,
+                    }
+                } else {
+                    self.parse_type_annotation(true)?
+                };
 
                 if has_rest_param && self.peek().kind != TokenKind::RightParen {
                     return Err(RestParameterNotLastPosition(param.span.clone()).into());

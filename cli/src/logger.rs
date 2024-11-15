@@ -16,6 +16,8 @@ pub fn setup_tracing(verbose: bool) {
         .with_writer(io::stderr)
         .with_timer(ChronoLocal::new(time_format.into()))
         .with_ansi(std::io::IsTerminal::is_terminal(&io::stderr()))
+        .with_line_number(true)
+        .with_file(true)
         .with_target(verbose);
 
     if verbose {

@@ -269,6 +269,7 @@ impl ResolverPass {
         let stored_val = StoredConst {
             ident: c.ident.clone(),
             value: val.clone(),
+            defining_module: module.id(),
         };
 
         module.consts.push(stored_val.clone());
