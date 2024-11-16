@@ -251,7 +251,7 @@ impl TokenKind {
                 | TokenKind::Const
         )
     }
-    
+
     pub fn is_operator(&self) -> bool {
         matches!(
             self,
@@ -286,7 +286,7 @@ impl TokenKind {
                 | TokenKind::QuestionMark
         )
     }
-    
+
     pub fn is_separator(&self) -> bool {
         matches!(
             self,

@@ -306,14 +306,15 @@ impl Module {
                     };
 
                     let var_name = Self::extract_variable_name(&access.base);
-                    
+
                     if var_name.is_none() {
                         return Err(RoanError::InvalidAssignment(
                             "Unable to determine variable for assignment".into(),
                             access.base.span(),
-                        ).into())
+                        )
+                        .into());
                     }
-                    
+
                     let var_name = var_name.unwrap();
 
                     match base_val {

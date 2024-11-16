@@ -1,11 +1,8 @@
 use crate::{cli::opt, context::GlobalContext, module_loader::RoanModuleLoader};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{ArgAction, ArgMatches, Command};
 use colored::Colorize;
-use roan_engine::{
-    context::Context, module::Module, path::canonicalize_path, print_diagnostic, source::Source,
-    vm::VM,
-};
+use roan_engine::{context::Context, module::Module, print_diagnostic, source::Source, vm::VM};
 use std::{
     cell::RefCell,
     fs::{create_dir, read_to_string},
@@ -41,7 +38,7 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
 
     let content = read_to_string(&path)?;
 
-    let mut ctx = &mut Context::builder()
+    let ctx = &mut Context::builder()
         .cwd(global.cwd.clone())
         .module_loader(Rc::new(RefCell::new(RoanModuleLoader::new())))
         .build();

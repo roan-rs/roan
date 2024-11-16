@@ -1,7 +1,4 @@
-use crate::{
-    context::Context,
-    module::{loaders::ident::ModuleIdentifier, Module},
-};
+use crate::{context::Context, module::Module};
 use std::{fmt::Debug, path::PathBuf};
 use tracing::debug;
 
@@ -19,7 +16,7 @@ pub trait ModuleLoader: Debug {
     /// # Arguments
     /// - `name` - The name of the module to insert into the cache.
     /// - `module` - The module to insert into the cache.
-    fn insert(&mut self, name: String, module: Module) {}
+    fn insert(&mut self, _: String, _: Module) {}
 
     /// Get a module from the cache if the loader caches modules.
     ///
@@ -27,7 +24,7 @@ pub trait ModuleLoader: Debug {
     ///
     /// # Arguments
     /// - `name` - The name of the module to get from the cache.
-    fn get(&self, name: &str) -> Option<Module> {
+    fn get(&self, _: &str) -> Option<Module> {
         None
     }
 

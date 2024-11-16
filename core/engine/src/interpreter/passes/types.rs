@@ -18,7 +18,7 @@ use roan_ast::{
 use roan_error::{
     error::RoanError::{
         MissingField, MissingParameter, PropertyNotFoundError, StaticContext, StaticMemberAccess,
-        TooManyArguments, TypeMismatch, UndefinedFunctionError, VariableNotFoundError,
+        TypeMismatch, UndefinedFunctionError, VariableNotFoundError,
     },
     TextSpan,
 };
@@ -26,7 +26,6 @@ use std::{
     collections::HashMap,
     fmt::{Display, Formatter},
 };
-use tracing::debug;
 
 #[derive(Clone)]
 pub struct TypePass {
@@ -80,7 +79,7 @@ impl Pass for TypePass {
         stmt: Stmt,
         module: &mut Module,
         ctx: &mut Context,
-        vm: &mut VM,
+        _: &mut VM,
     ) -> Result<()> {
         self.validate_stmt(&stmt, module, ctx)?;
 
@@ -164,8 +163,8 @@ impl ResolvedType {
                 ResolvedType::Char => "char".to_string(),
                 ResolvedType::Struct(name, _) => name.clone(),
                 ResolvedType::Null => "null".to_string(),
-                ResolvedType::Object(t) => "object".to_string(),
-                ResolvedType::Vector(t) => "vec".to_string(),
+                ResolvedType::Object(_) => "object".to_string(),
+                ResolvedType::Vector(_) => "vec".to_string(),
                 ResolvedType::Any => "anytype".to_string(),
                 ResolvedType::Void => "void".to_string(),
             },
@@ -327,7 +326,7 @@ impl TypePass {
                     .unwrap_or(false);
 
                 let mut obj_type = ResolvedType::Null;
-                for (key, value) in &obj.fields {
+                for (_, value) in &obj.fields {
                     let value_type =
                         self.validate_and_get_type_expr(value, module, ctx, global_type.clone())?;
                     if obj_type == ResolvedType::Null {
@@ -450,7 +449,6 @@ impl TypePass {
                     Ok(ResolvedType::Bool)
                 }
             },
-            Expr::Null(_) => Ok(ResolvedType::Null),
             Expr::Parenthesized(expr) => {
                 self.validate_and_get_type_expr(&expr.expr, module, ctx, global_type)
             }
@@ -459,8 +457,7 @@ impl TypePass {
                     module.get_struct(&constructor.name, constructor.token.span.clone())?;
 
                 for (name, field) in &struct_type.fields {
-                    let constructor_field =
-                        constructor.fields.iter().find(|(n, _)| n.clone() == name);
+                    let constructor_field = constructor.fields.iter().find(|(n, _)| n == &name);
 
                     if let Some((name, expr)) = constructor_field {
                         let expr_type = self.validate_and_get_type_expr(
@@ -709,7 +706,7 @@ impl TypePass {
 
                 let mut arg_index = 0;
 
-                for (i, (param_type, nullable, is_rest)) in param_types.iter().enumerate() {
+                for (param_type, nullable, is_rest) in param_types.iter() {
                     if *is_rest {
                         // Handle rest parameter: All remaining arguments must match the `param_type`
                         while let Some(arg_type) = arg_types.get(arg_index) {
@@ -751,7 +748,7 @@ impl TypePass {
                         }
                     }
                 }
-                let mut typ = &mut typ.unwrap_or_else(|| TypeAnnotation {
+                let typ = &mut typ.unwrap_or_else(|| TypeAnnotation {
                     separator: None,
                     token_name: None,
                     type_name: "void".to_string(),

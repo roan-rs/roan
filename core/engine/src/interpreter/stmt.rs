@@ -1,18 +1,7 @@
-use crate::{
-    context::Context,
-    module::{loaders::remove_surrounding_quotes, ExportType, Module, StoredConst, StoredFunction},
-    value::Value,
-    vm::VM,
-};
+use crate::{context::Context, module::Module, value::Value, vm::VM};
 use anyhow::Result;
-use roan_ast::{Block, Fn, GetSpan, Let, Loop, Stmt, Token, Use, While};
-use roan_error::{
-    error::{
-        RoanError,
-        RoanError::{FailedToImportModule, ImportError, NonBooleanCondition},
-    },
-    print_diagnostic, TextSpan,
-};
+use roan_ast::{Block, GetSpan, Let, Loop, Stmt, While};
+use roan_error::error::{RoanError, RoanError::NonBooleanCondition};
 use tracing::debug;
 
 impl Module {

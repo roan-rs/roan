@@ -59,7 +59,9 @@ impl Lexer {
             let token = self.next_token()?;
 
             if let Some(token) = token {
-                if (token.kind == TokenKind::Comment && !lex_comments) || token.kind == TokenKind::Whitespace {
+                if (token.kind == TokenKind::Comment && !lex_comments)
+                    || token.kind == TokenKind::Whitespace
+                {
                     continue;
                 }
 
@@ -374,7 +376,7 @@ impl Lexer {
 
 /// The type of number.
 #[derive(Debug)]
-enum NumberType {
+pub enum NumberType {
     Integer,
     Float,
 }
@@ -388,7 +390,7 @@ mod tests {
         ($source:expr, $expected:expr) => {{
             let source = Source::from_string($source.to_string());
             let mut lexer = Lexer::new(source);
-            let tokens = lexer.lex().expect("Lexing failed");
+            let tokens = lexer.lex(false).expect("Lexing failed");
             let expected_kinds = $expected;
             let actual_kinds: Vec<TokenKind> = tokens.iter().map(|t| t.kind.clone()).collect();
             assert_eq!(
@@ -601,7 +603,7 @@ mod tests {
     fn test_invalid_escape_sequence() {
         let source = Source::from_string(r#""\z""#.to_string());
         let mut lexer = Lexer::new(source);
-        let result = lexer.lex();
+        let result = lexer.lex(false);
         assert!(
             result.is_err(),
             "Expected an error for invalid escape sequence"
@@ -612,7 +614,7 @@ mod tests {
     fn test_invalid_token() {
         let source = Source::from_string(r#"@@"#.to_string());
         let mut lexer = Lexer::new(source);
-        let result = lexer.lex();
+        let result = lexer.lex(false);
         assert!(result.is_err(), "Expected an error for invalid tokens");
     }
 }

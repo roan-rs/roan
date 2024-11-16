@@ -1,28 +1,10 @@
-use crate::{
-    config_file::{Dependency, RoanConfig},
-    fs::walk_for_file,
-    shell::Shell,
-};
+use crate::{config_file::RoanConfig, fs::walk_for_file, shell::Shell};
 use anstream::ColorChoice;
 use anyhow::{anyhow, bail, Context, Result};
 use colored::Colorize;
-use flate2::read::GzDecoder;
-use http_body_util::BodyExt;
-use octocrab::{
-    models::repos::Object,
-    params::repos::{Commitish, Reference},
-    Octocrab,
-};
-use roan_engine::path::{canonicalize_path, normalize_path, normalize_without_canonicalize};
-use std::{
-    collections::HashMap,
-    fs::{read_to_string, File},
-    io::{BufReader, Cursor, Read, Write},
-    path::PathBuf,
-    sync::Arc,
-    time::Instant,
-};
-use tracing::debug;
+use octocrab::Octocrab;
+use roan_engine::path::{canonicalize_path, normalize_without_canonicalize};
+use std::{fs::read_to_string, path::PathBuf, sync::Arc, time::Instant};
 
 #[derive(Debug)]
 pub struct GlobalContext {

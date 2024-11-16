@@ -2,6 +2,7 @@ use crate::{
     context::Context,
     interpreter::passes::Pass,
     module::{loaders::remove_surrounding_quotes, ExportType, Module, StoredFunction},
+    vm::VM,
 };
 use anyhow::Result;
 use roan_ast::{Stmt, Token};
@@ -10,13 +11,18 @@ use roan_error::{
     print_diagnostic,
 };
 use tracing::debug;
-use crate::vm::VM;
 
 #[derive(Clone)]
 pub struct ImportPass;
 
 impl Pass for ImportPass {
-    fn pass_stmt(&mut self, stmt: Stmt, module: &mut Module, ctx: &mut Context, vm: &mut VM) -> Result<()> {
+    fn pass_stmt(
+        &mut self,
+        stmt: Stmt,
+        module: &mut Module,
+        ctx: &mut Context,
+        vm: &mut VM,
+    ) -> Result<()> {
         match stmt {
             Stmt::Use(u) => {
                 debug!("Interpreting use: {}", u.from.literal());

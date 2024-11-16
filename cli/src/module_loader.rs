@@ -18,6 +18,7 @@ pub struct RoanModuleLoader {
     modules: HashMap<String, Module>,
 }
 
+#[allow(dead_code)]
 impl RoanModuleLoader {
     /// Creates a new [`RoanModuleLoader`] with an empty cache of modules.
     pub fn new() -> Self {

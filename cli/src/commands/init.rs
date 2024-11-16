@@ -1,10 +1,8 @@
 use crate::{
     cli::{opt, positional},
     context::GlobalContext,
-    style::WARN,
 };
-use anstyle::Style;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use clap::{ArgAction, ArgMatches, Command};
 use std::{fmt::Display, fs, process};
 
@@ -186,7 +184,10 @@ fn create_roan_toml(
 
     let mut std_dep = toml_edit::InlineTable::default();
     std_dep.insert("version", toml_edit::value("0.1.0").into_value().unwrap());
-    std_dep.insert("github", toml_edit::value("roan-rs/std").into_value().unwrap());
+    std_dep.insert(
+        "github",
+        toml_edit::value("roan-rs/std").into_value().unwrap(),
+    );
     file["dependencies"]["std"] = toml_edit::Item::Value(toml_edit::Value::InlineTable(std_dep));
 
     let toml = file.to_string();

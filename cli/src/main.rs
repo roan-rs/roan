@@ -11,7 +11,6 @@ use logger::setup_tracing;
 use panic_handler::setup_panic_handler;
 use roan_engine::print_diagnostic;
 use std::{env, process::exit};
-use tracing_subscriber::fmt::format;
 
 pub mod cli;
 pub mod commands;

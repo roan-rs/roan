@@ -49,7 +49,6 @@ impl Shell {
         style: &Style,
         justified: bool,
     ) -> Result<()> {
-        let bold = anstyle::Style::new() | anstyle::Effects::BOLD;
         let dim = anstyle::Style::new() | anstyle::Effects::DIMMED;
 
         let mut buffer = Vec::new();

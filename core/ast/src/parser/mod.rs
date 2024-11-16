@@ -152,7 +152,7 @@ impl Parser {
             )
         })
     }
-    
+
     /// Peeks at the next token without consuming the current one.
     ///
     /// # Returns

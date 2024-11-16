@@ -88,6 +88,7 @@ native_function!(
         panic_any(msg);
 
         // Restore the original hook afterward if needed.
+        #[allow(unreachable_code)]
         panic::set_hook(old_hook);
 
         Value::Void

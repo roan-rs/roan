@@ -9,7 +9,6 @@ use crate::{
 use anyhow::Result;
 use clap::{Arg, ArgMatches, Command};
 use itertools::Itertools;
-use std::{error::Error, fs};
 
 pub fn install_cmd() -> Command {
     Command::new("install")
@@ -47,7 +46,7 @@ pub fn install_cmd() -> Command {
         )
 }
 
-pub async fn install_command(ctx: &mut GlobalContext, matches: &ArgMatches) -> Result<()> {
+pub async fn install_command(_: &mut GlobalContext, matches: &ArgMatches) -> Result<()> {
     let packages = matches
         .get_many::<PackVersion>("packs")
         .unwrap_or_default()
@@ -55,7 +54,7 @@ pub async fn install_command(ctx: &mut GlobalContext, matches: &ArgMatches) -> R
         .dedup_by(|a, b| a == b)
         .collect::<Vec<_>>();
 
-    let source = PackageSource::from_arg_matches(matches)?;
+    let _source = PackageSource::from_arg_matches(matches)?;
 
     println!("Installing packages: {:?}", packages);
 

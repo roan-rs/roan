@@ -8,7 +8,7 @@ use crate::{
 };
 use anyhow::Result;
 use roan_ast::{Const, Stmt, Struct, StructImpl, TraitDef, TraitImpl};
-use roan_error::{error::RoanError, TextSpan};
+use roan_error::error::RoanError;
 use tracing::debug;
 
 #[derive(Clone)]

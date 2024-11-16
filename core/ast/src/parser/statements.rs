@@ -3,11 +3,10 @@ use crate::{
     TypeAnnotation,
 };
 use anyhow::Result;
-use colored::Colorize;
 use indexmap::IndexMap;
 use roan_error::error::RoanError::{
-    ExpectedToken, InvalidType, MultipleRestParameters, MultipleSelfParameters,
-    RestParameterNotLastPosition, SelfParameterCannotBeRest, SelfParameterNotFirst,
+    ExpectedToken, MultipleRestParameters, MultipleSelfParameters, RestParameterNotLastPosition,
+    SelfParameterCannotBeRest, SelfParameterNotFirst,
 };
 use tracing::debug;
 
@@ -156,7 +155,7 @@ impl Parser {
     }
 
     /// Parses a 'pub' keyword (if present) followed by an identifier.
-    pub fn parse_pub(&mut self, expected: TokenKind) -> Result<(Token, bool)> {
+    pub fn parse_pub(&mut self, _: TokenKind) -> Result<(Token, bool)> {
         let mut public = false;
         let token = if self.peek().kind == TokenKind::Pub {
             self.consume();

@@ -6,9 +6,6 @@ set shell := ["bash", "-cu"]
 _default:
     @just --list -u
 
-init:
-    cargo install cargo-shear
-
 ready:
     just fmt
     just check
@@ -18,13 +15,12 @@ ready:
     git status
 
 check:
-    cargo check --workspace --all-features --all-targets --locked
+    cargo check --workspace --all-features --all-targets
 
 test:
     cargo test
 
 fmt:
-    cargo shear --fix
     cargo fmt --all
 
 [unix]

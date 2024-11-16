@@ -5,12 +5,8 @@ use crate::{
     vm::{native_fn::NativeFunction, VM},
 };
 use anyhow::Result;
-use roan_ast::{CallExpr, GetSpan};
-use roan_error::{
-    error::RoanError::{MissingParameter, TypeMismatch, UndefinedFunctionError},
-    frame::Frame,
-    print_diagnostic, TextSpan,
-};
+use roan_ast::CallExpr;
+use roan_error::{error::RoanError::UndefinedFunctionError, frame::Frame, print_diagnostic};
 use tracing::debug;
 
 impl Module {
@@ -35,7 +31,7 @@ impl Module {
         args: Vec<Value>,
         ctx: &mut Context,
         vm: &mut VM,
-        call: &CallExpr,
+        _: &CallExpr,
     ) -> Result<()> {
         debug!("Executing user-defined function: {}", function.name);
 
@@ -43,6 +39,7 @@ impl Module {
 
         let mut offset = 0;
 
+        // TODO: handle rest parameters
         for (param, arg) in function
             .params
             .iter()

@@ -1,8 +1,7 @@
 use crate::{ast::expr::Expr, GetSpan, Token};
+use indexmap::IndexMap;
 use roan_error::TextSpan;
 use std::fmt::{Debug, Formatter};
-use std::ops::Index;
-use indexmap::IndexMap;
 
 /// Represents a statement in the AST.
 ///

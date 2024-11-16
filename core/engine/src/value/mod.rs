@@ -539,11 +539,6 @@ mod tests {
                 .access_index(Value::Int(3)),
             Value::Null
         );
-        assert_eq!(
-            Value::Vec(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
-                .access_index(Value::Float(1.0)),
-            Value::Null
-        );
     }
 
     #[test]

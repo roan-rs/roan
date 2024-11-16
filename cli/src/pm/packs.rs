@@ -1,6 +1,6 @@
-use anyhow::{bail, format_err, Result};
-use semver::{Comparator, Op, VersionReq};
 use crate::pm::semver::version_to_req;
+use anyhow::{bail, format_err, Result};
+use semver::{Op, VersionReq};
 
 pub type PackVersion = (String, Option<VersionReq>);
 

@@ -1,15 +1,14 @@
 use crate::{
     context::Context,
-    module::{ExportType, Module, StoredImpl, StoredStruct, StoredTraitImpl},
+    module::{Module, StoredStruct},
     value::Value,
     vm::VM,
 };
 use anyhow::Result;
-use log::debug;
-use roan_ast::{Struct, StructConstructor, StructImpl, TraitDef, TraitImpl};
-use roan_error::{error::RoanError, TextSpan};
-use std::collections::HashMap;
 use indexmap::IndexMap;
+use log::debug;
+use roan_ast::{StructConstructor, TraitDef};
+use roan_error::{error::RoanError, TextSpan};
 
 impl Module {
     pub fn get_trait(&self, name: &str, span: TextSpan) -> Result<TraitDef> {

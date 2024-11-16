@@ -1,6 +1,6 @@
 use crate::{
-    AccessKind::Index, AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr,
-    ParseContext, Parser, Stmt, Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
+    AssignOperator, BinOpAssociativity, BinOpKind, BinOperator, Expr, ParseContext, Parser, Stmt,
+    Token, TokenKind, TypeAnnotation, UnOpKind, UnOperator,
 };
 use indexmap::IndexMap;
 use roan_error::error::RoanError::{ExpectedToken, UnexpectedToken};
