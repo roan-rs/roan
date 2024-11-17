@@ -1,7 +1,14 @@
 use crate::{error::RoanError, span::TextSpan};
+use anstream::ColorChoice;
+use anyhow::Result;
 use colored::Colorize;
 use log::Level;
-use std::io::{BufWriter, Stderr, Write};
+use roan_shell::Shell;
+use std::{
+    env,
+    io::{BufWriter, Stderr, Write},
+    path::PathBuf,
+};
 
 /// Represents a diagnostic message, which includes information about an error or warning
 /// and can be pretty-printed to the console.
@@ -49,7 +56,12 @@ impl Diagnostic {
     /// let mut buff = BufWriter::new(std::io::stderr());
     /// diagnostic.log_pretty(&mut buff);
     /// ```
-    pub fn log_pretty(&self, buff: &mut BufWriter<Stderr>) {
+    pub fn log_pretty(
+        &self,
+        buff: &mut BufWriter<Stderr>,
+        file: Option<PathBuf>,
+        shell: &mut Shell,
+    ) -> Result<()> {
         writeln!(
             buff,
             "{}{}{}",
@@ -71,7 +83,22 @@ impl Diagnostic {
                 let decoration =
                     "^".repeat(location.end.column as usize - location.start.column as usize);
 
-                writeln!(buff, "{} {}:{}", "--->".cyan(), line_number, column)
+                let (text, link) = if let Some(file) = &file {
+                    let shortened_path = file
+                        .strip_prefix(std::env::current_dir()?)?
+                        .to_string_lossy()
+                        .to_string();
+                    let text = format!("{}:{}:{}", shortened_path, line_number, column);
+                    (
+                        text.clone().bright_magenta().underline().to_string(),
+                        shell.file_link(file.into())?.to_string(),
+                    )
+                } else {
+                    ("".to_string(), "".to_string())
+                };
+                let hyperlink = shell.hyperlink(&link, &text)?;
+
+                writeln!(buff, "{} {}", "--->".cyan(), hyperlink)
                     .expect("Error writing line number");
 
                 if line_number > 1 {
@@ -100,6 +127,8 @@ impl Diagnostic {
         }
 
         self.print_hint(buff);
+
+        Ok(())
     }
 
     /// Prints a hint message (if available) to the provided buffer.
@@ -131,16 +160,22 @@ impl Diagnostic {
 /// let err = PulseError::SemanticError("Unexpected token".to_string(), span);
 /// print_diagnostic(anyhow::Error::new(err), Some(source_code));
 /// ```
-pub fn print_diagnostic(err: &anyhow::Error, content: Option<String>) -> Option<()> {
+pub fn print_diagnostic(
+    err: &anyhow::Error,
+    content: Option<String>,
+    file: Option<PathBuf>,
+) -> Option<()> {
     let pulse_error = err.downcast_ref::<RoanError>();
+    let mut shell = Shell::new(ColorChoice::Auto);
 
     if let Some(err) = pulse_error {
         let err_str = err.to_string();
 
         if let RoanError::Throw(content, frames) = err {
             let mut buff = BufWriter::new(std::io::stderr());
-            write!(buff, "{}{}", "error".bright_red(), ": ".dimmed()).expect("Error writing level");
-            writeln!(buff, "{}", content).expect("Error writing text");
+
+            shell.error(&err_str).expect("Error writing error");
+
             for frame in frames {
                 writeln!(buff, "{:?}", frame).expect("Error writing text");
             }
@@ -320,7 +355,9 @@ pub fn print_diagnostic(err: &anyhow::Error, content: Option<String>) -> Option<
         };
 
         let mut buff = BufWriter::new(std::io::stderr());
-        diagnostic.log_pretty(&mut buff);
+        diagnostic
+            .log_pretty(&mut buff, file, &mut shell)
+            .expect("Error writing diagnostic");
 
         Some(())
     } else {

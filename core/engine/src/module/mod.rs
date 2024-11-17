@@ -137,7 +137,7 @@ impl Module {
     /// - source - The source of the module.
     ///
     /// # Returns
-    /// An `Arc<Mutex<Self>>` containing the new Module.
+    /// An `Module` containing the new Module.
     pub fn new(source: Source) -> Self {
         let path = source.path().as_deref().map(Path::to_path_buf);
 
@@ -216,7 +216,7 @@ impl Module {
             match self.interpret_stmt(stmt, ctx, vm) {
                 Ok(_) => {}
                 Err(e) => {
-                    print_diagnostic(&e, Some(self.source.content()));
+                    print_diagnostic(&e, Some(self.source.content()), self.path());
                     std::process::exit(1);
                 }
             }

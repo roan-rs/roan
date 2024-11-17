@@ -1,8 +1,6 @@
-use crate::{
-    commands::{init::init_cmd, install::install_cmd, run::run_cmd},
-    style,
-};
+use crate::commands::{init::init_cmd, install::install_cmd, run::run_cmd};
 use clap::{builder::Styles, Arg, ArgAction, Command};
+use roan_shell::styles::*;
 
 pub fn opt(name: &'static str, help: &'static str) -> Arg {
     Arg::new(name).long(name).help(help).action(ArgAction::Set)
@@ -15,13 +13,13 @@ pub fn positional(name: &'static str, help: &'static str) -> Arg {
 pub fn cli() -> Command {
     let styles = {
         Styles::styled()
-            .header(style::HEADER)
-            .usage(style::USAGE)
-            .literal(style::LITERAL)
-            .placeholder(style::PLACEHOLDER)
-            .error(style::ERROR)
-            .valid(style::VALID)
-            .invalid(style::INVALID)
+            .header(HEADER)
+            .usage(USAGE)
+            .literal(LITERAL)
+            .placeholder(PLACEHOLDER)
+            .error(ERROR)
+            .valid(VALID)
+            .invalid(INVALID)
     };
 
     Command::new("roan")

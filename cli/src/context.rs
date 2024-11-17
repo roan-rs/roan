@@ -1,10 +1,11 @@
-use crate::{config_file::RoanConfig, fs::walk_for_file, shell::Shell};
+use crate::{config_file::RoanConfig, fs::walk_for_file};
 use anstream::ColorChoice;
 use anyhow::{anyhow, bail, Context, Result};
 use colored::Colorize;
 use octocrab::Octocrab;
 use roan_engine::path::{canonicalize_path, normalize_without_canonicalize};
 use std::{fs::read_to_string, path::PathBuf, sync::Arc, time::Instant};
+use roan_shell::Shell;
 
 #[derive(Debug)]
 pub struct GlobalContext {

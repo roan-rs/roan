@@ -93,7 +93,7 @@ impl Context {
         match module.parse(self, vm) {
             Ok(_) => Ok(()),
             Err(e) => {
-                print_diagnostic(&e, Some(module.source().content()));
+                print_diagnostic(&e, Some(module.source().content()), module.path());
                 std::process::exit(1);
             }
         }
@@ -113,7 +113,7 @@ impl Context {
         match module.interpret(self, vm) {
             Ok(_) => Ok(()),
             Err(e) => {
-                print_diagnostic(&e, Some(module.source().content()));
+                print_diagnostic(&e, Some(module.source().content()), module.path());
                 std::process::exit(1);
             }
         }

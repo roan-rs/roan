@@ -21,8 +21,6 @@ pub mod logger;
 mod module_loader;
 pub mod panic_handler;
 pub mod pm;
-pub mod shell;
-pub mod style;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -59,7 +57,7 @@ async fn main() -> Result<()> {
     match run_cmd(&mut ctx, cmd).await {
         Ok(()) => Ok(()),
         Err(err) => {
-            if let None = print_diagnostic(&err, None) {
+            if let None = print_diagnostic(&err, None, None) {
                 ctx.shell.error(&format!("{}", err))?;
             }
 

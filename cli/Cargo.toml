@@ -25,3 +25,4 @@ flate2 = "1.0.34"
 tar = "0.4.43"
 semver = "1.0.23"
 itertools = "0.13.0"
+roan-shell = { workspace = true }

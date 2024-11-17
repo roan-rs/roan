@@ -52,7 +52,7 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
         match module.parse(ctx, vm) {
             Ok(..) => {}
             Err(err) => {
-                print_diagnostic(&err, Some(content));
+                print_diagnostic(&err, Some(content), module.path());
                 exit(1);
             }
         }
@@ -70,7 +70,7 @@ pub fn run_command(global: &mut GlobalContext, matches: &ArgMatches) -> Result<(
     match result {
         Ok(_) => {}
         Err(e) => {
-            print_diagnostic(&e, Some(content));
+            print_diagnostic(&e, Some(content), module.path());
             exit(1);
         }
     }

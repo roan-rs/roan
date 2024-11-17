@@ -131,7 +131,7 @@ impl Module {
                 ) {
                     Ok(_) => Ok(vm.pop().unwrap_or(Value::Void)),
                     Err(e) => {
-                        print_diagnostic(&e, Some(def_module.source.content()));
+                        print_diagnostic(&e, Some(def_module.source.content()), def_module.path());
                         std::process::exit(1);
                     }
                 }

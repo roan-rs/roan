@@ -10,3 +10,5 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 log = { workspace = true }
 colored = { workspace = true }
+roan-shell = { workspace = true }
+anstream = { workspace = true }

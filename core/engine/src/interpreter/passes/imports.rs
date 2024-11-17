@@ -43,7 +43,7 @@ impl Pass for ImportPass {
                 match loaded_module.parse(ctx, vm) {
                     Ok(_) => {}
                     Err(e) => {
-                        print_diagnostic(&e, Some(loaded_module.source().content()));
+                        print_diagnostic(&e, Some(loaded_module.source().content()), module.path());
                         std::process::exit(1);
                     }
                 }

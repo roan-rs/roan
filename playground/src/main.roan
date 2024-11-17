@@ -13,13 +13,19 @@ impl Person {
             name: ""
         }
     }
+
+    fn rename(self, name: string) -> Person {
+        self.name = name;
+        return self;
+    }
 }
 
 fn main() {
     let person = Person::static();
-    person.name = "John Doe"; // unimplmeneted
 
-    println("Person: {}", person);
+    person = person.rename("John Doe");
+
+    println("Person: {}", person
 }
 
 main();

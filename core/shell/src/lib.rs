@@ -1,12 +1,20 @@
 //! Mostly derived from [cargo](https://github.com/rust-lang/cargo) source code.
 
-use crate::style::{ERROR, HEADER, NOTE, WARN};
+mod link;
+pub mod styles;
+
+use crate::{
+    link::Link,
+    styles::{ERROR, HEADER, NOTE, WARN},
+};
 use anstream::{AutoStream, ColorChoice};
 use anstyle::Style;
 use anyhow::Result;
+use gethostname::gethostname;
 use std::{
     fmt,
     io::{Stderr, Stdout, Write},
+    path::PathBuf,
 };
 
 #[derive(Debug)]
@@ -95,5 +103,21 @@ impl Shell {
         *color = color_choice;
         *stdout = AutoStream::new(std::io::stdout(), color_choice);
         *stderr = AutoStream::new(std::io::stderr(), color_choice);
+    }
+
+    pub fn file_link(&mut self, file: PathBuf) -> Result<url::Url> {
+        let mut url = url::Url::from_file_path(file).ok().unwrap();
+
+        let hostname = if cfg!(windows) {
+            None
+        } else {
+            gethostname().into_string().ok()
+        };
+        let _ = url.set_host(hostname.as_deref());
+        Ok(url)
+    }
+
+    pub fn hyperlink<'a>(&mut self, url: &'a str, text: &'a str) -> Result<Link<'a>> {
+        Ok(Link::new(text, url))
     }
 }
