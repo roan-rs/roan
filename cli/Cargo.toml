@@ -18,7 +18,7 @@ tracing-appender = { workspace = true }
 anstream = { workspace = true }
 toml_edit = { workspace = true }
 octocrab = { workspace = true }
-tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.41.1", features = ["rt", "rt-multi-thread", "macros"] }
 http-body-util = { workspace = true }
 dirs = "5.0.1"
 flate2 = "1.0.34"
