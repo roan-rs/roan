@@ -40,7 +40,7 @@ uuid = { version = "1.11.0", features = ["v4"] }
 indexmap = "2.6.0"
 anstream = "0.6.18"
 toml_edit = "0.22.22"
-octocrab = "0.42.0"
+octocrab = "0.42.1"
 http-body-util = "0.1.2"
 url = "2.5.3"
 gethostname = "0.5.0"
