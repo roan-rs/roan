@@ -25,7 +25,7 @@ fn main() {
 
     person = person.rename("John Doe");
 
-    println("Person: {}", person
+    println("Person: {}", person)
 }
 
 main();

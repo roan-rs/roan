@@ -7,6 +7,7 @@ use crate::{
     value::Value,
     vm::native_fn::{NativeFunction, NativeFunctionParam},
 };
+use roan_ast::TypeKind;
 use std::{panic, panic::panic_any};
 
 pub mod debug;
@@ -38,14 +39,14 @@ macro_rules! native_function {
                     $(
                         NativeFunctionParam {
                             name: stringify!($arg).to_string(),
-                            ty: "Value".to_string(),
+                            ty: TypeKind::Anytype,
                             is_rest: false,
                         },
                     )*
                     $(
                         NativeFunctionParam {
                             name: stringify!($rest).to_string(),
-                            ty: "Vec<Value>".to_string(),
+                            ty: TypeKind::Vec,
                             is_rest: true,
                         },
                     )?

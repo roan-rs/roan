@@ -13,7 +13,7 @@ use colored::Colorize;
 use indexmap::IndexMap;
 use roan_ast::{
     AccessKind, AssignOperator, BinOpKind, Expr, GetSpan, LiteralType, Stmt, TypeAnnotation,
-    UnOpKind,
+    TypeKind, UnOpKind,
 };
 use roan_error::{
     error::RoanError::{
@@ -155,7 +155,7 @@ impl ResolvedType {
         TypeAnnotation {
             separator: None,
             token_name: None,
-            type_name: match self {
+            kind: TypeKind::from_str(&match self {
                 ResolvedType::Int => "int".to_string(),
                 ResolvedType::Float => "float".to_string(),
                 ResolvedType::Bool => "bool".to_string(),
@@ -167,17 +167,15 @@ impl ResolvedType {
                 ResolvedType::Vector(_) => "vec".to_string(),
                 ResolvedType::Any => "anytype".to_string(),
                 ResolvedType::Void => "void".to_string(),
-            },
-            is_array: matches!(self, ResolvedType::Vector(_)),
+            }),
             is_nullable: false,
             module_id: None,
-            is_generic: generics.len() > 0,
             generics,
         }
     }
 
     pub fn from_type_annotation(typ: &TypeAnnotation) -> ResolvedType {
-        match typ.type_name.as_str() {
+        match typ.kind.to_string().as_str() {
             "int" => ResolvedType::Int,
             "float" => ResolvedType::Float,
             "bool" => ResolvedType::Bool,
@@ -195,7 +193,7 @@ impl ResolvedType {
             _ => {
                 // Not sure if this is the best approach
                 if let Some(mod_id) = &typ.module_id {
-                    ResolvedType::Struct(typ.type_name.clone(), mod_id.clone())
+                    ResolvedType::Struct(typ.kind.to_string().clone(), mod_id.clone())
                 } else {
                     ResolvedType::Any
                 }
@@ -262,7 +260,7 @@ impl TypePass {
     ) -> Result<()> {
         typ.module_id = Some(module.id().clone());
 
-        if typ.is_generic && !typ.generics.is_empty() {
+        if typ.is_generic() {
             for generic in typ.generics.iter_mut() {
                 self.check_type_annotation(generic, module, ctx)?;
             }
@@ -293,11 +291,9 @@ impl TypePass {
         TypeAnnotation {
             separator: None,
             token_name: None,
-            type_name: param.ty,
-            is_array: false,
+            kind: param.ty,
             is_nullable: false,
             module_id: None,
-            is_generic: false,
             generics: vec![],
         }
     }
@@ -322,7 +318,7 @@ impl TypePass {
             Expr::Object(obj) => {
                 let accepts_any = global_type
                     .as_ref()
-                    .map(|gt| gt.is_generic("object", vec!["anytype"]))
+                    .map(|gt| gt.match_generic(TypeKind::Object, vec![TypeKind::Anytype]))
                     .unwrap_or(false);
 
                 let mut obj_type = ResolvedType::Null;
@@ -369,7 +365,7 @@ impl TypePass {
                         Ok(ResolvedType::from_type_annotation(typ))
                     } else {
                         Err(TypeMismatch(
-                            format!("Both branches of a then-else expression must match type annotation: {}", typ.type_name),
+                            format!("Both branches of a then-else expression must match type annotation: {}", typ.kind),
                             then_else.span().clone(),
                         ).into())
                     }
@@ -387,7 +383,7 @@ impl TypePass {
             Expr::Vec(vec) => {
                 let accepts_any = global_type
                     .as_ref()
-                    .map(|gt| gt.is_generic("vec", vec!["anytype"]))
+                    .map(|gt| gt.match_generic(TypeKind::Vec, vec![TypeKind::Anytype]))
                     .unwrap_or(false);
 
                 let mut vec_type = ResolvedType::Null;
@@ -405,7 +401,7 @@ impl TypePass {
                             return Err(TypeMismatch(
                                 format!(
                                     "All elements of a vector must match type annotation: {}",
-                                    typ.type_name
+                                    typ.kind
                                 ),
                                 expr.span().clone(),
                             )
@@ -476,7 +472,7 @@ impl TypePass {
                                     "Field {} of struct {} must be of type {}",
                                     name.bright_magenta(),
                                     constructor.name.bright_magenta(),
-                                    field.type_annotation.type_name.bright_magenta()
+                                    field.type_annotation.kind.to_string().bright_magenta()
                                 ),
                                 expr.span().clone(),
                             )
@@ -684,11 +680,9 @@ impl TypePass {
                         typ = Some(TypeAnnotation {
                             separator: None,
                             token_name: None,
-                            type_name: "anytype".to_string(),
-                            is_array: false,
+                            kind: TypeKind::Anytype,
                             is_nullable: true,
                             module_id: None,
-                            is_generic: false,
                             generics: vec![],
                         });
                     }
@@ -751,11 +745,9 @@ impl TypePass {
                 let typ = &mut typ.unwrap_or_else(|| TypeAnnotation {
                     separator: None,
                     token_name: None,
-                    type_name: "void".to_string(),
-                    is_array: false,
+                    kind: TypeKind::Void,
                     is_nullable: true,
                     module_id: None,
-                    is_generic: false,
                     generics: vec![],
                 });
 
@@ -836,12 +828,9 @@ impl TypePass {
                                             TypeAnnotation {
                                                 separator: None,
                                                 token_name: None,
-                                                type_name: "void".to_string(),
-                                                is_array: false,
+                                                kind: TypeKind::Void,
                                                 is_nullable: true,
                                                 module_id: None,
-
-                                                is_generic: false,
                                                 generics: vec![],
                                             },
                                         ),
@@ -852,11 +841,9 @@ impl TypePass {
                                         Ok(ResolvedType::from_type_annotation(&TypeAnnotation {
                                             separator: None,
                                             token_name: None,
-                                            type_name: "anytype".to_string(),
-                                            is_array: false,
+                                            kind: TypeKind::Anytype,
                                             is_nullable: true,
                                             module_id: None,
-                                            is_generic: false,
                                             generics: vec![],
                                         }))
                                     } else {

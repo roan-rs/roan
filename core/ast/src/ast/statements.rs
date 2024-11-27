@@ -1,7 +1,7 @@
 use crate::{ast::expr::Expr, GetSpan, Token};
 use indexmap::IndexMap;
 use roan_error::TextSpan;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 /// Represents a statement in the AST.
 ///
@@ -567,32 +567,80 @@ pub struct TypeAnnotation {
     /// The token representing the type name.
     pub token_name: Option<Token>,
     /// Type name
-    pub type_name: String,
-    /// Is this type an array?
-    pub is_array: bool,
+    pub kind: TypeKind,
     /// Is nullable?
     pub is_nullable: bool,
     /// Stores id to module for type
     pub module_id: Option<String>,
-    /// Is generic?
-    pub is_generic: bool,
     /// Generic type name
     pub generics: Vec<TypeAnnotation>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum TypeKind {
+    String,
+    Int,
+    Float,
+    Char,
+    Bool,
+    Vec,
+    Object,
+    Anytype,
+    Void,
+    Custom(String),
+}
+
+impl Display for TypeKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TypeKind::String => write!(f, "string"),
+            TypeKind::Int => write!(f, "int"),
+            TypeKind::Float => write!(f, "float"),
+            TypeKind::Char => write!(f, "char"),
+            TypeKind::Bool => write!(f, "bool"),
+            TypeKind::Vec => write!(f, "vec"),
+            TypeKind::Object => write!(f, "object"),
+            TypeKind::Anytype => write!(f, "anytype"),
+            TypeKind::Void => write!(f, "void"),
+            TypeKind::Custom(name) => write!(f, "{}", name),
+        }
+    }
+}
+
+impl TypeKind {
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "string" => TypeKind::String,
+            "int" => TypeKind::Int,
+            "float" => TypeKind::Float,
+            "char" => TypeKind::Char,
+            "bool" => TypeKind::Bool,
+            "vec" => TypeKind::Vec,
+            "object" => TypeKind::Object,
+            "anytype" => TypeKind::Anytype,
+            "void" => TypeKind::Void,
+            _ => TypeKind::Custom(s.to_string()),
+        }
+    }
+}
+
 impl TypeAnnotation {
     pub fn is_any(&self) -> bool {
-        self.type_name == "anytype"
+        self.kind == TypeKind::Anytype
     }
 
-    pub fn is_generic(&self, generic: &str, args: Vec<&str>) -> bool {
+    pub fn is_generic(&self) -> bool {
+        self.generics.len() > 0
+    }
+    
+    pub fn match_generic(&self, generic: TypeKind, args: Vec<TypeKind>) -> bool {
         let generics_names = self
             .generics
             .iter()
-            .map(|g| g.type_name.as_str())
-            .collect::<Vec<&str>>();
+            .map(|g| g.kind.clone())
+            .collect::<Vec<TypeKind>>();
 
-        self.is_generic && self.type_name == generic && generics_names == args
+        self.kind == generic && generics_names == args
     }
 }
 

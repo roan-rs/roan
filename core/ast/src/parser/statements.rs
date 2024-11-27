@@ -1,6 +1,6 @@
 use crate::{
     Block, ElseBlock, FnParam, ParseContext, Parser, Stmt, StructField, Token, TokenKind,
-    TypeAnnotation,
+    TypeAnnotation, TypeKind,
 };
 use anyhow::Result;
 use indexmap::IndexMap;
@@ -505,18 +505,10 @@ impl Parser {
     }
 
     /// Helper method to parse a type with optional array and nullability.
-    fn parse_type(&mut self) -> Result<(Token, bool, bool, Vec<TypeAnnotation>)> {
+    fn parse_type(&mut self) -> Result<(Token, Vec<TypeAnnotation>)> {
         let type_name = self.expect(TokenKind::Identifier)?;
 
-        let is_array = if self.peek().kind == TokenKind::LeftBracket {
-            self.consume();
-            self.expect(TokenKind::RightBracket)?;
-            true
-        } else {
-            false
-        };
-
-        let is_generic = if self.peek().kind == TokenKind::LessThan {
+        let generics = if self.peek().kind == TokenKind::LessThan {
             self.consume();
             let mut generics = vec![];
             while self.peek().kind != TokenKind::GreaterThan {
@@ -532,7 +524,7 @@ impl Parser {
             vec![]
         };
 
-        Ok((type_name, is_array, !is_generic.is_empty(), is_generic))
+        Ok((type_name, generics))
     }
 
     /// Parses a type annotation following a variable or parameter.
@@ -561,15 +553,13 @@ impl Parser {
             None
         };
 
-        let (token, is_array, is_generic, generics) = self.parse_type()?;
+        let (token, generics) = self.parse_type()?;
 
         Ok(TypeAnnotation {
             token_name: Some(token.clone()),
-            type_name: token.literal(),
-            is_array,
+            kind: TypeKind::from_str(&token.literal()),
             is_nullable: self.is_nullable(),
             separator: colon,
-            is_generic,
             generics,
             module_id: None,
         })
@@ -599,15 +589,13 @@ impl Parser {
         }
 
         let arrow = self.consume(); // consume the arrow
-        let (token, is_array, is_generic, generics) = self.parse_type()?;
+        let (token, generics) = self.parse_type()?;
 
         Ok(Some(TypeAnnotation {
             token_name: Some(token.clone()),
-            type_name: token.literal(),
-            is_array,
+            kind: TypeKind::from_str(&token.literal()),
             is_nullable: self.is_nullable(),
             separator: Some(arrow),
-            is_generic,
             generics,
             module_id: None,
         }))
@@ -688,11 +676,9 @@ impl Parser {
                 let type_annotation = if param.literal() == "self" {
                     TypeAnnotation {
                         token_name: None,
-                        type_name: "self".to_string(),
-                        is_array: false,
+                        kind: TypeKind::Custom("Self".to_string()),
                         is_nullable: false,
                         separator: None,
-                        is_generic: false,
                         generics: vec![],
                         module_id: None,
                     }

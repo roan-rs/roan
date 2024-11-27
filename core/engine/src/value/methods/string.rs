@@ -3,6 +3,7 @@ use crate::{
     value::Value,
     vm::native_fn::{NativeFunction, NativeFunctionParam},
 };
+use roan_ast::TypeKind;
 
 native_function!(
     fn __string_len(s) {

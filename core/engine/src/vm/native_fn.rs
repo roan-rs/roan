@@ -5,11 +5,12 @@ use std::{
     fmt::{Display, Formatter},
 };
 use tracing::debug;
+use roan_ast::TypeKind;
 
 #[derive(Debug, Clone)]
 pub struct NativeFunctionParam {
     pub name: String,
-    pub ty: String,
+    pub ty: TypeKind,
     pub is_rest: bool,
 }
 
