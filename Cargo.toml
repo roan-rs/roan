@@ -31,7 +31,7 @@ tracing-subscriber = { version = "0.3.18", features = [
 ] }
 tracing-appender = "0.2"
 backtrace = "0.3.74"
-clap = { version = "4.5.20", features = ["derive"] }
+clap = { version = "4.5.23", features = ["derive"] }
 anstyle = "1.0.10"
 tar = "0.4.42"
 toml = "0.8.19"
